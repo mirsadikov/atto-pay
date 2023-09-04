@@ -1,20 +1,30 @@
-require("dotenv").config();
-const { createClient } = require("redis");
-const fetchDB = require("./postgres");
-const redisClient = createClient({
-  url: "redis://127.0.0.1:6379",
-});
+require('dotenv').config()
+const { get, set } = require("./redis/index")
 
-redisClient.on("error", (err) => console.log("Redis Client Error", err));
+const express = require('express')
+const app = express()
+const port = 3000
+
+app.get('/set', (req, res) => {
+	const key = req.query.key
+	const val = req.query.val
+	set(key, val)
+	res.send('Hello World!')
+})
+
+app.get('/get', (req, res) => {
+	const key = req.query.key
+	get(key).then(val => {
+		res.send(`${key} = ${val}`)
+	})
+})
+
+app.post('/users',(req,res)=>{
+    
+})
+
+app.listen(port, () => {
+	console.log(`Example app listening on port ${port}`)
+})
 
 
-fetchDB("select $1 say","hello !!!")
-
-redisClient.connect().then(() => {
-  redisClient.set("key", "value").then(() => {
-    redisClient.get("key").then((data) => {
-      console.log(data);
-      redisClient.disconnect();
-    });
-  });
-});
