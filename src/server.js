@@ -1,10 +1,10 @@
-require('dotenv').config()
-//const { Client } = require('pg')
-const { get, set } = require("./redis/index")
-
+const { get, set } = require('./redis/index')
 const express = require('express')
+const customerRouter = require('./routes/customer')
 const app = express()
 const port = 3000
+
+app.use('/customers', customerRouter)
 
 app.get('/set', (req, res) => {
 	const key = req.query.key
@@ -23,19 +23,3 @@ app.get('/get', (req, res) => {
 app.listen(port, () => {
 	console.log(`Example app listening on port ${port}`)
 })
-
-//const pgClient = new Client({
-//	host: '127.0.0.1',
-//	user: process.env.DB_USER,
-//	password: process.env.DB_PASSWORD,
-//	database: process.env.DB,
-//	port: process.env.DB_PORT
-//})
-
-//pgClient.connect().then(() => {
-//	pgClient.query('SELECT $1::text as message', ['Hello world!']).then((res) => {
-//		console.log(res.rows[0].message) // Hello world!
-//		pgClient.end()
-//	})
-//})
-

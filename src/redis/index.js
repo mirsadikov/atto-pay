@@ -6,17 +6,15 @@ const redisClient = createClient({
 
 redisClient.on('error', err => console.log('Redis Client Error', err));
 
-redisClient.connect().then(() => {
+redisClient.connect()
 
-});
-
-async function set(key, val) {
-	redisClient.set('key', 'value')
+function set(key, val) {
+	redisClient.set(key, val)
 }
 
-async function get(key, val) {
-	redisClient.get('key')
+function get(key) {	
+	return redisClient.get(key).then((val) => val)
 }
 
-exports.modules = { get, set }
+module.exports = { get, set }
 //redisClient.disconnect();
