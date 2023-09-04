@@ -8,15 +8,18 @@ const pgClient = new Pool({
   port: process.env.DB_PORT,
 });
 
-function fetchDB(QUERY, ...params) {
-  pgClient.connect().then(() => {
-    pgClient.query(QUERY, params).then(async (res) => {
-      console.log(res.rows);
-      pgClient.end();
+const fetchDB = (QUERY, ...params) =>
+  new Promise((resolve, reject) => {
+    pgClient.connect().then(() => {
+      pgClient
+        .query(QUERY, params.length ? params : null)
+        .then(async (res) => {
+          resolve(res);
+        })
+        .catch((err) => {
+          reject(err);
+        });
     });
   });
-  
-}
 
-
-module.exports = fetchDB
+module.exports = fetchDB;
