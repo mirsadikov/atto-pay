@@ -21,7 +21,10 @@ function parseResponse(req, res) {
 
     if (data[0].objectType == 'Service') {
       data.forEach((service) => {
-        output[service.objectName] = iterate(service.eventCountSet)
+        output[service.objectName] = {
+          ...(output[service.objectName] || {}),
+          ...iterate(service.eventCountSet),
+        }
       })
     }
 
