@@ -1,11 +1,13 @@
-create database project;
+create database atto_project;
 
-\c project
+\c atto_project
 
 create extension if not exists "uuid-ossp";
 
-create table users(
-  id uuid default uuid_generate_v4(),
+-- drop table if exists customer;
+create table if not exists customer(
+  id uuid primary key default uuid_generate_v4(),
   name varchar(64) not null,
-  age int
+  phone varchar(12) not null unique,
+  reg_date timestamp not null default now()
 );

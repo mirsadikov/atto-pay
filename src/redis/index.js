@@ -1,20 +1,25 @@
 const { createClient } = require('redis');
 
 const redisClient = createClient({
-	url: 'redis://127.0.0.1:6379'
+  host: process.env.REDIS_HOST,
+	port: process.env.REDIS_PORT,
 });
 
-redisClient.on('error', err => console.log('Redis Client Error', err));
+redisClient.on('error', (err) => console.log('Redis Client Error', err));
 
-redisClient.connect()
+redisClient.connect();
 
 function set(key, val) {
-	redisClient.set(key, val)
+  redisClient.set(key, val);
 }
 
-function get(key) {	
-	return redisClient.get(key).then((val) => val)
+function get(key) {
+  return redisClient.get(key).then((val) => val);
 }
 
-module.exports = { get, set }
+function setex(key, val, time) {
+  redisClient.setEx(key, time, val);
+}
+
+module.exports = { get, set, setex };
 //redisClient.disconnect();

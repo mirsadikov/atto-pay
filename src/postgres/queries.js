@@ -1,6 +1,8 @@
-const usersQuery = {
-  post: "insert into users(name)values($1) returning *",
-  getAll: "select * from users",
+const customersQuery = {
+  create: 'insert into customer(name, phone) values($1, $2) returning *',
+  getOneByPhone: 'select * from customer where phone = $1',
+  getOneById: 'select * from customer where id = $1',
+  getAll: 'select * from customer',
 };
 
-module.exports = { usersQuery };
+module.exports = { customersQuery };
