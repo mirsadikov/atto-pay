@@ -2,9 +2,9 @@
   "name": "atto-pet-project",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon src/server.js"
   },
   "keywords": [],
   "author": "",
@@ -16,5 +16,8 @@
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.3",
     "redis": "^4.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
