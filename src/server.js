@@ -1,7 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const parserRouter = require('./routes/parser');
 const customerRouter = require('./routes/customer');
 const errorHandler = require('./utils/errorHandler');
+
 
 const app = express();
 const port = 3000;

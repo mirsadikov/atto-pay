@@ -1,8 +1,8 @@
 const async = require('async');
+const v4 = require('uuid').v4;
 const fetchDB = require('../postgres');
-const { setex } = require('../redis');
+const { setex, del, get } = require('../redis');
 const { customersQuery } = require('../postgres/queries');
-const generateToken = require('../utils/generateToken');
 
 async function getCustomerProfile(req, res, next) {
   try {
@@ -68,7 +68,7 @@ function customerLogin(req, res, next) {
 
     async.waterfall(
       [
-        // if user exists, return error
+        // if user not exists, return error
         (cb) => {
           fetchDB(customersQuery.getOneByPhone, phone).then((result) => {
             if (result.rows.length === 0) {
@@ -77,10 +77,18 @@ function customerLogin(req, res, next) {
             } else cb(null, result.rows[0]);
           });
         },
-        // if exists, return token
+        // delete old token from redis if exists
         (user, cb) => {
-          const token = generateToken({ id: user.id });
-          setex(user.id, token, 3600);
+          get(`user_${user.id}`).then((oldToken) => {
+            if (oldToken) del(`token_${oldToken}`);
+            cb(null, user);
+          });
+        },
+        // save and return new token
+        (user, cb) => {
+          const token = v4();
+          setex(`user_${user.id}`, token, 3600);
+          setex(`token_${token}`, user.id, 3600);
           res.status(200).json({ token });
           cb(null);
         },

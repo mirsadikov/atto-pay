@@ -20,5 +20,9 @@ function setex(key, val, time) {
   redisClient.setEx(key, time, val);
 }
 
-module.exports = { get, set, setex };
+function del(key) {
+  redisClient.del(key);
+}
+
+module.exports = { get, set, setex, del };
 //redisClient.disconnect();

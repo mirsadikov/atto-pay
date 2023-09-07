@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "f90a4a65-bf9b-4b3e-aa21-dadec671b527",
+        "_postman_id": "fbc456ba-9980-4f91-8b23-bceff322efb2",
         "name": "ATTO",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "description": ""
@@ -79,7 +79,7 @@
                 "header": [
                     {
                         "key": "Authorization",
-                        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQ1YjY3NWUwLTljZGUtNDcxOC1iZTU5LTBjZGJiMTdjZWYxOSIsImlhdCI6MTY5NDA2MzEyOX0.E9QHf06qUYf-E4yHVCQRa9-As6YDkkEKIx7oe3BZeXY"
+                        "value": "10060bb2-a16d-4dab-9618-a29928f805c2"
                     }
                 ]
             }
