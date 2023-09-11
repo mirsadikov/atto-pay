@@ -7,19 +7,20 @@ const pgClient = new Pool({
   port: process.env.DB_PORT,
 });
 
-const fetchDB = (QUERY, ...params) =>
-  new Promise((resolve, reject) => {
+const fetchDB = (QUERY, params, cb) =>
+  new Promise((resolve) => {
     pgClient.connect().then((client) => {
       pgClient
         .query(QUERY, params.length ? params : null)
         .then(async (res) => {
-          resolve(res);
+          cb(null, res);
         })
         .catch((err) => {
-          reject(err);
+          cb(err);
         })
         .finally(() => {
           client.release();
+          resolve();
         });
     });
   });

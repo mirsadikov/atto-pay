@@ -10,24 +10,27 @@ function getCustomerProfile(req, res, next) {
   async.waterfall(
     [
       (cb) => {
-        verifyToken(req, res)
-          .then(({ id }) => {
+        verifyToken(req)
+          .then((id) => {
             cb(null, id);
           })
-          .catch((err) => cb(err));
+          .catch((err) => {
+            res.status(401);
+            cb(err);
+          });
       },
       (userId, cb) => {
-        fetchDB(customersQuery.getOneById, userId)
-          .then((result) => {
-            if (result.rows.length === 0) {
-              res.status(404);
-              cb(new Error('User does not exist'));
-            }
+        fetchDB(customersQuery.getOneById, [userId], (err, result) => {
+          if (err) return cb(err);
 
-            const user = result.rows[0];
-            res.status(200).json(user);
-          })
-          .catch((err) => cb(err));
+          if (result.rows.length === 0) {
+            res.status(404);
+            return cb(new Error('User does not exist'));
+          }
+
+          const user = result.rows[0];
+          res.status(200).json(user);
+        });
       },
     ],
     (err) => err && next(err)
@@ -46,23 +49,25 @@ function customerRegister(req, res, next) {
     [
       // if user exists, return error
       (cb) => {
-        fetchDB(customersQuery.getOneByPhone, phone)
-          .then((result) => {
-            if (result.rows.length > 0) {
-              res.status(400);
-              cb(new Error('User already exists'));
-            } else cb(null);
-          })
-          .catch((err) => cb(err));
+        fetchDB(customersQuery.getOneByPhone, [phone], (err, result) => {
+          if (err) return cb(err);
+
+          if (result.rows.length > 0) {
+            res.status(400);
+            return cb(new Error('User already exists'));
+          }
+
+          cb(null);
+        });
       },
       // if new user, create user
       (cb) => {
-        fetchDB(customersQuery.create, name, phone)
-          .then((result) => {
-            res.status(201).json(result.rows[0]);
-            cb(null);
-          })
-          .catch((err) => cb(err));
+        fetchDB(customersQuery.create, [name, phone], (err, result) => {
+          if (err) return cb(err);
+
+          res.status(201).json(result.rows[0]);
+          cb(null);
+        });
       },
     ],
     (err) => err && next(err)
@@ -81,14 +86,16 @@ function customerLogin(req, res, next) {
     [
       // if user not exists, return error
       (cb) => {
-        fetchDB(customersQuery.getOneByPhone, phone)
-          .then((result) => {
-            if (result.rows.length === 0) {
-              res.status(404);
-              cb(new Error('User does not exist'));
-            } else cb(null, result.rows[0]);
-          })
-          .catch((err) => cb(err));
+        fetchDB(customersQuery.getOneByPhone, [phone], (err, result) => {
+          if (err) return cb(err);
+
+          if (result.rows.length === 0) {
+            res.status(404);
+            return cb(new Error('User does not exist'));
+          }
+
+          cb(null, result.rows[0]);
+        });
       },
       // delete old token from redis if exists
       (user, cb) => {
