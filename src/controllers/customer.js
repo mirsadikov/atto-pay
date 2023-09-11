@@ -1,11 +1,12 @@
 const async = require('async');
 const v4 = require('uuid').v4;
 const moment = require('moment');
-const LIVR = require('livr');
+const bcrypt = require('bcrypt');
 const fetchDB = require('../postgres');
 const redis = require('../redis');
 const { customersQuery } = require('../postgres/queries');
 const verifyToken = require('../middleware/verifyToken');
+const LIVR = require('../utils/livr');
 const ValidatorError = require('../errors/ValidatorError');
 
 function getCustomerProfile(req, res, next) {
@@ -44,14 +45,15 @@ function customerRegister(req, res, next) {
     [
       // validate data
       (cb) => {
-        const { name, phone } = req.body;
+        const { name, phone, password } = req.body;
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required'],
           phone: ['trim', 'integer', 'required'],
+          password: ['trim', 'required', { min_length: 6 }, 'alphanumeric'],
         });
 
-        const validData = validator.validate({ name, phone });
+        const validData = validator.validate({ name, phone, password });
 
         if (!validData) {
           res.status(400);
@@ -74,8 +76,11 @@ function customerRegister(req, res, next) {
         });
       },
       // if new user, create user
-      ({ name, phone }, cb) => {
-        fetchDB(customersQuery.create, [name, phone], (err, result) => {
+      (data, cb) => {
+        const { name, phone, password } = data;
+        const hashedPassword = bcrypt.hashSync(password, 10);
+
+        fetchDB(customersQuery.create, [name, phone, hashedPassword], (err, result) => {
           if (err) return cb(err);
 
           res.status(201).json(result.rows[0]);
@@ -92,13 +97,14 @@ function customerLogin(req, res, next) {
     [
       // validate data
       (cb) => {
-        const { phone } = req.body;
+        const { phone, password } = req.body;
 
         const validator = new LIVR.Validator({
           phone: ['trim', 'integer', 'required'],
+          password: ['trim', 'required'],
         });
 
-        const validData = validator.validate({ phone });
+        const validData = validator.validate({ phone, password });
 
         if (!validData) {
           res.status(400);
@@ -117,8 +123,21 @@ function customerLogin(req, res, next) {
             return cb(new Error('User does not exist'));
           }
 
-          cb(null, result.rows[0]);
+          cb(null, data, result.rows[0]);
         });
+      },
+      // if user exists, check password
+      (inputs, user, cb) => {
+        const { password: hashedPassword } = inputs;
+
+        const isPasswordCorrect = bcrypt.compareSync(hashedPassword, user.hashed_password);
+
+        if (!isPasswordCorrect) {
+          res.status(401);
+          return cb(new Error('Incorrect password'));
+        }
+
+        cb(null, user);
       },
       // delete old token from redis if exists
       (user, cb) => {
