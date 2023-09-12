@@ -49,7 +49,7 @@ function customerRegister(req, res, next) {
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required'],
-          phone: ['trim', 'integer', 'required'],
+          phone: ['trim', 'positive_integer', 'required'],
           password: ['trim', 'required', { min_length: 6 }, 'alphanumeric'],
         });
 
@@ -102,7 +102,7 @@ function customerLogin(req, res, next) {
         const { phone, password } = req.body;
 
         const validator = new LIVR.Validator({
-          phone: ['trim', 'integer', 'required'],
+          phone: ['trim', 'positive_integer', 'required'],
           password: ['trim', 'required'],
         });
 

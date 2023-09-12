@@ -26,9 +26,9 @@ function createCard(req, res, next) {
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required'],
-          pan: ['integer', 'required', { min_length: 16 }, { max_length: 16 }],
-          expiry_month: ['integer', 'required', { min_length: 1 }, { max_length: 2 }],
-          expiry_year: ['integer', 'required', { min_length: 1 }, { max_length: 2 }],
+          pan: ['positive_integer', 'required', { length_equal: 16 }],
+          expiry_month: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
+          expiry_year: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
         });
 
         const validData = validator.validate({ name, pan, expiry_month, expiry_year });
