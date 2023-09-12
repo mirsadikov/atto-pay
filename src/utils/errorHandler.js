@@ -1,10 +1,24 @@
+const fetchDB = require('../postgres/index');
+const { errorsQuery } = require('../postgres/queries');
+
 const errorHandler = (err, req, res, next) => {
-  const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  res.status(statusCode);
-  res.json({
-    message: err.message,
-    details: err.details || undefined,
-    // stack: process.env.NODE_ENV === 'production' ? null : err.stack,
+  fetchDB(errorsQuery.get, [err.name.toUpperCase()], (dbError, result) => {
+    const errorObject = result && result.rows[0];
+
+    const message = errorObject ? errorObject.message.ru : 'Internal Server Error';
+    const status = errorObject ? errorObject.http_code : 500;
+    const info = dbError ? undefined : err.info || undefined;
+    const type = dbError ? undefined : err.name || undefined;
+    const details =
+      process.env.NODE_ENV !== 'development' ? undefined : dbError ? dbError.message : err.message;
+
+    return res.status(status).json({
+      message,
+      status,
+      info,
+      type,
+      details,
+    });
   });
 };
 

@@ -22,4 +22,27 @@ create table if not exists customer_card(
   balance numeric(10, 2) not null default 1000000,
   
   constraint unique_customer_pan unique(customer_id, pan)
-)
+);
+
+create table if not exists error(
+  id serial primary key,
+  name varchar(64) not null unique,
+  message jsonb not null,
+  http_code int not null
+);
+
+insert into error(name, message, http_code) values
+('INVALID_INPUT', '{"en": "Invalid input", "uz": "Ma''lumotlar notog''ri", "ru": "Некорректный ввод"}', 400),
+('VALIDATION_ERROR', '{"en": "Validation error", "uz": "Validatsiya xatosi", "ru": "Ошибка валидации"}', 400),
+('DATABASE_ERROR', '{"en": "Database error", "uz": "Ma''lumotlar bazasi xatosi", "ru": "Ошибка базы данных"}', 500),
+('USER_EXISTS', '{"en": "User already exists", "uz": "Foydalanuvchi allaqachon mavjud", "ru": "Пользователь уже существует"}', 409),
+('USER_NOT_FOUND', '{"en": "User not found", "uz": "Foydalanuvchi topilmadi", "ru": "Пользователь не найден"}', 404),
+('WRONG_PASSWORD', '{"en": "Wrong password", "uz": "Noto''g''ri parol", "ru": "Неверный пароль"}', 401),
+('MISSING_TOKEN', '{"en": "Missing token", "uz": "Token topilmadi", "ru": "Отсутствует токен"}', 401),
+('INVALID_TOKEN', '{"en": "Invalid token", "uz": "Noto''g''ri token", "ru": "Неверный токен"}', 401),
+('EXPIRED_TOKEN', '{"en": "Expired token", "uz": "Muddati o''tgan token", "ru": "Истекший токен"}', 401),
+('INVALID_EXPIRY_DATE', '{"en": "Invalid expiration date", "uz": "Amal qilish muddati noto''g''ri", "ru": "Неверный срок действия"}', 400),
+('CARD_EXPIRED', '{"en": "Card expired", "uz": "Karta muddati tugagan", "ru": "Срок действия карты истек"}', 400),
+('CARD_ALREADY_ADDED', '{"en": "Card already added", "uz": "Karta allaqachon qo''shilgan", "ru": "Карта уже добавлена"}', 409),
+('CARD_NOT_FOUND', '{"en": "Card not found", "uz": "Karta topilmadi", "ru": "Карта не найдена"}', 404),
+('ERROR', '{"en": "Internal server error", "uz": "Server xatosi", "ru": "Ошибка сервера"}', 500);

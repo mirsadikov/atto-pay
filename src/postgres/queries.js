@@ -15,4 +15,8 @@ const cardsQuery = {
   delete: 'delete from customer_card where id = $1 and customer_id = $2 returning *',
 };
 
-module.exports = { customersQuery, cardsQuery };
+const errorsQuery = {
+  get: 'select * from error where name = $1',
+};
+
+module.exports = { customersQuery, cardsQuery, errorsQuery };

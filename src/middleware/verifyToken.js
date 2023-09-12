@@ -1,24 +1,19 @@
 const moment = require('moment');
 const redis = require('../redis');
+const CustomError = require('../errors/CustomError');
 
-async function verifyToken(req) {
+async function verifyToken(req, cb) {
   const token = req.headers.authorization;
-  if (!token) {
-    throw new Error('Missing auth token');
-  }
+  if (!token) return cb(new CustomError('MISSING_TOKEN'));
 
   // check if token exists in redis
   const details = JSON.parse(await redis.hGet('tokens', token));
-  if (!details) {
-    throw new Error('Invalid token');
-  }
+  if (!details) return cb(new CustomError('INVALID_TOKEN'));
 
   // check if token is expired
-  if (details.expiresAt < moment().valueOf()) {
-    throw new Error('Token expired');
-  }
+  if (details.expiresAt < moment().valueOf()) return cb(new CustomError('EXPIRED_TOKEN'));
 
-  return details.id;
+  return cb(null, details.id);
 }
 
 module.exports = verifyToken;

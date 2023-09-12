@@ -4,21 +4,18 @@ const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
 const { cardsQuery } = require('../postgres/queries');
 const fetchDB = require('../postgres');
-const ValidatorError = require('../errors/ValidatorError');
+const ValidationError = require('../errors/ValidationError');
+const CustomError = require('../errors/CustomError');
 
 function createCard(req, res, next) {
   async.waterfall(
     [
       // verify user
       (cb) => {
-        verifyToken(req)
-          .then((id) => {
-            cb(null, id);
-          })
-          .catch((err) => {
-            res.status(401);
-            cb(err);
-          });
+        verifyToken(req, (err, userId) => {
+          if (err) return cb(err);
+          cb(null, userId);
+        });
       },
       // validate data
       (userId, cb) => {
@@ -32,35 +29,20 @@ function createCard(req, res, next) {
         });
 
         const validData = validator.validate({ name, pan, expiry_month, expiry_year });
-
-        if (!validData) {
-          res.status(400);
-          return cb(new ValidatorError('Invalid input', validator.getErrors()));
-        }
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         // check card expiry date is valid and not expired
         const expiryDate = moment(`${validData.expiry_month}/${validData.expiry_year}`, 'MM/YY');
-        if (!expiryDate.isValid()) {
-          res.status(400);
-          return cb(new ValidatorError('Invalid expiry date'));
-        }
-
-        if (expiryDate.isBefore(moment())) {
-          res.status(400);
-          return cb(new ValidatorError('Card is expired'));
-        }
+        if (!expiryDate.isValid()) return cb(new CustomError('INVALID_EXPIRY_DATE'));
+        if (expiryDate.isBefore(moment())) return cb(new CustomError('CARD_EXPIRED'));
 
         cb(null, userId, validData);
       },
-      // check card is not already exists
+      // check card is not already added
       (userId, validData, cb) => {
         fetchDB(cardsQuery.getOneByPan, [validData.pan], (err, result) => {
           if (err) return cb(err);
-
-          if (result.rows.length > 0) {
-            res.status(400);
-            return cb(new Error('Card already added'));
-          }
+          if (result.rows.length > 0) return cb(new CustomError('CARD_ALREADY_ADDED'));
 
           cb(null, userId, validData);
         });
@@ -88,14 +70,10 @@ function getCustomerCards(req, res, next) {
     [
       // verify user
       (cb) => {
-        verifyToken(req)
-          .then((id) => {
-            cb(null, id);
-          })
-          .catch((err) => {
-            res.status(401);
-            cb(err);
-          });
+        verifyToken(req, (err, userId) => {
+          if (err) return cb(err);
+          cb(null, userId);
+        });
       },
       // get cards
       (userId, cb) => {
@@ -116,14 +94,10 @@ function updateCard(req, res, next) {
     [
       // verify user
       (cb) => {
-        verifyToken(req)
-          .then((id) => {
-            cb(null, id);
-          })
-          .catch((err) => {
-            res.status(401);
-            cb(err);
-          });
+        verifyToken(req, (err, userId) => {
+          if (err) return cb(err);
+          cb(null, userId);
+        });
       },
       // validate data
       (userId, cb) => {
@@ -135,11 +109,7 @@ function updateCard(req, res, next) {
         });
 
         const validData = validator.validate({ id, name });
-
-        if (!validData) {
-          res.status(400);
-          return cb(new ValidatorError('Invalid input', validator.getErrors()));
-        }
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, userId, validData);
       },
@@ -147,11 +117,7 @@ function updateCard(req, res, next) {
       (userId, data, cb) => {
         fetchDB(cardsQuery.update, [data.name, data.id, userId], (err, result) => {
           if (err) return cb(err);
-
-          if (result.rowCount === 0) {
-            res.status(404);
-            return cb(new Error('Card not found'));
-          }
+          if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 
           res.status(200).json({
             success: true,
@@ -170,14 +136,10 @@ function deleteCard(req, res, next) {
     [
       // verify user
       (cb) => {
-        verifyToken(req)
-          .then((id) => {
-            cb(null, id);
-          })
-          .catch((err) => {
-            res.status(401);
-            cb(err);
-          });
+        verifyToken(req, (err, userId) => {
+          if (err) return cb(err);
+          cb(null, userId);
+        });
       },
       // validate data
       (userId, cb) => {
@@ -188,11 +150,7 @@ function deleteCard(req, res, next) {
         });
 
         const validData = validator.validate({ id });
-
-        if (!validData) {
-          res.status(400);
-          return cb(new ValidatorError('Invalid input', validator.getErrors()));
-        }
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, userId, validData);
       },
@@ -200,11 +158,7 @@ function deleteCard(req, res, next) {
       (userId, data, cb) => {
         fetchDB(cardsQuery.delete, [data.id, userId], (err, result) => {
           if (err) return cb(err);
-
-          if (result.rowCount === 0) {
-            res.status(404);
-            return cb(new Error('Card not found'));
-          }
+          if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 
           res.status(200).json({
             success: true,

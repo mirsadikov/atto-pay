@@ -1,4 +1,6 @@
 const { Pool } = require('pg');
+const DatabaseError = require('../errors/DatabaseError');
+
 const pgClient = new Pool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -9,20 +11,25 @@ const pgClient = new Pool({
 
 const fetchDB = (QUERY, params, cb) =>
   new Promise((resolve) => {
-    pgClient.connect().then((client) => {
-      pgClient
-        .query(QUERY, params.length ? params : null)
-        .then(async (res) => {
-          cb(null, res);
-        })
-        .catch((err) => {
-          cb(err);
-        })
-        .finally(() => {
-          client.release();
-          resolve();
-        });
-    });
+    pgClient
+      .connect()
+      .then((client) => {
+        pgClient
+          .query(QUERY, params.length ? params : null)
+          .then((res) => {
+            cb(null, res);
+          })
+          .catch((err) => {
+            cb(new DatabaseError(err));
+          })
+          .finally(() => {
+            client.release();
+            resolve();
+          });
+      })
+      .catch((err) => {
+        cb(new DatabaseError(err));
+      });
   });
 
 module.exports = fetchDB;

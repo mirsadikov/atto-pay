@@ -7,29 +7,22 @@ const redis = require('../redis');
 const { customersQuery } = require('../postgres/queries');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
-const ValidatorError = require('../errors/ValidatorError');
+const ValidationError = require('../errors/ValidationError');
+const CustomError = require('../errors/CustomError');
 
 function getCustomerProfile(req, res, next) {
   async.waterfall(
     [
       (cb) => {
-        verifyToken(req)
-          .then((id) => {
-            cb(null, id);
-          })
-          .catch((err) => {
-            res.status(401);
-            cb(err);
-          });
+        verifyToken(req, (err, userId) => {
+          if (err) return cb(err);
+          cb(null, userId);
+        });
       },
       (userId, cb) => {
         fetchDB(customersQuery.getOneById, [userId], (err, result) => {
           if (err) return cb(err);
-
-          if (result.rows.length === 0) {
-            res.status(404);
-            return cb(new Error('User does not exist'));
-          }
+          if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
 
           const user = result.rows[0];
           res.status(200).json(user);
@@ -54,11 +47,7 @@ function customerRegister(req, res, next) {
         });
 
         const validData = validator.validate({ name, phone, password });
-
-        if (!validData) {
-          res.status(400);
-          return cb(new ValidatorError('Invalid input', validator.getErrors()));
-        }
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, validData);
       },
@@ -66,11 +55,7 @@ function customerRegister(req, res, next) {
       (data, cb) => {
         fetchDB(customersQuery.getOneByPhone, [data.phone], (err, result) => {
           if (err) return cb(err);
-
-          if (result.rows.length > 0) {
-            res.status(400);
-            return cb(new Error('User already exists'));
-          }
+          if (result.rows.length > 0) return cb(new CustomError('USER_EXISTS'));
 
           cb(null, data);
         });
@@ -107,11 +92,7 @@ function customerLogin(req, res, next) {
         });
 
         const validData = validator.validate({ phone, password });
-
-        if (!validData) {
-          res.status(400);
-          return cb(new ValidatorError('Invalid input', validator.getErrors()));
-        }
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, validData);
       },
@@ -119,11 +100,7 @@ function customerLogin(req, res, next) {
       (data, cb) => {
         fetchDB(customersQuery.getOneByPhone, [data.phone], (err, result) => {
           if (err) return cb(err);
-
-          if (result.rows.length === 0) {
-            res.status(404);
-            return cb(new Error('User does not exist'));
-          }
+          if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
 
           cb(null, data, result.rows[0]);
         });
@@ -133,11 +110,7 @@ function customerLogin(req, res, next) {
         const { password: hashedPassword } = inputs;
 
         const isPasswordCorrect = bcrypt.compareSync(hashedPassword, user.hashed_password);
-
-        if (!isPasswordCorrect) {
-          res.status(401);
-          return cb(new Error('Incorrect password'));
-        }
+        if (!isPasswordCorrect) return cb(new CustomError('WRONG_PASSWORD'));
 
         cb(null, user);
       },
