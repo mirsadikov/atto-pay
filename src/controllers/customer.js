@@ -83,7 +83,9 @@ function customerRegister(req, res, next) {
         fetchDB(customersQuery.create, [name, phone, hashedPassword], (err, result) => {
           if (err) return cb(err);
 
-          res.status(201).json(result.rows[0]);
+          const user = result.rows[0];
+          delete user.hashed_password;
+          res.status(201).json(user);
           cb(null);
         });
       },
