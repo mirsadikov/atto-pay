@@ -5,7 +5,10 @@ const errorHandler = (err, req, res, next) => {
   fetchDB(errorsQuery.get, [err.name.toUpperCase()], (dbError, result) => {
     const errorObject = result && result.rows[0];
 
-    const message = errorObject ? errorObject.message.ru : 'Internal Server Error';
+    const lang = req.headers['accept-language'] || 'en';
+    const message = errorObject
+      ? errorObject.message[lang] || errorObject.message.en
+      : 'Internal Server Error';
     const status = errorObject ? errorObject.http_code : 500;
     const info = dbError ? undefined : err.info || undefined;
     const type = dbError ? undefined : err.name || undefined;

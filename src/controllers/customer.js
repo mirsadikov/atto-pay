@@ -9,6 +9,7 @@ const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
+const imageStorage = require('../utils/imageStorage');
 
 function getCustomerProfile(req, res, next) {
   async.waterfall(
@@ -25,6 +26,7 @@ function getCustomerProfile(req, res, next) {
           if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
 
           const user = result.rows[0];
+          delete user.hashed_password;
           res.status(200).json(user);
         });
       },
@@ -149,42 +151,90 @@ function updateCustomer(req, res, next) {
       },
       // validate data
       (userId, cb) => {
-        const { name, password } = req.body;
+        const { name, password, deletePhoto } = req.body;
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string'],
           password: ['trim', { min_length: 6 }, 'alphanumeric'],
+          deletePhoto: [{ one_of: [true, false] }, { default: false }],
         });
 
-        const validData = validator.validate({ name, password });
+        const validData = validator.validate({ name, password, deletePhoto });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, userId, validData);
       },
       // get user
-      (userId, data, cb) => {
+      (userId, newData, cb) => {
         fetchDB(customersQuery.getOneById, [userId], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
-          cb(null, result.rows[0], data);
+          cb(null, result.rows[0], newData);
         });
       },
-      // update user
-      (user, data, cb) => {
-        const { name, password } = data;
-        const hashedPassword = password ? bcrypt.hashSync(password, 10) : user.hashed_password;
-        const newName = name || user.name;
+      // delete old photo if requested or new photo attached
+      (user, newData, cb) => {
+        if (!user.photo_url) return cb(null, user, newData);
 
-        fetchDB(customersQuery.update, [newName, hashedPassword, user.id], (err, result) => {
-          if (err) return cb(err);
+        if (newData.deletePhoto || (req.files && req.files.avatar)) {
+          imageStorage.delete(user.photo_url, (err) => {
+            if (err) return cb(err);
 
-          const user = result.rows[0];
-          delete user.hashed_password;
-          res.status(200).json({
-            success: true,
-            details: user,
+            user.photo_url = null;
+            cb(null, user, newData);
           });
+        } else {
+          cb(null, user, newData);
+        }
+      },
+      // save new photo if attached
+      (user, newData, cb) => {
+        if (req.files && req.files.avatar) {
+          imageStorage.upload(req.files.avatar, user.id, (err, newFileName) => {
+            if (err) return cb(err);
+            cb(null, user, newData, newFileName);
+          });
+        } else {
+          cb(null, user, newData, user.photo_url);
+        }
+      },
+      // update user
+      (user, newData, newFileName, cb) => {
+        const { name, password } = newData;
+        const newName = name || user.name;
+        const hashedPassword = password ? bcrypt.hashSync(password, 10) : user.hashed_password;
 
+        fetchDB(
+          customersQuery.update,
+          [newName, hashedPassword, newFileName, user.id],
+          (err, result) => {
+            if (err) return cb(err);
+
+            const user = result.rows[0];
+            delete user.hashed_password;
+            res.status(200).json({
+              success: true,
+              details: user,
+            });
+
+            cb(null);
+          }
+        );
+      },
+    ],
+    (err) => err && next(err)
+  );
+}
+
+function getPhoto(req, res, next) {
+  async.waterfall(
+    [
+      (cb) => {
+        const { file } = req.params;
+
+        imageStorage.getPathIfExists(file, (err, filePath) => {
+          if (err) return cb(err);
+          res.sendFile(filePath);
           cb(null);
         });
       },
@@ -198,4 +248,5 @@ module.exports = {
   customerRegister,
   customerLogin,
   updateCustomer,
+  getPhoto,
 };

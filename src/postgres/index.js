@@ -14,13 +14,13 @@ const fetchDB = (QUERY, params, cb) =>
     pgClient
       .connect()
       .then((client) => {
-        pgClient
+        client
           .query(QUERY, params.length ? params : null)
-          .then((res) => {
-            cb(null, res);
-          })
           .catch((err) => {
             cb(new DatabaseError(err));
+          })
+          .then((res) => {
+            cb(null, res);
           })
           .finally(() => {
             client.release();
