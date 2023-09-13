@@ -138,8 +138,64 @@ function customerLogin(req, res, next) {
   );
 }
 
+function updateCustomer(req, res, next) {
+  async.waterfall(
+    [
+      (cb) => {
+        verifyToken(req, (err, userId) => {
+          if (err) return cb(err);
+          cb(null, userId);
+        });
+      },
+      // validate data
+      (userId, cb) => {
+        const { name, password } = req.body;
+
+        const validator = new LIVR.Validator({
+          name: ['trim', 'string'],
+          password: ['trim', { min_length: 6 }, 'alphanumeric'],
+        });
+
+        const validData = validator.validate({ name, password });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        cb(null, userId, validData);
+      },
+      // get user
+      (userId, data, cb) => {
+        fetchDB(customersQuery.getOneById, [userId], (err, result) => {
+          if (err) return cb(err);
+          if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
+          cb(null, result.rows[0], data);
+        });
+      },
+      // update user
+      (user, data, cb) => {
+        const { name, password } = data;
+        const hashedPassword = password ? bcrypt.hashSync(password, 10) : user.hashed_password;
+        const newName = name || user.name;
+
+        fetchDB(customersQuery.update, [newName, hashedPassword, user.id], (err, result) => {
+          if (err) return cb(err);
+
+          const user = result.rows[0];
+          delete user.hashed_password;
+          res.status(200).json({
+            success: true,
+            details: user,
+          });
+
+          cb(null);
+        });
+      },
+    ],
+    (err) => err && next(err)
+  );
+}
+
 module.exports = {
   getCustomerProfile,
   customerRegister,
   customerLogin,
+  updateCustomer,
 };

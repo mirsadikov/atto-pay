@@ -3,6 +3,7 @@ const customersQuery = {
   getOneByPhone: 'select * from customer where phone = $1',
   getOneById: 'select * from customer where id = $1',
   getAll: 'select * from customer',
+  update: 'update customer set name = $1, hashed_password = $2 where id = $3 returning *',
 };
 
 const cardsQuery = {
