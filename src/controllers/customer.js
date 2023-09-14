@@ -118,10 +118,9 @@ function customerLogin(req, res, next) {
           }
 
           // if block time is over, unblock user
-          return fetchDB(customersQuery.changeStatus, [false, 0, null, user.id], (err) => {
-            if (err) return cb(err);
-            cb(null, inputs, user);
-          });
+          user.last_login_attempt = null;
+          user.is_blocked = false;
+          return cb(null, inputs, user);
         }
 
         cb(null, inputs, user);
@@ -132,28 +131,29 @@ function customerLogin(req, res, next) {
 
         const isPasswordCorrect = bcrypt.compareSync(hashedPassword, user.hashed_password);
         if (!isPasswordCorrect) {
-          user.login_attempts += 1;
+          // if last login attempt was more than 1 minute ago, then 1, else +1
+          user.login_attempts =
+            user.last_login_attempt && moment().diff(user.last_login_attempt, 'minutes') < 1
+              ? user.login_attempts + 1
+              : 1;
 
           // if login attempts is 3, block user
-          if (user.login_attempts >= 3) {
-            return fetchDB(customersQuery.changeStatus, [true, 0, moment(), user.id], (err) => {
-              if (err) return cb(err);
-              cb(new CustomError('USER_BLOCKED'));
-            });
-          }
+          if (user.login_attempts >= 3) user.is_blocked = true;
 
-          // increase login attempts
+          // save status
           return fetchDB(
             customersQuery.changeStatus,
-            [false, user.login_attempts, moment(), user.id],
+            [user.is_blocked, user.login_attempts, moment(), user.id],
             (err) => {
               if (err) return cb(err);
-              cb(new CustomError('WRONG_PASSWORD'));
+
+              if (user.is_blocked) cb(new CustomError('USER_BLOCKED'));
+              else cb(new CustomError('WRONG_PASSWORD'));
             }
           );
         }
 
-        // reset login attempts
+        // reset login attempts if password is correct
         fetchDB(customersQuery.changeStatus, [false, 0, null, user.id], (err) => {
           if (err) console.log(err);
         });
