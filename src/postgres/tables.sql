@@ -4,13 +4,20 @@ create database atto_project;
 
 create extension if not exists "uuid-ossp";
 
+drop table if exists customer_card;
+drop table if exists customer;
+drop table if exists error;
+
 create table if not exists customer(
   id uuid primary key default uuid_generate_v4(),
   name varchar(64) not null,
   phone varchar(12) not null unique,
   photo_url varchar(256),
   hashed_password text not null,
-  reg_date timestamp not null default now()
+  reg_date timestamp not null default now(),
+  is_blocked boolean not null default false,
+  login_attempts int not null default 0,
+  last_login_attempt timestamp
 );
 
 create table if not exists customer_card(
@@ -21,7 +28,6 @@ create table if not exists customer_card(
   expiry_month varchar(2) not null,
   expiry_year varchar(2) not null,
   balance numeric(10, 2) not null default 1000000,
-  
   constraint unique_customer_pan unique(customer_id, pan)
 );
 
@@ -52,4 +58,5 @@ insert into error(name, message, http_code) values
 ('FILE_NOT_ATTACHED', '{"en": "File is not provided", "uz": "Fayl berilmagan", "ru": "Файл не предоставлен"}', 400),
 ('FILE_DELETE_ERROR', '{"en": "Error while deleting file", "uz": "Fayl o''chirishda xatolik", "ru": "Ошибка при удалении файла"}', 500),
 ('FILE_NOT_FOUND', '{"en": "File not found", "uz": "Fayl topilmadi", "ru": "Файл не найден"}', 404),
-('FILE_READER_ERROR', '{"en": "Error while reading file", "uz": "Faylni o''qishda xatolik", "ru": "Ошибка при чтении файла"}', 500);
+('FILE_READER_ERROR', '{"en": "Error while reading file", "uz": "Faylni o''qishda xatolik", "ru": "Ошибка при чтении файла"}', 500),
+('USER_BLOCKED', '{"en": "User is blocked, try again later", "uz": "Foydalanuvchi bloklangan, keyinroq urinib ko''ring", "ru": "Пользователь заблокирован, попробуйте позже"}', 403);

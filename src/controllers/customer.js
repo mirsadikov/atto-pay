@@ -70,9 +70,10 @@ function customerRegister(req, res, next) {
         fetchDB(customersQuery.create, [name, phone, hashedPassword], (err, result) => {
           if (err) return cb(err);
 
-          const user = result.rows[0];
-          delete user.hashed_password;
-          res.status(201).json(user);
+          res.status(201).json({
+            success: true,
+            details: result.rows[0],
+          });
           cb(null);
         });
       },
@@ -107,12 +108,55 @@ function customerLogin(req, res, next) {
           cb(null, data, result.rows[0]);
         });
       },
-      // if user exists, check password
+      // check if user is not blocked
+      (inputs, user, cb) => {
+        if (user.is_blocked) {
+          const blockedUntil = moment(user.last_login_attempt).add(1, 'minute');
+          // if block time is not over, return error
+          if (moment().isBefore(blockedUntil)) {
+            return cb(new CustomError('USER_BLOCKED'));
+          }
+
+          // if block time is over, unblock user
+          return fetchDB(customersQuery.changeStatus, [false, 0, null, user.id], (err) => {
+            if (err) return cb(err);
+            cb(null, inputs, user);
+          });
+        }
+
+        cb(null, inputs, user);
+      },
+      // check password
       (inputs, user, cb) => {
         const { password: hashedPassword } = inputs;
 
         const isPasswordCorrect = bcrypt.compareSync(hashedPassword, user.hashed_password);
-        if (!isPasswordCorrect) return cb(new CustomError('WRONG_PASSWORD'));
+        if (!isPasswordCorrect) {
+          user.login_attempts += 1;
+
+          // if login attempts is 3, block user
+          if (user.login_attempts >= 3) {
+            return fetchDB(customersQuery.changeStatus, [true, 0, moment(), user.id], (err) => {
+              if (err) return cb(err);
+              cb(new CustomError('USER_BLOCKED'));
+            });
+          }
+
+          // increase login attempts
+          return fetchDB(
+            customersQuery.changeStatus,
+            [false, user.login_attempts, moment(), user.id],
+            (err) => {
+              if (err) return cb(err);
+              cb(new CustomError('WRONG_PASSWORD'));
+            }
+          );
+        }
+
+        // reset login attempts
+        fetchDB(customersQuery.changeStatus, [false, 0, null, user.id], (err) => {
+          if (err) console.log(err);
+        });
 
         cb(null, user);
       },
@@ -210,11 +254,9 @@ function updateCustomer(req, res, next) {
           (err, result) => {
             if (err) return cb(err);
 
-            const user = result.rows[0];
-            delete user.hashed_password;
             res.status(200).json({
               success: true,
-              details: user,
+              details: result.rows[0],
             });
 
             cb(null);

@@ -1,10 +1,12 @@
 const customersQuery = {
-  create: 'insert into customer(name, phone, hashed_password) values($1, $2, $3) returning *',
+  create:
+    'insert into customer(name, phone, hashed_password) values($1, $2, $3) returning id, name, phone, photo_url, reg_date',
   getOneByPhone: 'select * from customer where phone = $1',
   getOneById: 'select * from customer where id = $1',
-  getAll: 'select * from customer',
   update:
-    'update customer set name = $1, hashed_password = $2, photo_url = $3 where id = $4 returning *',
+    'update customer set name = $1, hashed_password = $2, photo_url = $3 where id = $4 returning id, name, phone, photo_url',
+  changeStatus:
+    'update customer set is_blocked = $1, login_attempts = $2, last_login_attempt = $3 where id = $4',
 };
 
 const cardsQuery = {
