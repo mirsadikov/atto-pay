@@ -23,7 +23,7 @@ services:
     image: postgres:alpine
     container_name: postgres
     environment:
-      POSTGRES_DB: postgres
+      POSTGRES_DB: atto_project
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123456
     volumes:

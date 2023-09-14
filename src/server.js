@@ -17,6 +17,10 @@ app.use('/customer', customerRouter);
 app.use('/customer/card', cardRouter);
 app.use(errorHandler);
 
+app.get('/', (_, res) => {
+  res.send('Server is up!');
+});
+
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
 });

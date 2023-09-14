@@ -1,7 +1,3 @@
-create database atto_project;
-
-\c atto_project
-
 create extension if not exists "uuid-ossp";
 
 drop table if exists customer_card;

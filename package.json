@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "db:create": "psql -U postgres -f src/postgres/tables.sql"
+    "db:init": "node src/postgres/init.js"
   },
   "keywords": [],
   "author": "",

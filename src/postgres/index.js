@@ -2,11 +2,8 @@ const { Pool } = require('pg');
 const DatabaseError = require('../errors/DatabaseError');
 
 const pgClient = new Pool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB,
-  port: process.env.DB_PORT,
+  connectionString: process.env.POSTGRES_URL,
+  ssl: process.env.POSTGRES_SSL === 'true',
 });
 
 const fetchDB = (QUERY, params, cb) =>
