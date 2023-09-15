@@ -27,6 +27,12 @@ create table if not exists customer_card(
   constraint unique_customer_pan unique(customer_id, pan)
 );
 
+create table if not exists customer_device(
+  id serial primary key,
+  customer_id uuid not null references customer(id),
+  device_id varchar(64) not null
+);
+
 create table if not exists error(
   id serial primary key,
   name varchar(64) not null unique,

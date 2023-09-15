@@ -4,7 +4,7 @@ const moment = require('moment');
 const bcrypt = require('bcrypt');
 const fetchDB = require('../postgres');
 const redis = require('../redis');
-const { customersQuery } = require('../postgres/queries');
+const { customersQuery, devicesQuery } = require('../postgres/queries');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
 const ValidationError = require('../errors/ValidationError');
@@ -40,15 +40,17 @@ function customerRegister(req, res, next) {
     [
       // validate data
       (cb) => {
-        const { name, phone, password } = req.body;
+        const { name, phone, password, uid, trust } = req.body;
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required'],
           phone: ['trim', 'positive_integer', 'required'],
           password: ['trim', 'required', { min_length: 6 }, 'alphanumeric'],
+          trust: ['boolean'],
+          uid: ['trim', 'string', { required_if: { trust: true } }],
         });
 
-        const validData = validator.validate({ name, phone, password });
+        const validData = validator.validate({ name, phone, password, trust, uid });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, validData);
@@ -66,16 +68,30 @@ function customerRegister(req, res, next) {
       (data, cb) => {
         const { name, phone, password } = data;
         const hashedPassword = bcrypt.hashSync(password, 10);
-
         fetchDB(customersQuery.create, [name, phone, hashedPassword], (err, result) => {
           if (err) return cb(err);
 
-          res.status(201).json({
-            success: true,
-            details: result.rows[0],
-          });
-          cb(null);
+          cb(null, data, result.rows[0]);
         });
+      },
+      // trust device if needed
+      (data, createdUser, cb) => {
+        if (data.trust)
+          return fetchDB(devicesQuery.create, [createdUser.id, data.uid], (err) => {
+            if (err) return cb(err);
+
+            cb(null, createdUser);
+          });
+
+        cb(null, createdUser);
+      },
+      // return user
+      (createdUser, cb) => {
+        res.status(200).json({
+          success: true,
+          details: createdUser,
+        });
+        cb(null);
       },
     ],
     (err) => err && next(err)

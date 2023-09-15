@@ -1,10 +1,10 @@
 require('dotenv').config();
 const express = require('express');
+const fileUpload = require('express-fileupload');
 const parserRouter = require('./routes/parser');
 const customerRouter = require('./routes/customer');
 const cardRouter = require('./routes/card');
 const errorHandler = require('./utils/errorHandler');
-const fileUpload = require('express-fileupload');
 
 const app = express();
 const port = 3000;

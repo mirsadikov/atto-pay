@@ -1,4 +1,6 @@
 const LIVR = require('livr');
+const extraRules = require('livr-extra-rules');
+LIVR.Validator.registerDefaultRules(extraRules);
 
 LIVR.Validator.registerAliasedDefaultRule({
   name: 'alphanumeric',

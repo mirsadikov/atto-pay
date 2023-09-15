@@ -19,8 +19,12 @@ const cardsQuery = {
   delete: 'delete from customer_card where id = $1 and customer_id = $2 returning *',
 };
 
+const devicesQuery = {
+  create: 'insert into customer_device(customer_id, device_id) values($1, $2)',
+};
+
 const errorsQuery = {
   get: 'select * from error where name = $1',
 };
 
-module.exports = { customersQuery, cardsQuery, errorsQuery };
+module.exports = { customersQuery, cardsQuery, errorsQuery, devicesQuery };
