@@ -30,7 +30,8 @@ create table if not exists customer_card(
 create table if not exists customer_device(
   id serial primary key,
   customer_id uuid not null references customer(id),
-  device_id varchar(64) not null
+  device_id varchar(64) not null,
+  constraint unique_customer_device unique(customer_id, device_id)
 );
 
 create table if not exists error(
@@ -61,4 +62,5 @@ insert into error(name, message, http_code) values
 ('FILE_DELETE_ERROR', '{"en": "Error while deleting file", "uz": "Fayl o''chirishda xatolik", "ru": "Ошибка при удалении файла"}', 500),
 ('FILE_NOT_FOUND', '{"en": "File not found", "uz": "Fayl topilmadi", "ru": "Файл не найден"}', 404),
 ('FILE_READER_ERROR', '{"en": "Error while reading file", "uz": "Faylni o''qishda xatolik", "ru": "Ошибка при чтении файла"}', 500),
-('USER_BLOCKED', '{"en": "User is blocked, try again later", "uz": "Foydalanuvchi bloklangan, keyinroq urinib ko''ring", "ru": "Пользователь заблокирован, попробуйте позже"}', 403);
+('USER_BLOCKED', '{"en": "User is blocked, try again later", "uz": "Foydalanuvchi bloklangan, keyinroq urinib ko''ring", "ru": "Пользователь заблокирован, попробуйте позже"}', 403),
+('WRONG_OTP', '{"en": "Wrong verification code", "uz": "Tekshirish kodi noto''g''ri", "ru": "Неверный код подтверждения"}', 400);

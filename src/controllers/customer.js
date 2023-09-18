@@ -46,7 +46,7 @@ function customerRegister(req, res, next) {
           name: ['trim', 'string', 'required'],
           phone: ['trim', 'positive_integer', 'required'],
           password: ['trim', 'required', { min_length: 6 }, 'alphanumeric'],
-          trust: ['boolean'],
+          trust: ['boolean', { default: false }],
           uid: ['trim', 'string', { required_if: { trust: true } }],
         });
 
@@ -98,34 +98,80 @@ function customerRegister(req, res, next) {
   );
 }
 
-function customerLogin(req, res, next) {
+function getLoginType(req, res, next) {
   async.waterfall(
     [
-      // validate data
       (cb) => {
-        const { phone, password } = req.body;
+        const { uid, phone } = req.body;
 
         const validator = new LIVR.Validator({
           phone: ['trim', 'positive_integer', 'required'],
-          password: ['trim', 'required'],
+          uid: ['trim', 'string', 'required'],
         });
 
-        const validData = validator.validate({ phone, password });
+        const validData = validator.validate({ uid, phone });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, validData);
       },
-      // if user not exists, return error
       (data, cb) => {
-        fetchDB(customersQuery.getOneByPhone, [data.phone], (err, result) => {
+        fetchDB(devicesQuery.getOneByUid, [data.uid, data.phone], (err, result) => {
+          if (err) return cb(err);
+
+          if (result.rows.length > 0) {
+            const otp = Math.floor(100000 + Math.random() * 900000);
+
+            redis.hSet('otp', data.phone, otp).then(() => {
+              // TODO: send otp to user
+              res.status(200).json({ password: false, otp: true });
+            });
+          } else {
+            res.status(200).json({ password: true, otp: false });
+          }
+
+          cb(null);
+        });
+      },
+    ],
+    (err) => err && next(err)
+  );
+}
+
+function customerLogin(req, res, next) {
+  let inputs;
+  let user;
+
+  async.waterfall(
+    [
+      // validate data
+      (cb) => {
+        const { phone, password, uid, trust, otp } = req.body;
+
+        const validator = new LIVR.Validator({
+          phone: ['trim', 'positive_integer', 'required'],
+          trust: ['boolean', { default: false }],
+          uid: ['trim', 'string', 'required'],
+          password: ['trim', 'alphanumeric'],
+          otp: ['trim', 'positive_integer'],
+        });
+
+        inputs = validator.validate({ phone, password, uid, trust, otp });
+        if (!inputs) return cb(new ValidationError(validator.getErrors()));
+
+        cb(null);
+      },
+      // if user not exists, return error
+      (cb) => {
+        fetchDB(customersQuery.getOneByPhone, [inputs.phone], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
 
-          cb(null, data, result.rows[0]);
+          user = result.rows[0];
+          cb(null);
         });
       },
       // check if user is not blocked
-      (inputs, user, cb) => {
+      (cb) => {
         if (user.is_blocked) {
           const blockedUntil = moment(user.last_login_attempt).add(1, 'minute');
           // if block time is not over, return error
@@ -136,17 +182,50 @@ function customerLogin(req, res, next) {
           // if block time is over, unblock user
           user.last_login_attempt = null;
           user.is_blocked = false;
-          return cb(null, inputs, user);
         }
 
-        cb(null, inputs, user);
+        cb(null);
       },
-      // check password
-      (inputs, user, cb) => {
-        const { password: hashedPassword } = inputs;
+      // determine login type
+      (cb) => {
+        const { phone, uid, otp, password } = inputs;
 
-        const isPasswordCorrect = bcrypt.compareSync(hashedPassword, user.hashed_password);
-        if (!isPasswordCorrect) {
+        fetchDB(devicesQuery.getOneByUid, [uid, phone], (err, result) => {
+          if (err) return cb(err);
+
+          if (result.rows.length > 0) {
+            const validator = new LIVR.Validator({ otp: 'required' });
+            const otpValid = validator.validate({ otp });
+            if (!otpValid) return cb(new ValidationError(validator.getErrors()));
+            return cb(null, 'otp');
+          }
+
+          const validator = new LIVR.Validator({ password: 'required' });
+          const passwordValid = validator.validate({ password });
+          if (!passwordValid) return cb(new ValidationError(validator.getErrors()));
+          cb(null, 'password');
+        });
+      },
+      // check password or otp
+      (loginType, cb) => {
+        const { password: hashedPassword, otp } = inputs;
+        if (loginType === 'password') {
+          const isPasswordCorrect = bcrypt.compareSync(hashedPassword, user.hashed_password);
+          cb(null, isPasswordCorrect, loginType);
+        } else {
+          redis.hGet('otp', user.phone).then((redisOtp) => {
+            if (otp == redisOtp) {
+              redis.hDel('otp', user.phone);
+              return cb(null, true, loginType);
+            }
+
+            cb(null, false, loginType);
+          });
+        }
+      },
+      // if password is wrong, increase login attempts
+      (isValidCreadentials, loginType, cb) => {
+        if (!isValidCreadentials) {
           // if last login attempt was more than 1 minute ago, then 1, else +1
           user.login_attempts =
             user.last_login_attempt && moment().diff(user.last_login_attempt, 'minutes') < 1
@@ -164,7 +243,7 @@ function customerLogin(req, res, next) {
               if (err) return cb(err);
 
               if (user.is_blocked) cb(new CustomError('USER_BLOCKED'));
-              else cb(new CustomError('WRONG_PASSWORD'));
+              else cb(new CustomError(loginType === 'password' ? 'WRONG_PASSWORD' : 'WRONG_OTP'));
             }
           );
         }
@@ -174,17 +253,35 @@ function customerLogin(req, res, next) {
           if (err) console.log(err);
         });
 
-        cb(null, user);
+        cb(null);
       },
-      // delete old token from redis if exists
-      (user, cb) => {
-        redis.hGet('users', user.id).then((oldToken) => {
-          if (oldToken) redis.hDel('tokens', oldToken);
-          cb(null, user);
-        });
+      // if login is successful
+      (cb) => {
+        async.parallel(
+          [
+            // trust device if needed
+            (cb) => {
+              if (inputs.trust)
+                fetchDB(devicesQuery.create, [user.id, inputs.uid], (err) => {
+                  if (err) return cb(err);
+                  cb(null);
+                });
+            },
+            // delete old token
+            (cb) =>
+              redis.hGet('users', user.id).then((oldToken) => {
+                if (oldToken) redis.hDel('tokens', oldToken);
+                cb(null);
+              }),
+          ],
+          (err) => {
+            if (err) console.log(err);
+            cb(null);
+          }
+        );
       },
       // save and return new token
-      (user, cb) => {
+      (cb) => {
         const token = v4();
         redis.hSet('users', user.id, token);
         redis.hSet(
@@ -301,9 +398,26 @@ function getPhoto(req, res, next) {
   );
 }
 
+// FAKE OTP GETTER
+function getOtpFromSMS(req, res, next) {
+  try {
+    const { phone } = req.body;
+
+    redis.hGet('otp', phone).then((otp) => {
+      if (!otp) return res.send('');
+
+      res.send(otp);
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getCustomerProfile,
   customerRegister,
+  getLoginType,
+  getOtpFromSMS,
   customerLogin,
   updateCustomer,
   getPhoto,

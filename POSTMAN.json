@@ -1,332 +1,328 @@
 {
-	"info": {
-		"_postman_id": "87e34d82-9e8f-41e6-b64e-de26805d9a54",
-		"name": "ATTO",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "14215167"
-	},
-	"item": [
-		{
-			"name": "Customer",
-			"item": [
-				{
-					"name": "Register",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"name\": \"Abror\",\n    \"phone\": \"998944669827\",\n    \"password\": \"Hello1234\",\n    \"trust\": true,\n    \"uid\": \"zeyds-mac-chrome\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{url}}/customer/register",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"register"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									""
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"phone\": \"998993669801\",\n    \"password\": \"Hello1234\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{url}}/customer/login",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"login"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get profile",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "27dc76e4-c01f-4457-93d6-4949acea6af8"
-							}
-						],
-						"url": {
-							"raw": "{{url}}/customer/profile",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"profile"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update user",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "27dc76e4-c01f-4457-93d6-4949acea6af8"
-							}
-						],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "name",
-									"value": "Mirabror",
-									"type": "default",
-									"disabled": true
-								},
-								{
-									"key": "password",
-									"value": "test1234",
-									"type": "default",
-									"disabled": true
-								},
-								{
-									"key": "deletePhoto",
-									"value": "true",
-									"type": "default"
-								},
-								{
-									"key": "avatar",
-									"type": "file",
-									"src": "/Users/zeyds/Documents/Photo.png"
-								}
-							]
-						},
-						"url": {
-							"raw": "{{url}}/customer/profile",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"profile"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get photo",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{url}}/customer/photo/4cb1a938-47c6-4345-af53-cdfecf0f1ccc.png",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"photo",
-								"4cb1a938-47c6-4345-af53-cdfecf0f1ccc.png"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Cards",
-			"item": [
-				{
-					"name": "Create",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "27dc76e4-c01f-4457-93d6-4949acea6af8"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"pan\": \"8600552579883112\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"24\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{url}}/customer/card/create",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"card",
-								"create"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Customer Cards",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "27dc76e4-c01f-4457-93d6-4949acea6af8"
-							}
-						],
-						"url": {
-							"raw": "{{url}}/customer/card/all",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"card",
-								"all"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "27dc76e4-c01f-4457-93d6-4949acea6af8"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"id\": \"e1a62efa-f1d2-42dc-9a9f-695facd1a1eb\",\n  \"name\": \"to delete\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{url}}/customer/card/update",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"card",
-								"update"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "27dc76e4-c01f-4457-93d6-4949acea6af8"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"id\": \"e1a62efa-f1d2-42dc-9a9f-695facd1a1eb\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{url}}/customer/card/delete",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"card",
-								"delete"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					"pm.request.headers.add(",
-					"    {",
-					"        key: \"Accept-Language\",",
-					"        value: 'ru'",
-					"    }",
-					")"
-				]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
-		}
-	],
-	"variable": [
-		{
-			"key": "url",
-			"value": "http://localhost:3000",
-			"type": "string"
-		}
-	]
+    "info": {
+        "_postman_id": "24e9e330-74d5-44a9-8b49-126306235f8a",
+        "name": "ATTO",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "description": ""
+    },
+    "item": [
+        {
+            "name": "Customer",
+            "item": [
+                {
+                    "name": "Register",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "{{url}}/customer/register",
+                            "path": [
+                                "customer",
+                                "register"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            },
+                            "raw": "{\n    \"name\": \"Abror\",\n    \"phone\": \"998993669801\",\n    \"password\": \"Hello1234\",\n    \"trust\": true,\n    \"uid\": \"zeyds-mac-chrome\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Login",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "{{url}}/customer/login",
+                            "path": [
+                                "customer",
+                                "login"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            },
+                            "raw": "{\n    \"phone\": \"998993669801\",\n    \"trust\": true,\n    \"uid\": \"zeyds-mac-chrome\",\n    \"otp\": 731217\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get profile",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{url}}/customer/profile",
+                            "path": [
+                                "customer",
+                                "profile"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "{{token}}"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "Update user",
+                    "request": {
+                        "method": "PUT",
+                        "url": {
+                            "raw": "{{url}}/customer/profile",
+                            "path": [
+                                "customer",
+                                "profile"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "{{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "formdata",
+                            "formdata": [
+                                {
+                                    "key": "name",
+                                    "value": "Mirabror",
+                                    "disabled": true,
+                                    "type": "default"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "test1234",
+                                    "disabled": true,
+                                    "type": "default"
+                                },
+                                {
+                                    "key": "deletePhoto",
+                                    "value": "true",
+                                    "type": "default"
+                                },
+                                {
+                                    "key": "avatar",
+                                    "src": "/Users/zeyds/Documents/Photo.png",
+                                    "type": "file"
+                                }
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get photo",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{url}}/customer/photo/4cb1a938-47c6-4345-af53-cdfecf0f1ccc.png",
+                            "path": [
+                                "customer",
+                                "photo",
+                                "4cb1a938-47c6-4345-af53-cdfecf0f1ccc.png"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "Get login type",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "{{url}}/customer/getlogin",
+                            "path": [
+                                "customer",
+                                "getlogin"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            },
+                            "raw": "{\n  \"phone\": \"998993669801\",\n  \"uid\": \"zeyds-mac-chrome\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "OTP from SMS",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{url}}/customer/otp/recievebysms",
+                            "path": [
+                                "customer",
+                                "otp",
+                                "recievebysms"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        },
+                        "body": {
+                            "mode": "raw",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            },
+                            "raw": "{\n  \"phone\": \"998993669801\"\n}"
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "name": "Cards",
+            "item": [
+                {
+                    "name": "Create",
+                    "request": {
+                        "method": "POST",
+                        "url": {
+                            "raw": "{{url}}/customer/card/create",
+                            "path": [
+                                "customer",
+                                "card",
+                                "create"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "{{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            },
+                            "raw": "{\n  \"name\": \"My Uzcard\",\n  \"pan\": \"8600552579883112\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"24\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Get Customer Cards",
+                    "request": {
+                        "method": "GET",
+                        "url": {
+                            "raw": "{{url}}/customer/card/all",
+                            "path": [
+                                "customer",
+                                "card",
+                                "all"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "{{token}}"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "Update",
+                    "request": {
+                        "method": "PUT",
+                        "url": {
+                            "raw": "{{url}}/customer/card/update",
+                            "path": [
+                                "customer",
+                                "card",
+                                "update"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "{{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            },
+                            "raw": "{\n  \"id\": \"e1a62efa-f1d2-42dc-9a9f-695facd1a1eb\",\n  \"name\": \"to delete\"\n}"
+                        }
+                    }
+                },
+                {
+                    "name": "Delete",
+                    "request": {
+                        "method": "DELETE",
+                        "url": {
+                            "raw": "{{url}}/customer/card/delete",
+                            "path": [
+                                "customer",
+                                "card",
+                                "delete"
+                            ],
+                            "host": [
+                                "{{url}}"
+                            ]
+                        },
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "{{token}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            },
+                            "raw": "{\n  \"id\": \"e1a62efa-f1d2-42dc-9a9f-695facd1a1eb\"\n}"
+                        }
+                    }
+                }
+            ]
+        }
+    ]
 }
