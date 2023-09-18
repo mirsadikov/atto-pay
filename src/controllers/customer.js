@@ -271,6 +271,7 @@ function customerLogin(req, res, next) {
                   if (err) return cb(err);
                   cb(null);
                 });
+              else cb(null);
             },
             // delete old token
             (cb) =>
@@ -414,7 +415,7 @@ function getPhoto(req, res, next) {
 // FAKE OTP GETTER
 function getOtpFromSMS(req, res, next) {
   try {
-    const { phone } = req.body;
+    const { phone } = req.params;
 
     redis.hGet('otp', phone).then((otp) => {
       if (!otp) return res.send('');

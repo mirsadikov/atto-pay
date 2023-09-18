@@ -18,6 +18,6 @@ router.put('/profile', updateCustomer);
 router.get('/photo/:file', getPhoto);
 
 // FAKE OTP GETTER
-router.get('/otp/recievebysms', getOtpFromSMS);
+router.get('/otp/recievebysms/:phone', getOtpFromSMS);
 
 module.exports = router;
