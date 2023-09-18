@@ -27,7 +27,7 @@ const devicesQuery = {
 };
 
 const errorsQuery = {
-  get: 'select * from error where name = $1',
+  get: 'select message -> $2 as message, http_code from error where name = $1',
 };
 
 module.exports = { customersQuery, cardsQuery, errorsQuery, devicesQuery };

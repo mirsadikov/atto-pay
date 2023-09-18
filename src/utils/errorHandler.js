@@ -2,13 +2,13 @@ const fetchDB = require('../postgres/index');
 const { errorsQuery } = require('../postgres/queries');
 
 const errorHandler = (err, req, res, next) => {
-  fetchDB(errorsQuery.get, [err.name.toUpperCase()], (dbError, result) => {
+  const lang = req.headers['accept-language'] || 'en';
+
+  fetchDB(errorsQuery.get, [err.name.toUpperCase(), lang], (dbError, result) => {
     const errorObject = result && result.rows[0];
 
-    const lang = req.headers['accept-language'] || 'en';
-    const message = errorObject
-      ? errorObject.message[lang] || errorObject.message.en
-      : 'Internal Server Error';
+    const message =
+      errorObject && errorObject.message ? errorObject.message : 'Internal Server Error';
     const status = errorObject ? errorObject.http_code : 500;
     const info = dbError ? undefined : err.info || undefined;
     const type = dbError ? undefined : err.name || undefined;

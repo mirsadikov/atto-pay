@@ -36,6 +36,9 @@ function getCustomerProfile(req, res, next) {
 }
 
 function customerRegister(req, res, next) {
+  let inputs;
+  let user;
+
   async.waterfall(
     [
       // validate data
@@ -53,43 +56,45 @@ function customerRegister(req, res, next) {
         const validData = validator.validate({ name, phone, password, trust, uid });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
-        cb(null, validData);
+        inputs = validData;
+        cb(null);
       },
       // if user exists, return error
-      (data, cb) => {
-        fetchDB(customersQuery.getOneByPhone, [data.phone], (err, result) => {
+      (cb) => {
+        fetchDB(customersQuery.getOneByPhone, [inputs.phone], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length > 0) return cb(new CustomError('USER_EXISTS'));
 
-          cb(null, data);
+          cb(null);
         });
       },
       // if new user, create user
-      (data, cb) => {
-        const { name, phone, password } = data;
+      (cb) => {
+        const { name, phone, password } = inputs;
         const hashedPassword = bcrypt.hashSync(password, 10);
         fetchDB(customersQuery.create, [name, phone, hashedPassword], (err, result) => {
           if (err) return cb(err);
 
-          cb(null, data, result.rows[0]);
+          user = result.rows[0];
+          cb(null);
         });
       },
       // trust device if needed
-      (data, createdUser, cb) => {
-        if (data.trust)
-          return fetchDB(devicesQuery.create, [createdUser.id, data.uid], (err) => {
+      (cb) => {
+        if (inputs.trust)
+          return fetchDB(devicesQuery.create, [user.id, inputs.uid], (err) => {
             if (err) return cb(err);
 
-            cb(null, createdUser);
+            cb(null);
           });
 
-        cb(null, createdUser);
+        cb(null);
       },
       // return user
-      (createdUser, cb) => {
+      (cb) => {
         res.status(200).json({
           success: true,
-          details: createdUser,
+          details: user,
         });
         cb(null);
       },
@@ -298,16 +303,22 @@ function customerLogin(req, res, next) {
 }
 
 function updateCustomer(req, res, next) {
+  let userId;
+  let user;
+  let inputs;
+
   async.waterfall(
     [
       (cb) => {
-        verifyToken(req, (err, userId) => {
+        verifyToken(req, (err, id) => {
           if (err) return cb(err);
-          cb(null, userId);
+
+          userId = id;
+          cb(null);
         });
       },
       // validate data
-      (userId, cb) => {
+      (cb) => {
         const { name, password, deletePhoto } = req.body;
 
         const validator = new LIVR.Validator({
@@ -319,45 +330,47 @@ function updateCustomer(req, res, next) {
         const validData = validator.validate({ name, password, deletePhoto });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
-        cb(null, userId, validData);
+        inputs = validData;
+        cb(null);
       },
       // get user
-      (userId, newData, cb) => {
+      (cb) => {
         fetchDB(customersQuery.getOneById, [userId], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
-          cb(null, result.rows[0], newData);
+          user = result.rows[0];
+          cb(null);
         });
       },
       // delete old photo if requested or new photo attached
-      (user, newData, cb) => {
-        if (!user.photo_url) return cb(null, user, newData);
+      (cb) => {
+        if (!user.photo_url) return cb(null);
 
-        if (newData.deletePhoto || (req.files && req.files.avatar)) {
+        if (inputs.deletePhoto || (req.files && req.files.avatar)) {
           imageStorage.delete(user.photo_url, (err) => {
             if (err) return cb(err);
 
             user.photo_url = null;
-            cb(null, user, newData);
+            cb(null);
           });
         } else {
-          cb(null, user, newData);
+          cb(null);
         }
       },
       // save new photo if attached
-      (user, newData, cb) => {
+      (cb) => {
         if (req.files && req.files.avatar) {
           imageStorage.upload(req.files.avatar, user.id, (err, newFileName) => {
             if (err) return cb(err);
-            cb(null, user, newData, newFileName);
+            cb(null, newFileName);
           });
         } else {
-          cb(null, user, newData, user.photo_url);
+          cb(null, user.photo_url);
         }
       },
       // update user
-      (user, newData, newFileName, cb) => {
-        const { name, password } = newData;
+      (newFileName, cb) => {
+        const { name, password } = inputs;
         const newName = name || user.name;
         const hashedPassword = password ? bcrypt.hashSync(password, 10) : user.hashed_password;
 
