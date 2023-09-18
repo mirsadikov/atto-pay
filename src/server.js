@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const fileUpload = require('express-fileupload');
+const cors = require('cors')
 const parserRouter = require('./routes/parser');
 const customerRouter = require('./routes/customer');
 const cardRouter = require('./routes/card');
@@ -9,6 +10,7 @@ const errorHandler = require('./utils/errorHandler');
 const app = express();
 const port = 3000;
 
+app.use(cors());
 app.use(express.json());
 app.use(fileUpload());
 
