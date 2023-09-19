@@ -48,13 +48,19 @@ function customerRegister(req, res, next) {
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required'],
-          phone: ['trim', 'positive_integer', 'required'],
+          phone: ['trim', 'is_phone_number', { length_equal: 12 }, 'required'],
           password: ['trim', 'required', { min_length: 6 }, 'alphanumeric'],
           trust: ['boolean', { default: false }],
           uid: ['trim', 'string', { required_if: { trust: true } }],
         });
 
-        const validData = validator.validate({ name, phone, password, trust, uid });
+        const validData = validator.validate({
+          name,
+          phone: Math.abs(phone),
+          password,
+          trust,
+          uid,
+        });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         inputs = validData;
@@ -80,24 +86,46 @@ function customerRegister(req, res, next) {
           cb(null);
         });
       },
-      // trust device if needed
       (cb) => {
-        if (inputs.trust)
-          return fetchDB(devicesQuery.create, [user.id, inputs.uid], (err) => {
+        async.parallel(
+          [
+            // save and return new token
+            (cb) => {
+              const token = v4();
+              redis.hSet('users', user.id, token);
+              redis.hSet(
+                'tokens',
+                token,
+                JSON.stringify({ id: user.id, expiresAt: moment().add(1, 'hour').valueOf() })
+              );
+
+              cb(null, token);
+            },
+            // trust device if needed
+            (cb) => {
+              if (inputs.trust)
+                return fetchDB(devicesQuery.create, [user.id, inputs.uid], (err) => {
+                  if (err) return cb(err);
+
+                  cb(null);
+                });
+
+              cb(null);
+            },
+          ],
+          (err, results) => {
             if (err) return cb(err);
 
-            cb(null);
-          });
+            // return user
+            res.status(200).json({
+              success: true,
+              token: results[0],
+              details: user,
+            });
 
-        cb(null);
-      },
-      // return user
-      (cb) => {
-        res.status(200).json({
-          success: true,
-          details: user,
-        });
-        cb(null);
+            cb(null);
+          }
+        );
       },
     ],
     (err) => err && next(err)
@@ -112,11 +140,11 @@ function getLoginType(req, res, next) {
         const uid = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
-          phone: ['trim', 'positive_integer', 'required'],
+          phone: ['trim', 'is_phone_number', 'required'],
           uid: ['trim', 'string', 'required'],
         });
 
-        const validData = validator.validate({ uid, phone });
+        const validData = validator.validate({ uid, phone: Math.abs(phone) });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, validData);
@@ -156,14 +184,14 @@ function customerLogin(req, res, next) {
         const uid = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
-          phone: ['trim', 'positive_integer', 'required'],
+          phone: ['trim', 'is_phone_number', 'required'],
           trust: ['boolean', { default: false }],
           uid: ['trim', 'string', 'required'],
           password: ['trim', 'alphanumeric'],
           otp: ['trim', 'positive_integer'],
         });
 
-        inputs = validator.validate({ phone, password, uid, trust, otp });
+        inputs = validator.validate({ phone: Math.abs(phone), password, uid, trust, otp });
         if (!inputs) return cb(new ValidationError(validator.getErrors()));
 
         cb(null);
