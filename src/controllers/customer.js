@@ -154,9 +154,12 @@ function getLoginType(req, res, next) {
           if (err) return cb(err);
 
           if (result.rows.length > 0) {
-            const otp = Math.floor(100000 + Math.random() * 900000);
+            const otpObject = {
+              code: Math.floor(100000 + Math.random() * 900000),
+              expiresAt: moment().add(2, 'minutes').valueOf(),
+            };
 
-            redis.hSet('otp', data.phone, otp).then(() => {
+            redis.hSet('otp', data.phone, JSON.stringify(otpObject)).then(() => {
               // TODO: send otp to user
               res.status(200).json({ password: false, otp: true });
             });
@@ -250,7 +253,15 @@ function customerLogin(req, res, next) {
           cb(null, isPasswordCorrect, loginType);
         } else {
           redis.hGet('otp', user.phone).then((redisOtp) => {
-            if (otp == redisOtp) {
+            if (!redisOtp) return cb(null, false, loginType);
+            const otpObject = JSON.parse(redisOtp);
+
+            if (moment().isAfter(otpObject.expiresAt)) {
+              redis.hDel('otp', user.phone);
+              return cb(new CustomError('EXPIRED_OTP'));
+            }
+
+            if (otpObject.code === otp && moment().isBefore(otpObject.expiresAt)) {
               redis.hDel('otp', user.phone);
               return cb(null, true, loginType);
             }
@@ -461,7 +472,7 @@ function getOtpFromSMS(req, res, next) {
     redis.hGet('otp', phone).then((otp) => {
       if (!otp) return res.send('');
 
-      res.send(otp);
+      res.send(JSON.parse(otp).code.toString());
     });
   } catch (err) {
     next(err);
