@@ -2,7 +2,7 @@ const fetchDB = require('../postgres/index');
 const { errorsQuery } = require('../postgres/queries');
 
 const errorHandler = (err, req, res, next) => {
-  const lang = req.headers['accept-language'] || 'en';
+  const lang = req.acceptsLanguages('en', 'ru', 'uz') || 'en';
 
   fetchDB(errorsQuery.get, [err.name.toUpperCase(), lang], (dbError, result) => {
     const errorObject = result && result.rows[0];

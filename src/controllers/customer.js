@@ -43,7 +43,8 @@ function customerRegister(req, res, next) {
     [
       // validate data
       (cb) => {
-        const { name, phone, password, uid, trust } = req.body;
+        const { name, phone, password, trust } = req.body;
+        const uid = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required'],
@@ -107,7 +108,8 @@ function getLoginType(req, res, next) {
   async.waterfall(
     [
       (cb) => {
-        const { uid, phone } = req.body;
+        const { phone } = req.body;
+        const uid = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           phone: ['trim', 'positive_integer', 'required'],
@@ -150,7 +152,8 @@ function customerLogin(req, res, next) {
     [
       // validate data
       (cb) => {
-        const { phone, password, uid, trust, otp } = req.body;
+        const { phone, password, trust, otp } = req.body;
+        const uid = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           phone: ['trim', 'positive_integer', 'required'],

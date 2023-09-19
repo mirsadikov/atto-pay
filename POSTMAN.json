@@ -1,6 +1,6 @@
 {
     "info": {
-        "_postman_id": "24e9e330-74d5-44a9-8b49-126306235f8a",
+        "_postman_id": "889062a9-27aa-4cbd-9854-81ad7e724d00",
         "name": "ATTO",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
         "description": ""
@@ -23,6 +23,12 @@
                                 "{{url}}"
                             ]
                         },
+                        "header": [
+                            {
+                                "key": "X-Device-ID",
+                                "value": "zeyds-mac-chrome"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
                             "options": {
@@ -30,7 +36,7 @@
                                     "language": "json"
                                 }
                             },
-                            "raw": "{\n    \"name\": \"Abror\",\n    \"phone\": \"998993669801\",\n    \"password\": \"Hello1234\",\n    \"trust\": true,\n    \"uid\": \"zeyds-mac-chrome\"\n}"
+                            "raw": "{\n    \"name\": \"Abror\",\n    \"phone\": \"99899366980\",\n    \"password\": \"Hello1234\",\n    \"trust\": true\n}"
                         }
                     }
                 },
@@ -48,6 +54,12 @@
                                 "{{url}}"
                             ]
                         },
+                        "header": [
+                            {
+                                "key": "X-Device-ID",
+                                "value": "zeyds-mac-chrome"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
                             "options": {
@@ -55,7 +67,7 @@
                                     "language": "json"
                                 }
                             },
-                            "raw": "{\n    \"phone\": \"998993669801\",\n    \"trust\": true,\n    \"uid\": \"zeyds-mac-chrome\",\n    \"otp\": 731217\n}"
+                            "raw": "{\n    \"phone\": \"998993669806\",\n    \"trust\": true,\n    \"otp\": \"885507\"\n}"
                         }
                     }
                 },
@@ -76,7 +88,7 @@
                         "header": [
                             {
                                 "key": "Authorization",
-                                "value": "{{token}}"
+                                "value": "8a8bfc08-87wda-42b9-9a17-379bb6af572a"
                             }
                         ]
                     }
@@ -98,7 +110,7 @@
                         "header": [
                             {
                                 "key": "Authorization",
-                                "value": "{{token}}"
+                                "value": "8a8bfc08-87da-42b9-9a17-379bb6af572a"
                             }
                         ],
                         "body": {
@@ -124,6 +136,7 @@
                                 {
                                     "key": "avatar",
                                     "src": "/Users/zeyds/Documents/Photo.png",
+                                    "disabled": true,
                                     "type": "file"
                                 }
                             ]
@@ -135,11 +148,11 @@
                     "request": {
                         "method": "GET",
                         "url": {
-                            "raw": "{{url}}/customer/photo/4cb1a938-47c6-4345-af53-cdfecf0f1ccc.png",
+                            "raw": "{{url}}/customer/photo/76a2d954-f62e-4d35-85dd-9565b783828c.png",
                             "path": [
                                 "customer",
                                 "photo",
-                                "4cb1a938-47c6-4345-af53-cdfecf0f1ccc.png"
+                                "76a2d954-f62e-4d35-85dd-9565b783828c.png"
                             ],
                             "host": [
                                 "{{url}}"
@@ -161,6 +174,12 @@
                                 "{{url}}"
                             ]
                         },
+                        "header": [
+                            {
+                                "key": "X-Device-ID",
+                                "value": "zeyds-mac-chrome"
+                            }
+                        ],
                         "body": {
                             "mode": "raw",
                             "options": {
@@ -168,7 +187,7 @@
                                     "language": "json"
                                 }
                             },
-                            "raw": "{\n  \"phone\": \"998993669801\",\n  \"uid\": \"zeyds-mac-chrome\"\n}"
+                            "raw": "{\n  \"phone\": \"998993669806\"\n}"
                         }
                     }
                 },
@@ -177,24 +196,16 @@
                     "request": {
                         "method": "GET",
                         "url": {
-                            "raw": "{{url}}/customer/otp/recievebysms",
+                            "raw": "{{url}}/customer/otp/recievebysms/998993669806",
                             "path": [
                                 "customer",
                                 "otp",
-                                "recievebysms"
+                                "recievebysms",
+                                "998993669806"
                             ],
                             "host": [
                                 "{{url}}"
                             ]
-                        },
-                        "body": {
-                            "mode": "raw",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            },
-                            "raw": "{\n  \"phone\": \"998993669801\"\n}"
                         }
                     }
                 }
