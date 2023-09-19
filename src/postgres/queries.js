@@ -4,7 +4,7 @@ const customersQuery = {
   getOneByPhone: 'select * from customer where phone = $1',
   getOneById: 'select * from customer where id = $1',
   update:
-    'update customer set name = $1, hashed_password = $2, photo_url = $3 where id = $4 returning id, name, phone, photo_url',
+    'update customer set name = $1, hashed_password = $2, photo_url = $3 where id = $4 returning id, name, phone, photo_url, reg_date',
   changeStatus:
     'update customer set is_blocked = $1, login_attempts = $2, last_login_attempt = $3 where id = $4',
 };

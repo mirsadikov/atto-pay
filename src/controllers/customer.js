@@ -48,7 +48,7 @@ function customerRegister(req, res, next) {
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required'],
-          phone: ['trim', 'is_phone_number', { length_equal: 12 }, 'required'],
+          phone: ['trim', 'is_phone_number', 'required'],
           password: ['trim', 'required', { min_length: 6 }, 'alphanumeric'],
           trust: ['boolean', { default: false }],
           uid: ['trim', 'string', { required_if: { trust: true } }],
@@ -120,7 +120,7 @@ function customerRegister(req, res, next) {
             res.status(200).json({
               success: true,
               token: results[0],
-              details: user,
+              user,
             });
 
             cb(null);
@@ -326,7 +326,17 @@ function customerLogin(req, res, next) {
           token,
           JSON.stringify({ id: user.id, expiresAt: moment().add(1, 'hour').valueOf() })
         );
-        res.status(200).json({ token });
+
+        res.status(200).json({
+          token,
+          user: {
+            id: user.id,
+            name: user.name,
+            phone: user.phone,
+            photo_url: user.photo_url,
+            reg_date: user.reg_date,
+          },
+        });
         cb(null);
       },
     ],
@@ -414,7 +424,7 @@ function updateCustomer(req, res, next) {
 
             res.status(200).json({
               success: true,
-              details: result.rows[0],
+              user: result.rows[0],
             });
 
             cb(null);
