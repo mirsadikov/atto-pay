@@ -190,8 +190,8 @@ function customerLogin(req, res, next) {
           phone: ['trim', 'is_phone_number', 'required'],
           trust: ['boolean', { default: false }],
           uid: ['trim', 'string', 'required'],
-          password: ['trim', 'alphanumeric'],
-          otp: ['trim', 'positive_integer'],
+          password: ['trim', 'string'],
+          otp: ['trim'],
         });
 
         inputs = validator.validate({ phone: Math.abs(phone), password, uid, trust, otp });
@@ -261,7 +261,7 @@ function customerLogin(req, res, next) {
               return cb(new CustomError('EXPIRED_OTP'));
             }
 
-            if (otpObject.code === otp && moment().isBefore(otpObject.expiresAt)) {
+            if (otpObject.code === parseInt(otp) && moment().isBefore(otpObject.expiresAt)) {
               redis.hDel('otp', user.phone);
               return cb(null, true, loginType);
             }
