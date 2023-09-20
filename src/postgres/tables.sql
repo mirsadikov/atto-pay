@@ -43,7 +43,7 @@ create table if not exists error(
 );
 
 insert into error(name, message, http_code) values
-('VALIDATION_ERROR', '{"en": "Invalid inputs", "uz": "Ma''lumotlar notog''ri", "ru": "Неверные данные"}', 400),
+('VALIDATION_ERROR', '{"en": "Invalid input for {0}", "uz": "{0} uchun notog''ri kiritish", "ru": "Неверный ввод для {0}"}', 400),
 ('DATABASE_ERROR', '{"en": "Database error", "uz": "Ma''lumotlar bazasi xatosi", "ru": "Ошибка базы данных"}', 500),
 ('USER_EXISTS', '{"en": "User already exists", "uz": "Foydalanuvchi allaqachon mavjud", "ru": "Пользователь уже существует"}', 409),
 ('USER_NOT_FOUND', '{"en": "User not found", "uz": "Foydalanuvchi topilmadi", "ru": "Пользователь не найден"}', 404),
@@ -62,6 +62,6 @@ insert into error(name, message, http_code) values
 ('FILE_DELETE_ERROR', '{"en": "Error while deleting file", "uz": "Fayl o''chirishda xatolik", "ru": "Ошибка при удалении файла"}', 500),
 ('FILE_NOT_FOUND', '{"en": "File not found", "uz": "Fayl topilmadi", "ru": "Файл не найден"}', 404),
 ('FILE_READER_ERROR', '{"en": "Error while reading file", "uz": "Faylni o''qishda xatolik", "ru": "Ошибка при чтении файла"}', 500),
-('USER_BLOCKED', '{"en": "User is blocked, try again later", "uz": "Foydalanuvchi bloklangan, keyinroq urinib ko''ring", "ru": "Пользователь заблокирован, попробуйте позже"}', 403),
+('USER_BLOCKED', '{"en": "User is blocked, try again after {0} seconds", "uz": "Foydalanuvchi bloklangan, {0} sekunddan keyin urinib ko''ring", "ru": "Пользователь заблокирован, попробуйте снова через {0} секунд"}', 403),
 ('WRONG_OTP', '{"en": "Wrong verification code", "uz": "Tekshirish kodi noto''g''ri", "ru": "Неверный код подтверждения"}', 400),
 ('EXPIRED_OTP', '{"en": "Verification code is expired", "uz": "Tasdiqlash kodi eskirgan", "ru": "Код подтверждения истек"}', 400);

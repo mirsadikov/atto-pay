@@ -229,9 +229,10 @@ function customerLogin(req, res, next) {
       (cb) => {
         if (user.is_blocked) {
           const blockedUntil = moment(user.last_login_attempt).add(1, 'minute');
+          const timeLeft = blockedUntil.diff(moment(), 'seconds');
           // if block time is not over, return error
           if (moment().isBefore(blockedUntil)) {
-            return cb(new CustomError('USER_BLOCKED'));
+            return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
           }
 
           // if block time is over, unblock user
@@ -305,7 +306,7 @@ function customerLogin(req, res, next) {
             (err) => {
               if (err) return cb(err);
 
-              if (user.is_blocked) cb(new CustomError('USER_BLOCKED'));
+              if (user.is_blocked) cb(new CustomError('USER_BLOCKED', null, { timeLeft: 60 }));
               else cb(new CustomError(loginType === 'password' ? 'WRONG_PASSWORD' : 'WRONG_OTP'));
             }
           );

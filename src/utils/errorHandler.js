@@ -1,24 +1,41 @@
-const ValidationError = require('../errors/ValidationError');
 const fetchDB = require('../postgres/index');
 const { errorsQuery } = require('../postgres/queries');
 
 const errorHandler = (err, req, res, next) => {
+  const isDevenv = process.env.NODE_ENV === 'development';
   const lang = req.acceptsLanguages('en', 'ru', 'uz') || 'en';
 
   fetchDB(errorsQuery.get, [err.name.toUpperCase(), lang], (dbError, result) => {
-    const errorObject = result && result.rows[0];
+    if (dbError)
+      return res.status(status).json({
+        message: 'Internal Server Error',
+        status: 500,
+        details: isDevenv ? dbError.message : undefined,
+      });
 
-    const message =
-      errorObject && errorObject.message
-        ? err instanceof ValidationError
-          ? `${errorObject.message}: ${err.message}`
-          : errorObject.message
-        : 'Internal Server Error';
-    const status = errorObject ? errorObject.http_code : 500;
-    const info = dbError ? undefined : err.info || undefined;
-    const type = dbError ? undefined : err.name || undefined;
-    const details =
-      process.env.NODE_ENV !== 'development' ? undefined : dbError ? dbError.message : err.message;
+    const errorObject = result.rows[0];
+
+    let message = 'Internal Server Error';
+    let status = errorObject ? errorObject.http_code : 500;
+    let info = err.info;
+    let type = err.name;
+    let details = isDevenv ? err.message : undefined;
+
+    switch (err.name) {
+      case 'VALIDATION_ERROR':
+        errorObject && (message = errorObject.message.replace('{0}', err.message));
+        break;
+      case 'USER_BLOCKED':
+        if (errorObject) {
+          info = { ...info, message: errorObject.message };
+          message = errorObject.message.replace('{0}', err.info.timeLeft || 60);
+        }
+
+        break;
+      default:
+        errorObject && (message = errorObject.message);
+        break;
+    }
 
     return res.status(status).json({
       message,
