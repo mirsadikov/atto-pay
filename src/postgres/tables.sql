@@ -43,8 +43,7 @@ create table if not exists error(
 );
 
 insert into error(name, message, http_code) values
-('INVALID_INPUT', '{"en": "Invalid input", "uz": "Ma''lumotlar notog''ri", "ru": "Некорректный ввод"}', 400),
-('VALIDATION_ERROR', '{"en": "Validation error", "uz": "Validatsiya xatosi", "ru": "Ошибка валидации"}', 400),
+('VALIDATION_ERROR', '{"en": "Invalid inputs", "uz": "Ma''lumotlar notog''ri", "ru": "Неверные данные"}', 400),
 ('DATABASE_ERROR', '{"en": "Database error", "uz": "Ma''lumotlar bazasi xatosi", "ru": "Ошибка базы данных"}', 500),
 ('USER_EXISTS', '{"en": "User already exists", "uz": "Foydalanuvchi allaqachon mavjud", "ru": "Пользователь уже существует"}', 409),
 ('USER_NOT_FOUND', '{"en": "User not found", "uz": "Foydalanuvchi topilmadi", "ru": "Пользователь не найден"}', 404),

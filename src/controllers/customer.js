@@ -141,7 +141,7 @@ function getLoginType(req, res, next) {
 
         const validator = new LIVR.Validator({
           phone: ['trim', 'is_phone_number', 'required'],
-          uid: ['trim', 'string', 'required'],
+          uid: ['trim', 'string'],
         });
 
         const validData = validator.validate({ uid, phone: Math.abs(phone) });
@@ -149,7 +149,21 @@ function getLoginType(req, res, next) {
 
         cb(null, validData);
       },
+      // check if user exists
       (data, cb) => {
+        fetchDB(customersQuery.getOneByPhone, [data.phone], (err, result) => {
+          if (err) return cb(err);
+          if (result.rows.length == 0) return cb(new CustomError('USER_NOT_FOUND'));
+
+          cb(null, data);
+        });
+      },
+      (data, cb) => {
+        if (!data.uid) {
+          res.json({ password: true, otp: false });
+          return cb(null);
+        }
+
         fetchDB(devicesQuery.getOneByUid, [data.uid, data.phone], (err, result) => {
           if (err) return cb(err);
 
@@ -161,10 +175,10 @@ function getLoginType(req, res, next) {
 
             redis.hSet('otp', data.phone, JSON.stringify(otpObject)).then(() => {
               // TODO: send otp to user
-              res.status(200).json({ password: false, otp: true });
+              res.json({ password: false, otp: true });
             });
           } else {
-            res.status(200).json({ password: true, otp: false });
+            res.json({ password: true, otp: false });
           }
 
           cb(null);
