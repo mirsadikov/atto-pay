@@ -27,6 +27,8 @@ function getCustomerProfile(req, res, next) {
 
           const user = result.rows[0];
           delete user.hashed_password;
+          user.photo_url = imageStorage.getImageUrl(user.photo_url);
+
           res.status(200).json(user);
         });
       },
@@ -447,9 +449,12 @@ function updateCustomer(req, res, next) {
           (err, result) => {
             if (err) return cb(err);
 
+            user = result.rows[0];
+            user.photo_url = imageStorage.getImageUrl(user.photo_url);
+
             res.status(200).json({
               success: true,
-              user: result.rows[0],
+              user,
             });
 
             cb(null);

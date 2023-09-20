@@ -61,6 +61,10 @@ class imageStorage {
       cb(new CustomError('FILE_READER_ERROR', err.message));
     }
   }
+
+  getImageUrl(fileName) {
+    return fileName ? `${process.env.API_URL}/customer/photo/${fileName}` : null;
+  }
 }
 
 const storage = new imageStorage();
