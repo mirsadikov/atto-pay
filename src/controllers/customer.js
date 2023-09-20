@@ -154,9 +154,16 @@ function getLoginType(req, res, next) {
           if (err) return cb(err);
 
           if (result.rows.length > 0) {
-            const otp = Math.floor(100000 + Math.random() * 900000);
+            const randomCode= Math.floor(100000 + Math.random() * 900000);
+            let expiryDate=moment();
+            expiryDate.add(2,'minutes')
+            const stringExpiry=expiryDate.format('YYYY-MM-DD HH:mm:ss');
+            const otp = {
+             "code":randomCode,
+             "expiry":stringExpiry
+            }
 
-            redis.hSet('otp', data.phone, otp).then(() => {
+            redis.hSet('otp', data.phone,JSON.stringify(otp)).then(() => {
               // TODO: send otp to user
               res.status(200).json({ password: false, otp: true });
             });
@@ -250,11 +257,14 @@ function customerLogin(req, res, next) {
           cb(null, isPasswordCorrect, loginType);
         } else {
           redis.hGet('otp', user.phone).then((redisOtp) => {
-            if (otp == redisOtp) {
+            const otpJson=JSON.parse(redisOtp)
+            if (otp == otpJson.code && moment().isBefore(otpJson.expiry)) {
               redis.hDel('otp', user.phone);
               return cb(null, true, loginType);
             }
-
+            else if(moment().isAfter(otpJson.expiry)){
+              redis.hDel('otp',user.phone);
+            }
             cb(null, false, loginType);
           });
         }
