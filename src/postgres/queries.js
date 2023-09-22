@@ -29,5 +29,12 @@ const devicesQuery = {
 const errorsQuery = {
   get: 'select message -> $2 as message, http_code from error where name = $1',
 };
+const currencyQuery={
+  create: 'insert into currency( name,abbreviation) values ( $1 , $2) returning *',
+  get: 'select * from currency',
+  update: 'update currency set name = $1,abbreviation = $2 where id=$3 returning *',
+  delete: 'delete from currency where id = $1 returning *',
+  getOneById: 'select * from currency where id= $1'
+};
 
-module.exports = { customersQuery, cardsQuery, errorsQuery, devicesQuery };
+module.exports = { customersQuery, cardsQuery, errorsQuery, devicesQuery ,currencyQuery};

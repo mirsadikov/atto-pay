@@ -4,6 +4,7 @@ drop table if exists customer_device;
 drop table if exists customer_card;
 drop table if exists customer;
 drop table if exists error;
+drop table if exists currency;
 
 create table if not exists customer(
   id uuid primary key default uuid_generate_v4(),
@@ -40,6 +41,11 @@ create table if not exists error(
   name varchar(64) not null unique,
   message jsonb not null,
   http_code int not null
+);
+create table if not exists currency(
+    id uuid primary key default uuid_generate_v4(),
+    name varchar not null,
+    abbreviation varchar
 );
 
 insert into error(name, message, http_code) values

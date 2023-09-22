@@ -5,6 +5,7 @@ const cors = require('cors')
 const parserRouter = require('./routes/parser');
 const customerRouter = require('./routes/customer');
 const cardRouter = require('./routes/card');
+const currencyRouter=require('./routes/currency')
 const errorHandler = require('./utils/errorHandler');
 
 const app = express();
@@ -17,6 +18,7 @@ app.use(fileUpload());
 app.use('/parser', parserRouter);
 app.use('/customer', customerRouter);
 app.use('/customer/card', cardRouter);
+app.use('/currency',currencyRouter)
 app.use(errorHandler);
 
 app.get('/', (_, res) => {
