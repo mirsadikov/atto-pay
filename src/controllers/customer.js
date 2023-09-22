@@ -249,17 +249,16 @@ function loginCustomer(req, res, next) {
         fetchDB(devicesQuery.getOneByUid, [uid, phone], (err, result) => {
           if (err) return cb(err);
 
-          if (result.rows.length > 0) {
-            const validator = new LIVR.Validator({ otp: 'required' });
-            const otpValid = validator.validate({ otp });
-            if (!otpValid) return cb(new ValidationError(validator.getErrors()));
-            return cb(null, 'otp');
-          }
+          const loginType = result.rows.length > 0 ? 'otp' : 'password';
+          const validator = new LIVR.Validator({
+            password: loginType === 'password' ? 'required' : 'string',
+            otp: loginType === 'otp' ? 'required' : 'string',
+          });
 
-          const validator = new LIVR.Validator({ password: 'required' });
-          const passwordValid = validator.validate({ password });
-          if (!passwordValid) return cb(new ValidationError(validator.getErrors()));
-          cb(null, 'password');
+          const validData = validator.validate({ password, otp });
+          if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+          cb(null, loginType);
         });
       },
       // check password or otp
@@ -298,11 +297,15 @@ function loginCustomer(req, res, next) {
 
           // if login attempts is 3, block user
           if (user.login_attempts >= 3) user.is_blocked = true;
+          user.last_login_attempt =
+            user.login_attempts >= 3 || user.login_attempts === 1
+              ? moment()
+              : user.last_login_attempt;
 
           // save status
           return fetchDB(
             customersQuery.changeStatus,
-            [user.is_blocked, user.login_attempts, moment(), user.id],
+            [user.is_blocked, user.login_attempts, user.last_login_attempt, user.id],
             (err) => {
               if (err) return cb(err);
 

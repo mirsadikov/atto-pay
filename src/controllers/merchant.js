@@ -144,11 +144,20 @@ function loginMerchant(req, res, next) {
 
           // if login attempts is 3, block merchant
           if (merchant.login_attempts >= 3) merchant.is_blocked = true;
+          merchant.last_login_attempt =
+            merchant.login_attempts >= 3 || merchant.login_attempts === 1
+              ? moment()
+              : merchant.last_login_attempt;
 
           // save status
           return fetchDB(
             merchantsQuery.changeStatus,
-            [merchant.is_blocked, merchant.login_attempts, moment(), merchant.id],
+            [
+              merchant.is_blocked,
+              merchant.login_attempts,
+              merchant.last_login_attempt,
+              merchant.id,
+            ],
             (err) => {
               if (err) return cb(err);
 
