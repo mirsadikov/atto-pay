@@ -37,7 +37,7 @@ function getCustomerProfile(req, res, next) {
   );
 }
 
-function customerRegister(req, res, next) {
+function registerCustomer(req, res, next) {
   let inputs;
   let user;
 
@@ -49,7 +49,7 @@ function customerRegister(req, res, next) {
         const uid = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
-          name: ['trim', 'string', 'required'],
+          name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
           phone: ['trim', 'is_phone_number', 'required'],
           password: ['trim', 'required', { min_length: 6 }, 'alphanumeric'],
           trust: ['boolean', { default: false }],
@@ -134,7 +134,7 @@ function customerRegister(req, res, next) {
   );
 }
 
-function getLoginType(req, res, next) {
+function getCustomerLoginType(req, res, next) {
   async.waterfall(
     [
       (cb) => {
@@ -191,7 +191,7 @@ function getLoginType(req, res, next) {
   );
 }
 
-function customerLogin(req, res, next) {
+function loginCustomer(req, res, next) {
   let inputs;
   let user;
 
@@ -228,10 +228,10 @@ function customerLogin(req, res, next) {
       // check if user is not blocked
       (cb) => {
         if (user.is_blocked) {
-          const blockedUntil = moment(user.last_login_attempt).add(1, 'minute');
-          const timeLeft = blockedUntil.diff(moment(), 'seconds');
+          const unblockTime = moment(user.last_login_attempt).add(1, 'minute');
+          const timeLeft = unblockTime.diff(moment(), 'seconds');
           // if block time is not over, return error
-          if (moment().isBefore(blockedUntil)) {
+          if (moment().isBefore(unblockTime)) {
             return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
           }
 
@@ -264,9 +264,9 @@ function customerLogin(req, res, next) {
       },
       // check password or otp
       (loginType, cb) => {
-        const { password: hashedPassword, otp } = inputs;
+        const { password, otp } = inputs;
         if (loginType === 'password') {
-          const isPasswordCorrect = bcrypt.compareSync(hashedPassword, user.hashed_password);
+          const isPasswordCorrect = bcrypt.compareSync(password, user.hashed_password);
           cb(null, isPasswordCorrect, loginType);
         } else {
           redis.hGet('otp', user.phone).then((redisOtp) => {
@@ -392,7 +392,7 @@ function updateCustomer(req, res, next) {
         const { name, password, deletePhoto } = req.body;
 
         const validator = new LIVR.Validator({
-          name: ['trim', 'string'],
+          name: ['trim', 'string', { min_length: 3 }, { max_length: 64 }],
           password: ['trim', { min_length: 6 }, 'alphanumeric'],
           deletePhoto: [{ one_of: [true, false] }, { default: false }],
         });
@@ -467,7 +467,7 @@ function updateCustomer(req, res, next) {
   );
 }
 
-function getPhoto(req, res, next) {
+function getCustomerPhoto(req, res, next) {
   async.waterfall(
     [
       (cb) => {
@@ -501,10 +501,10 @@ function getOtpFromSMS(req, res, next) {
 
 module.exports = {
   getCustomerProfile,
-  customerRegister,
-  getLoginType,
+  registerCustomer,
+  getCustomerLoginType,
   getOtpFromSMS,
-  customerLogin,
+  loginCustomer,
   updateCustomer,
-  getPhoto,
+  getCustomerPhoto,
 };

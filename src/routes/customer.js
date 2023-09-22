@@ -1,21 +1,21 @@
-var express = require('express');
+const express = require('express');
 const {
   getCustomerProfile,
-  customerRegister,
-  customerLogin,
   updateCustomer,
-  getPhoto,
-  getLoginType,
   getOtpFromSMS,
+  registerCustomer,
+  getCustomerLoginType,
+  loginCustomer,
+  getCustomerPhoto,
 } = require('../controllers/customer');
-var router = express.Router();
+const router = express.Router();
 
 router.get('/profile', getCustomerProfile);
-router.post('/register', customerRegister);
-router.post('/getlogin', getLoginType);
-router.post('/login', customerLogin);
+router.post('/register', registerCustomer);
+router.post('/getlogin', getCustomerLoginType);
+router.post('/login', loginCustomer);
 router.put('/profile', updateCustomer);
-router.get('/photo/:file', getPhoto);
+router.get('/photo/:file', getCustomerPhoto);
 
 // FAKE OTP GETTER
 router.get('/otp/recievebysms/:phone', getOtpFromSMS);

@@ -4,7 +4,7 @@ LIVR.Validator.registerDefaultRules(extraRules);
 
 LIVR.Validator.registerAliasedDefaultRule({
   name: 'alphanumeric',
-  rules: { like: '^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d]+$' },
+  rules: { like: '^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d\\S]+$' },
   error: 'NOT_ALPHANUMERIC',
 });
 
