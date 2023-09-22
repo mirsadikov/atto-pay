@@ -9,6 +9,17 @@ const customersQuery = {
     'update customer set is_blocked = $1, login_attempts = $2, last_login_attempt = $3 where id = $4',
 };
 
+const merchantsQuery = {
+  create:
+    'insert into merchant(name, email, hashed_password) values($1, $2, $3) returning id, name, email, reg_date',
+  getOneByEmail: 'select * from merchant where email = $1',
+  getOneById: 'select * from merchant where id = $1',
+  update:
+    'update merchant set name = $1, hashed_password = $2 where id = $3 returning id, name, email, reg_date',
+  changeStatus:
+    'update merchant set is_blocked = $1, login_attempts = $2, last_login_attempt = $3 where id = $4',
+};
+
 const cardsQuery = {
   create:
     'insert into customer_card(customer_id, name, pan, expiry_month, expiry_year) values($1, $2, $3, $4, $5) returning *',
@@ -30,4 +41,4 @@ const errorsQuery = {
   get: 'select message -> $2 as message, http_code from error where name = $1',
 };
 
-module.exports = { customersQuery, cardsQuery, errorsQuery, devicesQuery };
+module.exports = { customersQuery, cardsQuery, errorsQuery, devicesQuery, merchantsQuery };

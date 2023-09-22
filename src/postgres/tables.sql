@@ -4,6 +4,7 @@ drop table if exists customer_device;
 drop table if exists customer_card;
 drop table if exists customer;
 drop table if exists error;
+drop table if exists merchant;
 
 create table if not exists customer(
   id uuid primary key default uuid_generate_v4(),
@@ -42,10 +43,21 @@ create table if not exists error(
   http_code int not null
 );
 
+create table if not exists merchant(
+  id uuid primary key default uuid_generate_v4(),
+  name varchar(30) not null,
+  email varchar(64) not null unique,
+  hashed_password text not null,
+  reg_date timestamp not null default now(),
+  is_blocked boolean not null default false,
+  login_attempts int not null default 0,
+  last_login_attempt timestamp
+);
+
 insert into error(name, message, http_code) values
 ('VALIDATION_ERROR', '{"en": "Invalid input for {0}", "uz": "{0} uchun notog''ri kiritish", "ru": "Неверный ввод для {0}"}', 400),
 ('DATABASE_ERROR', '{"en": "Database error", "uz": "Ma''lumotlar bazasi xatosi", "ru": "Ошибка базы данных"}', 500),
-('USER_EXISTS', '{"en": "User already exists", "uz": "Foydalanuvchi allaqachon mavjud", "ru": "Пользователь уже существует"}', 409),
+('NUMBER_TAKEN', '{"en": "This phone number is already registered", "uz": "Bu telefon raqami allaqachon ro''yhatdan o''tgan", "ru": "Этот номер телефона уже зарегистрирован"}', 409),
 ('USER_NOT_FOUND', '{"en": "User not found", "uz": "Foydalanuvchi topilmadi", "ru": "Пользователь не найден"}', 404),
 ('WRONG_PASSWORD', '{"en": "Wrong password", "uz": "Noto''g''ri parol", "ru": "Неверный пароль"}', 401),
 ('MISSING_TOKEN', '{"en": "Missing token", "uz": "Token topilmadi", "ru": "Отсутствует токен"}', 401),
@@ -64,4 +76,5 @@ insert into error(name, message, http_code) values
 ('FILE_READER_ERROR', '{"en": "Error while reading file", "uz": "Faylni o''qishda xatolik", "ru": "Ошибка при чтении файла"}', 500),
 ('USER_BLOCKED', '{"en": "User is blocked, try again after {0} seconds", "uz": "Foydalanuvchi bloklangan, {0} sekunddan keyin urinib ko''ring", "ru": "Пользователь заблокирован, попробуйте снова через {0} секунд"}', 403),
 ('WRONG_OTP', '{"en": "Wrong verification code", "uz": "Tekshirish kodi noto''g''ri", "ru": "Неверный код подтверждения"}', 400),
-('EXPIRED_OTP', '{"en": "Verification code is expired", "uz": "Tasdiqlash kodi eskirgan", "ru": "Код подтверждения истек"}', 400);
+('EXPIRED_OTP', '{"en": "Verification code is expired", "uz": "Tasdiqlash kodi eskirgan", "ru": "Код подтверждения истек"}', 400),
+('EMAIL_TAKEN', '{"en": "This email address is already registered", "uz": "Bu elektron pochta allaqachon ro''yxatdan o''tgan", "ru": "Этот адрес электронной почты уже зарегистрирован"}', 400);

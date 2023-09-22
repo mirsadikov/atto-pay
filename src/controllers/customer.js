@@ -72,7 +72,7 @@ function registerCustomer(req, res, next) {
       (cb) => {
         fetchDB(customersQuery.getOneByPhone, [inputs.phone], (err, result) => {
           if (err) return cb(err);
-          if (result.rows.length > 0) return cb(new CustomError('USER_EXISTS'));
+          if (result.rows.length > 0) return cb(new CustomError('NUMBER_TAKEN'));
 
           cb(null);
         });
