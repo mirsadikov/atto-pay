@@ -229,9 +229,9 @@ function loginCustomer(req, res, next) {
       (cb) => {
         if (user.is_blocked) {
           const unblockTime = moment(user.last_login_attempt).add(1, 'minute');
-          const timeLeft = unblockTime.diff(moment(), 'seconds');
           // if block time is not over, return error
           if (moment().isBefore(unblockTime)) {
+            const timeLeft = unblockTime.diff(moment(), 'seconds');
             return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
           }
 
@@ -286,26 +286,27 @@ function loginCustomer(req, res, next) {
           });
         }
       },
-      // if password is wrong, increase login attempts
+      // if password is wrong
       (isValidCreadentials, loginType, cb) => {
         if (!isValidCreadentials) {
-          // if last login attempt was more than 1 minute ago, then 1, else +1
-          user.login_attempts =
-            user.last_login_attempt && moment().diff(user.last_login_attempt, 'minutes') < 1
-              ? user.login_attempts + 1
-              : 1;
-
-          // if login attempts is 3, block user
-          if (user.login_attempts >= 3) user.is_blocked = true;
-          user.last_login_attempt =
-            user.login_attempts >= 3 || user.login_attempts === 1
-              ? moment()
-              : user.last_login_attempt;
+          if (
+            user.last_login_attempt &&
+            moment().isBefore(moment(user.last_login_attempt).add(user.safe_login_after, 'seconds'))
+          ) {
+            // if 3 login attempts in one minute
+            user.is_blocked = true;
+            user.safe_login_after = 0;
+          } else {
+            // calculate time that user should wait before next login not to be blocked
+            user.safe_login_after = user.last_login_attempt
+              ? Math.max(60 - moment().diff(user.last_login_attempt, 'seconds'), 0)
+              : 0;
+          }
 
           // save status
           return fetchDB(
             customersQuery.changeStatus,
-            [user.is_blocked, user.login_attempts, user.last_login_attempt, user.id],
+            [user.is_blocked, user.safe_login_after, moment(), user.id],
             (err) => {
               if (err) return cb(err);
 

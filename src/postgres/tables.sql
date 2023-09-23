@@ -14,7 +14,7 @@ create table if not exists customer(
   hashed_password text not null,
   reg_date timestamp not null default now(),
   is_blocked boolean not null default false,
-  login_attempts int not null default 0,
+  safe_login_after int not null default 0,
   last_login_attempt timestamp
 );
 
@@ -50,7 +50,7 @@ create table if not exists merchant(
   hashed_password text not null,
   reg_date timestamp not null default now(),
   is_blocked boolean not null default false,
-  login_attempts int not null default 0,
+  safe_login_after int not null default 0,
   last_login_attempt timestamp
 );
 

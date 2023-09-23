@@ -6,7 +6,7 @@ const customersQuery = {
   update:
     'update customer set name = $1, hashed_password = $2, photo_url = $3 where id = $4 returning id, name, phone, photo_url, reg_date',
   changeStatus:
-    'update customer set is_blocked = $1, login_attempts = $2, last_login_attempt = $3 where id = $4',
+    'update customer set is_blocked = $1, safe_login_after = $2, last_login_attempt = $3 where id = $4',
 };
 
 const merchantsQuery = {
@@ -17,7 +17,7 @@ const merchantsQuery = {
   update:
     'update merchant set name = $1, hashed_password = $2 where id = $3 returning id, name, email, reg_date',
   changeStatus:
-    'update merchant set is_blocked = $1, login_attempts = $2, last_login_attempt = $3 where id = $4',
+    'update merchant set is_blocked = $1, safe_login_after = $2, last_login_attempt = $3 where id = $4',
 };
 
 const cardsQuery = {

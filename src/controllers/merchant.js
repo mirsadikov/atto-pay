@@ -117,9 +117,9 @@ function loginMerchant(req, res, next) {
       (cb) => {
         if (merchant.is_blocked) {
           const unblockTime = moment(merchant.last_login_attempt).add(1, 'minute');
-          const timeLeft = unblockTime.diff(moment(), 'seconds');
           // if block time is not over, return error
           if (moment().isBefore(unblockTime)) {
+            const timeLeft = unblockTime.diff(moment(), 'seconds');
             return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
           }
 
@@ -135,29 +135,28 @@ function loginMerchant(req, res, next) {
         const { password } = inputs;
         const isPasswordCorrect = bcrypt.compareSync(password, merchant.hashed_password);
 
+        // if password is wrong
         if (!isPasswordCorrect) {
-          // if last login attempt was more than 2 minute ago, then 1, else +1
-          merchant.login_attempts =
-            merchant.last_login_attempt && moment().diff(merchant.last_login_attempt, 'minutes') < 2
-              ? merchant.login_attempts + 1
-              : 1;
-
-          // if login attempts is 3, block merchant
-          if (merchant.login_attempts >= 3) merchant.is_blocked = true;
-          merchant.last_login_attempt =
-            merchant.login_attempts >= 3 || merchant.login_attempts === 1
-              ? moment()
-              : merchant.last_login_attempt;
+          if (
+            merchant.last_login_attempt &&
+            moment().isBefore(
+              moment(merchant.last_login_attempt).add(merchant.safe_login_after, 'seconds')
+            )
+          ) {
+            // if 3 login attempts in 2 minutes
+            merchant.is_blocked = true;
+            merchant.safe_login_after = 0;
+          } else {
+            // calculate time that merchant should wait before next login not to be blocked
+            merchant.safe_login_after = merchant.last_login_attempt
+              ? Math.max(120 - moment().diff(merchant.last_login_attempt, 'seconds'), 0)
+              : 0;
+          }
 
           // save status
           return fetchDB(
             merchantsQuery.changeStatus,
-            [
-              merchant.is_blocked,
-              merchant.login_attempts,
-              merchant.last_login_attempt,
-              merchant.id,
-            ],
+            [merchant.is_blocked, merchant.safe_login_after, moment(), merchant.id],
             (err) => {
               if (err) return cb(err);
 
