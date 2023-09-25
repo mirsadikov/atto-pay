@@ -63,7 +63,11 @@ function registerMerchant(req, res, next) {
         redis.hSet(
           'tokens',
           token,
-          JSON.stringify({ id: merchant.id, expiresAt: moment().add(1, 'hour').valueOf() })
+          JSON.stringify({
+            id: merchant.id,
+            role: 'merchant',
+            expiresAt: moment().add(1, 'hour').valueOf(),
+          })
         );
 
         cb(null, token);
@@ -186,7 +190,11 @@ function loginMerchant(req, res, next) {
         redis.hSet(
           'tokens',
           token,
-          JSON.stringify({ id: merchant.id, expiresAt: moment().add(1, 'hour').valueOf() })
+          JSON.stringify({
+            id: merchant.id,
+            role: 'merchant',
+            expiresAt: moment().add(1, 'hour').valueOf(),
+          })
         );
 
         res.status(200).json({
@@ -210,7 +218,7 @@ function getMerchantProfile(req, res, next) {
   async.waterfall(
     [
       (cb) => {
-        verifyToken(req, (err, merchantId) => {
+        verifyToken(req, 'merchant', (err, merchantId) => {
           if (err) return cb(err);
           cb(null, merchantId);
         });
@@ -237,7 +245,7 @@ function updateMerchant(req, res, next) {
   async.waterfall(
     [
       (cb) => {
-        verifyToken(req, (err, merchantId) => {
+        verifyToken(req, 'merchant', (err, merchantId) => {
           if (err) return cb(err);
           cb(null, merchantId);
         });

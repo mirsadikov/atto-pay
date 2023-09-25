@@ -2,7 +2,7 @@ const moment = require('moment');
 const redis = require('../redis');
 const CustomError = require('../errors/CustomError');
 
-async function verifyToken(req, cb) {
+async function verifyToken(req, role, cb) {
   const token = req.headers.authorization;
   if (!token) return cb(new CustomError('MISSING_TOKEN'));
 
@@ -12,6 +12,9 @@ async function verifyToken(req, cb) {
 
   // check if token is expired
   if (details.expiresAt < moment().valueOf()) return cb(new CustomError('EXPIRED_TOKEN'));
+
+  // check if token role matches required role
+  if (details.role !== role) return cb(new CustomError('NOT_ALLOWED'));
 
   return cb(null, details.id);
 }

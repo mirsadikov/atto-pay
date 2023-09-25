@@ -12,7 +12,7 @@ function createCard(req, res, next) {
     [
       // verify user
       (cb) => {
-        verifyToken(req, (err, userId) => {
+        verifyToken(req, 'customer', (err, userId) => {
           if (err) return cb(err);
           cb(null, userId);
         });
@@ -70,7 +70,7 @@ function getCustomerCards(req, res, next) {
     [
       // verify user
       (cb) => {
-        verifyToken(req, (err, userId) => {
+        verifyToken(req, 'customer', (err, userId) => {
           if (err) return cb(err);
           cb(null, userId);
         });
@@ -94,7 +94,7 @@ function updateCard(req, res, next) {
     [
       // verify user
       (cb) => {
-        verifyToken(req, (err, userId) => {
+        verifyToken(req, 'customer', (err, userId) => {
           if (err) return cb(err);
           cb(null, userId);
         });
@@ -136,7 +136,7 @@ function deleteCard(req, res, next) {
     [
       // verify user
       (cb) => {
-        verifyToken(req, (err, userId) => {
+        verifyToken(req, 'customer', (err, userId) => {
           if (err) return cb(err);
           cb(null, userId);
         });

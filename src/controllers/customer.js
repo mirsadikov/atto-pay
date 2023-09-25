@@ -15,7 +15,7 @@ function getCustomerProfile(req, res, next) {
   async.waterfall(
     [
       (cb) => {
-        verifyToken(req, (err, userId) => {
+        verifyToken(req, 'customer', (err, userId) => {
           if (err) return cb(err);
           cb(null, userId);
         });
@@ -98,7 +98,11 @@ function registerCustomer(req, res, next) {
               redis.hSet(
                 'tokens',
                 token,
-                JSON.stringify({ id: user.id, expiresAt: moment().add(1, 'hour').valueOf() })
+                JSON.stringify({
+                  id: user.id,
+                  role: 'customer',
+                  expiresAt: moment().add(1, 'hour').valueOf(),
+                })
               );
 
               cb(null, token);
@@ -356,7 +360,11 @@ function loginCustomer(req, res, next) {
         redis.hSet(
           'tokens',
           token,
-          JSON.stringify({ id: user.id, expiresAt: moment().add(1, 'hour').valueOf() })
+          JSON.stringify({
+            id: user.id,
+            role: 'customer',
+            expiresAt: moment().add(1, 'hour').valueOf(),
+          })
         );
 
         res.status(200).json({
@@ -384,7 +392,7 @@ function updateCustomer(req, res, next) {
   async.waterfall(
     [
       (cb) => {
-        verifyToken(req, (err, id) => {
+        verifyToken(req, 'customer', (err, id) => {
           if (err) return cb(err);
 
           userId = id;
