@@ -7,6 +7,8 @@ const fetchDB = require('../postgres');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 
+// @Private
+// @Customer
 function createCard(req, res, next) {
   async.waterfall(
     [
@@ -55,7 +57,10 @@ function createCard(req, res, next) {
           (err, result) => {
             if (err) return cb(err);
 
-            res.status(201).json(result.rows[0]);
+            res.status(201).json({
+              success: true,
+              details: result.rows[0],
+            });
             cb(null);
           }
         );
@@ -65,6 +70,8 @@ function createCard(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
 function getCustomerCards(req, res, next) {
   async.waterfall(
     [
@@ -80,7 +87,10 @@ function getCustomerCards(req, res, next) {
         fetchDB(cardsQuery.getAllByCustomerId, [userId], (err, result) => {
           if (err) return cb(err);
 
-          res.status(200).json(result.rows);
+          res.status(200).json({
+            count: result.rowCount,
+            cards: result.rows,
+          });
           cb(null);
         });
       },
@@ -89,6 +99,8 @@ function getCustomerCards(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
 function updateCard(req, res, next) {
   async.waterfall(
     [
@@ -131,6 +143,8 @@ function updateCard(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
 function deleteCard(req, res, next) {
   async.waterfall(
     [

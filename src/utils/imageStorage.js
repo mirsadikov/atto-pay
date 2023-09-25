@@ -71,8 +71,8 @@ class imageStorage {
     }
   }
 
-  getImageUrl(fileName) {
-    return fileName ? `${process.env.API_URL}/customer/photo/${fileName}` : null;
+  getImageUrl(path, fileName) {
+    return fileName ? `${process.env.API_URL}${path}/${fileName}` : null;
   }
 }
 

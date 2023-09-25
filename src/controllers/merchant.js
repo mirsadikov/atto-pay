@@ -10,6 +10,7 @@ const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 const verifyToken = require('../middleware/verifyToken');
 
+// @Public
 function registerMerchant(req, res, next) {
   let inputs;
   let merchant;
@@ -87,6 +88,7 @@ function registerMerchant(req, res, next) {
   );
 }
 
+// @Public
 function loginMerchant(req, res, next) {
   let inputs;
   let merchant;
@@ -214,6 +216,8 @@ function loginMerchant(req, res, next) {
   );
 }
 
+// @Private
+// @Merchant
 function getMerchantProfile(req, res, next) {
   async.waterfall(
     [
@@ -238,6 +242,8 @@ function getMerchantProfile(req, res, next) {
   );
 }
 
+// @Private
+// @Merchant
 function updateMerchant(req, res, next) {
   let inputs;
   let merchant;

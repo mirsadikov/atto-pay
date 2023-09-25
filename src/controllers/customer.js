@@ -11,6 +11,8 @@ const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 const imageStorage = require('../utils/imageStorage');
 
+// @Private
+// @Customer
 function getCustomerProfile(req, res, next) {
   async.waterfall(
     [
@@ -27,7 +29,7 @@ function getCustomerProfile(req, res, next) {
 
           const user = result.rows[0];
           delete user.hashed_password;
-          user.photo_url = imageStorage.getImageUrl(user.photo_url);
+          user.photo_url = imageStorage.getImageUrl('/customer/photo', user.photo_url);
 
           res.status(200).json(user);
         });
@@ -37,6 +39,7 @@ function getCustomerProfile(req, res, next) {
   );
 }
 
+// @Public
 function registerCustomer(req, res, next) {
   let inputs;
   let user;
@@ -138,6 +141,7 @@ function registerCustomer(req, res, next) {
   );
 }
 
+// @Public
 function getCustomerLoginType(req, res, next) {
   async.waterfall(
     [
@@ -195,6 +199,7 @@ function getCustomerLoginType(req, res, next) {
   );
 }
 
+// @Public
 function loginCustomer(req, res, next) {
   let inputs;
   let user;
@@ -373,7 +378,7 @@ function loginCustomer(req, res, next) {
             id: user.id,
             name: user.name,
             phone: user.phone,
-            photo_url: user.photo_url,
+            photo_url: imageStorage.getImageUrl('/customer/photo', user.photo_url),
             reg_date: user.reg_date,
           },
         });
@@ -384,6 +389,8 @@ function loginCustomer(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
 function updateCustomer(req, res, next) {
   let userId;
   let user;
@@ -463,7 +470,7 @@ function updateCustomer(req, res, next) {
             if (err) return cb(err);
 
             user = result.rows[0];
-            user.photo_url = imageStorage.getImageUrl(user.photo_url);
+            user.photo_url = imageStorage.getImageUrl('/customer/photo', user.photo_url);
 
             res.status(200).json({
               success: true,
@@ -479,6 +486,7 @@ function updateCustomer(req, res, next) {
   );
 }
 
+// @Public
 function getCustomerPhoto(req, res, next) {
   async.waterfall(
     [
