@@ -41,4 +41,15 @@ const errorsQuery = {
   get: 'select message -> $2 as message, http_code from error where name = $1',
 };
 
-module.exports = { customersQuery, cardsQuery, errorsQuery, devicesQuery, merchantsQuery };
+const categoriesQuery = {
+  getAll: 'select id, code, name -> $1 as name from service_category',
+};
+
+module.exports = {
+  customersQuery,
+  cardsQuery,
+  errorsQuery,
+  devicesQuery,
+  merchantsQuery,
+  categoriesQuery,
+};

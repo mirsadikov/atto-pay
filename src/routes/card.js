@@ -1,6 +1,6 @@
 var express = require('express');
 const { createCard, getCustomerCards, updateCard, deleteCard } = require('../controllers/card');
-var router = express.Router();
+const router = express.Router();
 
 router.post('/create', createCard);
 router.get('/all', getCustomerCards);

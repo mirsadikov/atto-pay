@@ -5,6 +5,7 @@ drop table if exists customer_card;
 drop table if exists customer;
 drop table if exists error;
 drop table if exists merchant;
+drop table if exists service_category;
 
 create table if not exists customer(
   id uuid primary key default uuid_generate_v4(),
@@ -54,6 +55,12 @@ create table if not exists merchant(
   last_login_attempt timestamp
 );
 
+create table if not exists service_category(
+  id serial primary key,
+  code varchar(64) not null unique,
+  name jsonb not null
+);
+
 insert into error(name, message, http_code) values
 ('VALIDATION_ERROR', '{"en": "Invalid input for {0}", "uz": "{0} uchun notog''ri kiritish", "ru": "Неверный ввод для {0}"}', 400),
 ('DATABASE_ERROR', '{"en": "Database error", "uz": "Ma''lumotlar bazasi xatosi", "ru": "Ошибка базы данных"}', 500),
@@ -78,3 +85,25 @@ insert into error(name, message, http_code) values
 ('WRONG_OTP', '{"en": "Wrong verification code", "uz": "Tekshirish kodi noto''g''ri", "ru": "Неверный код подтверждения"}', 400),
 ('EXPIRED_OTP', '{"en": "Verification code is expired", "uz": "Tasdiqlash kodi eskirgan", "ru": "Код подтверждения истек"}', 400),
 ('EMAIL_TAKEN', '{"en": "This email address is already registered", "uz": "Bu elektron pochta allaqachon ro''yxatdan o''tgan", "ru": "Этот адрес электронной почты уже зарегистрирован"}', 400);
+
+insert into service_category(code, name) values
+('MOBILE_OPERATORS', '{"en": "Mobile operators", "uz": "Mobil aloqa operatorlari", "ru": "Мобильные операторы"}'),
+('INTERNET', '{"en": "Internet", "uz": "Internet", "ru": "Интернет"}'),
+('TV', '{"en": "TV", "uz": "TV", "ru": "ТВ"}'),
+('TELEPHONY', '{"en": "Telephony", "uz": "Telefoniya", "ru": "Телефония"}'),
+('UTILITIES', '{"en": "Utilities", "uz": "Komunal xizmatlar", "ru": "Коммунальные услуги"}'),
+('TAXI', '{"en": "Taxi", "uz": "Taksi", "ru": "Такси"}'),
+('TRANSPORT', '{"en": "Transport", "uz": "Transport", "ru": "Транспорт"}'),
+('ENTERTAINMENT', '{"en": "Entertainment", "uz": "Ko''ngilochar xizmatlar", "ru": "Развлечения"}'),
+('EDUCATION', '{"en": "Education", "uz": "Ta''lim", "ru": "Образование"}'),
+('GOVERNMENT', '{"en": "Government services", "uz": "Davlat xizmatlari", "ru": "Государственные услуги"}'),
+('ONLINE_SERVICES', '{"en": "Online services", "uz": "Onlayn xizmatlar", "ru": "Онлайн услуги"}'),
+('INSURANCE', '{"en": "Insurance", "uz": "Sug''urta", "ru": "Страхование"}'),
+('BANKS', '{"en": "Banks", "uz": "Banklar", "ru": "Банки"}'),
+('AIRLINE_TRAIN_TICKETS', '{"en": "Airline and train tickets", "uz": "Avia va temir yo''l chiptalari", "ru": "Авиа и ж/д билеты"}'),
+('REAL_ESTATE', '{"en": "Real estate", "uz": "Uy-joy", "ru": "Недвижимость"}'),
+('MEDICINE', '{"en": "Medicine", "uz": "Tibbiyot", "ru": "Медицина"}'),
+('TOURISM', '{"en": "Tourism", "uz": "Turizm", "ru": "Туризм"}'),
+('SPORT', '{"en": "Sport", "uz": "Sport", "ru": "Спорт"}'),
+('E_COMMERCE', '{"en": "E-commerce", "uz": "Internet magazinlar", "ru": "Интернет магазины"}'),
+('OTHER', '{"en": "Other", "uz": "Boshqa", "ru": "Другое"}');

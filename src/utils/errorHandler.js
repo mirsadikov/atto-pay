@@ -1,9 +1,10 @@
 const fetchDB = require('../postgres/index');
 const { errorsQuery } = require('../postgres/queries');
+const acceptsLanguages = require('./acceptLanguages');
 
 const errorHandler = (err, req, res, next) => {
   const isDevenv = process.env.NODE_ENV === 'development';
-  const lang = req.acceptsLanguages('en', 'ru', 'uz') || 'en';
+  const lang = acceptsLanguages(req);
 
   fetchDB(errorsQuery.get, [err.name.toUpperCase(), lang], (dbError, result) => {
     if (dbError)
