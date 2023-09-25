@@ -421,7 +421,7 @@ function updateCustomer(req, res, next) {
         if (!user.photo_url) return cb(null);
 
         if (inputs.deletePhoto || (req.files && req.files.avatar)) {
-          imageStorage.delete(user.photo_url, (err) => {
+          imageStorage.delete(user.photo_url, 'profiles', (err) => {
             if (err) return cb(err);
 
             user.photo_url = null;
@@ -434,7 +434,7 @@ function updateCustomer(req, res, next) {
       // save new photo if attached
       (cb) => {
         if (req.files && req.files.avatar) {
-          imageStorage.upload(req.files.avatar, user.id, (err, newFileName) => {
+          imageStorage.upload(req.files.avatar, user.id, 'profiles', (err, newFileName) => {
             if (err) return cb(err);
             cb(null, newFileName);
           });
@@ -477,7 +477,7 @@ function getCustomerPhoto(req, res, next) {
       (cb) => {
         const { file } = req.params;
 
-        imageStorage.getPathIfExists(file, (err, filePath) => {
+        imageStorage.getPathIfExists(file, 'profiles', (err, filePath) => {
           if (err) return cb(err);
           res.sendFile(filePath);
           cb(null);

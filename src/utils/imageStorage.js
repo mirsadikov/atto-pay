@@ -4,21 +4,28 @@ const CustomError = require('../errors/CustomError');
 
 class imageStorage {
   constructor() {
-    this.uploadPath = process.env.IMAGE_STORAGE_DIR || path.join(__dirname, '..', '..', 'uploads');
+    this.uploadPath = process.env.IMAGE_STORAGE_DIR || path.join(process.cwd(), 'uploads');
 
     if (!fs.existsSync(this.uploadPath)) {
       fs.mkdirSync(this.uploadPath);
     }
   }
 
-  upload(image, fileName, cb) {
+  upload(image, fileName, subFolder, cb) {
     try {
+      // create subfolder if not exists
+      subFolder = subFolder || '';
+      const subFolderPath = path.join(this.uploadPath, subFolder);
+      if (!fs.existsSync(subFolderPath)) {
+        fs.mkdirSync(subFolderPath);
+      }
+
       const ext = image.name.split('.').pop();
       const allowedExtensions = ['jpg', 'jpeg', 'png'];
       if (!allowedExtensions.includes(ext)) return cb(new CustomError('FILE_EXTENSION_ERROR'));
 
       const newFileName = `${fileName}.${ext}`;
-      const uploadPath = path.join(this.uploadPath, newFileName);
+      const uploadPath = path.join(this.uploadPath, subFolder, newFileName);
 
       image.mv(uploadPath, (err) => {
         if (err) return cb(new CustomError('FILE_UPLOAD_ERROR', err.message));
@@ -30,9 +37,10 @@ class imageStorage {
     }
   }
 
-  delete(fileName, cb) {
+  delete(fileName, subFolder, cb) {
     try {
-      this.getPathIfExists(fileName, (err, filePath) => {
+      subFolder = subFolder || '';
+      this.getPathIfExists(fileName, subFolder, (err, filePath) => {
         // skip if file already deleted
         if (err) return cb();
 
@@ -47,9 +55,10 @@ class imageStorage {
     }
   }
 
-  getPathIfExists(fileName, cb) {
+  getPathIfExists(fileName, subFolder, cb) {
     try {
-      const filePath = path.join(this.uploadPath, fileName);
+      subFolder = subFolder || '';
+      const filePath = path.join(this.uploadPath, subFolder, fileName);
 
       // check if file exists
       fs.access(filePath, fs.constants.F_OK, (err) => {

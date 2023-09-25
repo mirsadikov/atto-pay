@@ -21,6 +21,7 @@ const errorHandler = (err, req, res, next) => {
     let info = err.info;
     let type = err.name;
     let details = isDevenv ? err.message : undefined;
+    let stack = isDevenv ? err.stack : undefined;
 
     switch (err.name) {
       case 'VALIDATION_ERROR':
@@ -44,6 +45,7 @@ const errorHandler = (err, req, res, next) => {
       info,
       type,
       details,
+      stack,
     });
   });
 };
