@@ -8,6 +8,7 @@ const pgClient = new Pool({
 
 const fetchDB = (QUERY, params, cb) =>
   new Promise((resolve) => {
+    cb = cb || function () {};
     pgClient
       .connect()
       .then((client) => {

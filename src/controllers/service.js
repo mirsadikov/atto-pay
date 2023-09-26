@@ -13,6 +13,7 @@ const acceptsLanguages = require('../utils/acceptLanguages');
 function createService(req, res, next) {
   let merchantId;
   let inputs;
+  let newImage;
   let newService;
 
   async.waterfall(
@@ -58,58 +59,51 @@ function createService(req, res, next) {
           cb(null);
         });
       },
-      // create service
-      (cb) => {
-        fetchDB(
-          servicesQuery.create,
-          [merchantId, inputs.categoryCode, inputs.name, inputs.price, null, inputs.isActive],
-          (err, result) => {
-            if (err) return cb(err);
-
-            newService = result.rows[0];
-            cb(null);
-          }
-        );
-      },
       // save image if attached
       (cb) => {
         if (!req.files || !req.files.image) return cb(null);
 
-        imageStorage.upload(req.files.image, newService.id, 'services', (err, newFileName) => {
+        imageStorage.upload(req.files.image, 'services', (err, newFileName) => {
           if (err) return cb(err);
-          newService.photo_url = newFileName;
+          newImage = newFileName;
           cb(null);
         });
       },
-      // update image url
+      // create service
       (cb) => {
-        if (!newService.photo_url) return cb(null);
+        const lang = acceptsLanguages(req);
+        fetchDB(
+          servicesQuery.create,
+          [
+            merchantId,
+            inputs.categoryCode,
+            inputs.name,
+            inputs.price,
+            newImage,
+            inputs.isActive,
+            lang,
+          ],
+          (err, result) => {
+            if (err) return cb(err);
 
-        fetchDB(servicesQuery.updatePhoto, [newService.photo_url, newService.id], (err) => {
-          if (err) return cb(err);
-          cb(null);
-        });
-      },
-      // return result
-      (cb) => {
-        res.status(201).json({
-          success: true,
-          service: {
-            ...newService,
-            photo_url: imageStorage.getImageUrl('/service/photo', newService.photo_url),
-          },
-        });
-        cb(null);
+            newService = result.rows[0];
+            res.status(201).json({
+              success: true,
+              service: {
+                ...newService,
+                image_url: imageStorage.getImageUrl('/service/photo', newService.image_url),
+              },
+            });
+            cb(null);
+          }
+        );
       },
     ],
     (err) => {
       if (err) {
         // clear
-        if (newService && newService.id)
-          fetchDB(servicesQuery.delete, [newService.id, merchantId], () => {});
-
-        if (newService && newService.photo_url)
-          imageStorage.delete(newService.photo_url, 'services', () => {});
+        if (newService) fetchDB(servicesQuery.delete, [newService.id, merchantId]);
+        if (newImage) imageStorage.delete(newImage, 'services');
 
         return next(err);
       }
@@ -133,7 +127,7 @@ function getAllServices(req, res, next) {
       // get images
       (services, cb) => {
         services.forEach((service) => {
-          service.photo_url = imageStorage.getImageUrl('/service/photo', service.photo_url);
+          service.image_url = imageStorage.getImageUrl('/service/photo', service.image_url);
         });
 
         res.status(200).json({
@@ -169,7 +163,7 @@ function getServiceImage(req, res, next) {
 // @Private
 // @Merchant
 function updateService(req, res, next) {
-  let merchantId, inputs, service, oldImage;
+  let merchantId, inputs, service;
 
   async.waterfall(
     [
@@ -184,7 +178,7 @@ function updateService(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { id, name, price, categoryCode, isActive } = req.body;
+        const { id, name, price, categoryCode, isActive, deleteImage } = req.body;
 
         const validator = new LIVR.Validator({
           id: ['trim', 'string', 'required'],
@@ -192,6 +186,7 @@ function updateService(req, res, next) {
           price: ['trim', 'integer'],
           categoryCode: ['trim', 'string'],
           isActive: ['trim', 'boolean'],
+          deleteImage: ['trim', 'boolean', { default: false }],
         });
 
         const validData = validator.validate({
@@ -200,6 +195,7 @@ function updateService(req, res, next) {
           price: price ? Math.abs(price) : price,
           categoryCode: categoryCode ? categoryCode.toUpperCase() : categoryCode,
           isActive,
+          deleteImage,
         });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
@@ -229,26 +225,38 @@ function updateService(req, res, next) {
           cb(null);
         });
       },
-      // save image if attached
+      // delete old image if requested or new image attached
       (cb) => {
-        if (!req.files || !req.files.image) return cb(null);
+        if (!service.image_url) return cb(null);
 
-        imageStorage.delete(service.photo_url, 'services', () => {
-          imageStorage.upload(req.files.image, service.id, 'services', (err, newFileName) => {
-            if (err) return cb(err);
-            service.photo_url = newFileName;
+        if (inputs.deleteImage || (req.files && req.files.image)) {
+          imageStorage.delete(service.image_url, 'services', (err) => {
+            if (!err) service.image_url = null;
+
             cb(null);
           });
+        } else {
+          cb(null);
+        }
+      },
+      // save image if attached
+      (cb) => {
+        if (!req.files || !req.files.image) return cb(null, null);
+
+        imageStorage.upload(req.files.image, 'services', (err, newFileName) => {
+          if (err) return cb(err);
+          cb(null, newFileName);
         });
       },
       // update service
-      (cb) => {
+      (newFileName, cb) => {
         const { name, price, categoryCode, isActive } = inputs;
 
         const newName = name || service.name;
         const newPrice = price || service.price;
         const newCategoryCode = categoryCode || service.category_code;
         const newIsActive = isActive || service.is_active;
+        const newPhotoUrl = newFileName || service.image_url;
         const lang = acceptsLanguages(req);
 
         fetchDB(
@@ -258,7 +266,7 @@ function updateService(req, res, next) {
             newPrice,
             newCategoryCode,
             newIsActive,
-            service.photo_url,
+            newPhotoUrl,
             service.id,
             merchantId,
             lang,
@@ -267,20 +275,16 @@ function updateService(req, res, next) {
             if (err) return cb(err);
 
             service = result.rows[0];
+            res.status(200).json({
+              success: true,
+              service: {
+                ...service,
+                image_url: imageStorage.getImageUrl('/service/photo', service.image_url),
+              },
+            });
             cb(null);
           }
         );
-      },
-      // return result
-      (cb) => {
-        res.status(200).json({
-          success: true,
-          service: {
-            ...service,
-            photo_url: imageStorage.getImageUrl('/service/photo', service.photo_url),
-          },
-        });
-        cb(null);
       },
     ],
     (err) => err && next(err)
@@ -291,7 +295,6 @@ function updateService(req, res, next) {
 // @Merchant
 function deleteService(req, res, next) {
   let merchantId;
-  let serviceId;
 
   async.waterfall(
     [
@@ -313,18 +316,16 @@ function deleteService(req, res, next) {
         const validData = validator.validate({ id: req.body.id });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
-        serviceId = validData.id;
-        cb(null);
+        cb(null, validData.id);
       },
       // delete service
-      (cb) => {
+      (serviceId, cb) => {
         fetchDB(servicesQuery.delete, [serviceId, merchantId], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('SERVICE_NOT_FOUND'));
 
           // delete image
-          if (result.rows[0].photo_url)
-            imageStorage.delete(result.rows[0].photo_url, 'services', () => {});
+          if (result.rows[0].image_url) imageStorage.delete(result.rows[0].image_url, 'services');
 
           res.status(200).json({
             success: true,

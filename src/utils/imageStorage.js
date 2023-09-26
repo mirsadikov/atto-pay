@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const v4 = require('uuid').v4;
 const CustomError = require('../errors/CustomError');
 
 class imageStorage {
@@ -11,7 +12,7 @@ class imageStorage {
     }
   }
 
-  upload(image, fileName, subFolder, cb) {
+  upload(image, subFolder, cb) {
     try {
       // create subfolder if not exists
       subFolder = subFolder || '';
@@ -24,7 +25,7 @@ class imageStorage {
       const allowedExtensions = ['jpg', 'jpeg', 'png'];
       if (!allowedExtensions.includes(ext)) return cb(new CustomError('FILE_EXTENSION_ERROR'));
 
-      const newFileName = `${fileName}.${ext}`;
+      const newFileName = `${v4()}.${ext}`;
       const uploadPath = path.join(this.uploadPath, subFolder, newFileName);
 
       image.mv(uploadPath, (err) => {
@@ -38,6 +39,7 @@ class imageStorage {
   }
 
   delete(fileName, subFolder, cb) {
+    cb = cb || function () {};
     try {
       subFolder = subFolder || '';
       this.getPathIfExists(fileName, subFolder, (err, filePath) => {

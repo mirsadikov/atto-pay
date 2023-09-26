@@ -68,7 +68,7 @@ create table if not exists service (
   category_id int not null references service_category(id),
   name varchar(64) not null,
   price int not null,
-  photo_url varchar(256),
+  image_url varchar(256),
   is_active boolean not null default false,
   constraint unique_merchant_category unique(merchant_id, category_id)
 );

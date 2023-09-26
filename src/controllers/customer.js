@@ -415,7 +415,7 @@ function updateCustomer(req, res, next) {
         const validator = new LIVR.Validator({
           name: ['trim', 'string', { min_length: 3 }, { max_length: 64 }],
           password: ['trim', { min_length: 6 }, 'alphanumeric'],
-          deletePhoto: [{ one_of: [true, false] }, { default: false }],
+          deletePhoto: ['trim', 'boolean', { default: false }],
         });
 
         const validData = validator.validate({ name, password, deletePhoto });
@@ -439,9 +439,8 @@ function updateCustomer(req, res, next) {
 
         if (inputs.deletePhoto || (req.files && req.files.avatar)) {
           imageStorage.delete(customer.photo_url, 'profiles', (err) => {
-            if (err) return cb(err);
+            if (!err) customer.photo_url = null;
 
-            customer.photo_url = null;
             cb(null);
           });
         } else {
@@ -451,7 +450,7 @@ function updateCustomer(req, res, next) {
       // save new photo if attached
       (cb) => {
         if (req.files && req.files.avatar) {
-          imageStorage.upload(req.files.avatar, customer.id, 'profiles', (err, newFileName) => {
+          imageStorage.upload(req.files.avatar, 'profiles', (err, newFileName) => {
             if (err) return cb(err);
             cb(null, newFileName);
           });
