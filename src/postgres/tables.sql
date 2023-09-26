@@ -6,6 +6,7 @@ drop table if exists customer;
 drop table if exists error;
 drop table if exists merchant;
 drop table if exists service_category;
+drop table if exists service;
 
 create table if not exists customer(
   id uuid primary key default uuid_generate_v4(),
@@ -61,6 +62,17 @@ create table if not exists service_category(
   name jsonb not null
 );
 
+create table if not exists service (
+  id uuid primary key default uuid_generate_v4(),
+  merchant_id uuid not null references merchant(id),
+  category_id int not null references service_category(id),
+  name varchar(64) not null,
+  price int not null,
+  photo_url varchar(256),
+  is_active boolean not null default false,
+  constraint unique_merchant_category unique(merchant_id, category_id)
+);
+
 insert into error(name, message, http_code) values
 ('VALIDATION_ERROR', '{"en": "Invalid input for {0}", "uz": "{0} uchun notog''ri kiritish", "ru": "Неверный ввод для {0}"}', 400),
 ('DATABASE_ERROR', '{"en": "Database error", "uz": "Ma''lumotlar bazasi xatosi", "ru": "Ошибка базы данных"}', 500),
@@ -85,7 +97,9 @@ insert into error(name, message, http_code) values
 ('WRONG_OTP', '{"en": "Wrong verification code", "uz": "Tekshirish kodi noto''g''ri", "ru": "Неверный код подтверждения"}', 400),
 ('EXPIRED_OTP', '{"en": "Verification code is expired", "uz": "Tasdiqlash kodi eskirgan", "ru": "Код подтверждения истек"}', 400),
 ('EMAIL_TAKEN', '{"en": "This email address is already registered", "uz": "Bu elektron pochta allaqachon ro''yxatdan o''tgan", "ru": "Этот адрес электронной почты уже зарегистрирован"}', 400),
-('NOT_ALLOWED', '{"en": "Not allowed", "uz": "Ruxsat etilmagan", "ru": "Не разрешено"}', 403);
+('NOT_ALLOWED', '{"en": "Not allowed", "uz": "Ruxsat etilmagan", "ru": "Не разрешено"}', 403),
+('SERVICE_ALREADY_EXISTS', '{"en": "Adding multiple services in one category is not allowed", "uz": "Bitta kategoriyada bir nechta xizmat qo''shib bo''lmaydi", "ru": "Нельзя добавить несколько услуг в одну категорию"}', 409),
+('SERVICE_NOT_FOUND', '{"en": "Service not found", "uz": "Xizmat topilmadi", "ru": "Услуга не найдена"}', 404);
 
 insert into service_category(code, name) values
 ('MOBILE_OPERATORS', '{"en": "Mobile operators", "uz": "Mobil aloqa operatorlari", "ru": "Мобильные операторы"}'),

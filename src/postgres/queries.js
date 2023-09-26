@@ -45,6 +45,21 @@ const categoriesQuery = {
   getAll: 'select id, code, name -> $1 as name from service_category',
 };
 
+const servicesQuery = {
+  create:
+    'insert into service(merchant_id, category_id, name, price, photo_url, is_active) values($1, (select id from service_category where code = $2), $3, $4, $5, $6) returning *',
+  updatePhoto: 'update service set photo_url = $1 where id = $2',
+  update:
+    'update service as s set name = $1, price = $2, category_id = sc.id, is_active = $4, photo_url = $5 from service_category as sc where s.id = $6 and s.merchant_id = $7 and sc.code = $3 returning s.*, sc.code as category_code, sc.name -> $8 as category_name',
+  getOneById:
+    'select *, (select code from service_category where id = s.category_id) as category_code from service s where id = $1 and merchant_id = $2',
+  getAll:
+    'select s.*, c.code as category_code, c.name -> $1 as category_name from service s join service_category c on s.category_id = c.id where is_active = true',
+  getUnique:
+    'select * from service where merchant_id = $1 and category_id = (select id from service_category where code = $2)',
+  delete: 'delete from service where id = $1 and merchant_id = $2 returning *',
+};
+
 module.exports = {
   customersQuery,
   cardsQuery,
@@ -52,4 +67,5 @@ module.exports = {
   devicesQuery,
   merchantsQuery,
   categoriesQuery,
+  servicesQuery,
 };
