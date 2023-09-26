@@ -12,15 +12,15 @@ const CustomError = require('../errors/CustomError');
 function createCard(req, res, next) {
   async.waterfall(
     [
-      // verify user
+      // verify customer
       (cb) => {
-        verifyToken(req, 'customer', (err, userId) => {
+        verifyToken(req, 'customer', (err, customerId) => {
           if (err) return cb(err);
-          cb(null, userId);
+          cb(null, customerId);
         });
       },
       // validate data
-      (userId, cb) => {
+      (customerId, cb) => {
         const { name, pan, expiry_month, expiry_year } = req.body;
 
         const validator = new LIVR.Validator({
@@ -38,28 +38,34 @@ function createCard(req, res, next) {
         if (!expiryDate.isValid()) return cb(new CustomError('INVALID_EXPIRY_DATE'));
         if (expiryDate.isBefore(moment())) return cb(new CustomError('CARD_EXPIRED'));
 
-        cb(null, userId, validData);
+        cb(null, customerId, validData);
       },
       // check card is not already added
-      (userId, validData, cb) => {
+      (customerId, validData, cb) => {
         fetchDB(cardsQuery.getOneByPan, [validData.pan], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length > 0) return cb(new CustomError('CARD_ALREADY_ADDED'));
 
-          cb(null, userId, validData);
+          cb(null, customerId, validData);
         });
       },
       // create card
-      (userId, validData, cb) => {
+      (customerId, validData, cb) => {
         fetchDB(
           cardsQuery.create,
-          [userId, validData.name, validData.pan, validData.expiry_month, validData.expiry_year],
+          [
+            customerId,
+            validData.name,
+            validData.pan,
+            validData.expiry_month,
+            validData.expiry_year,
+          ],
           (err, result) => {
             if (err) return cb(err);
 
             res.status(201).json({
               success: true,
-              details: result.rows[0],
+              card: result.rows[0],
             });
             cb(null);
           }
@@ -75,16 +81,16 @@ function createCard(req, res, next) {
 function getCustomerCards(req, res, next) {
   async.waterfall(
     [
-      // verify user
+      // verify customer
       (cb) => {
-        verifyToken(req, 'customer', (err, userId) => {
+        verifyToken(req, 'customer', (err, customerId) => {
           if (err) return cb(err);
-          cb(null, userId);
+          cb(null, customerId);
         });
       },
       // get cards
-      (userId, cb) => {
-        fetchDB(cardsQuery.getAllByCustomerId, [userId], (err, result) => {
+      (customerId, cb) => {
+        fetchDB(cardsQuery.getAllByCustomerId, [customerId], (err, result) => {
           if (err) return cb(err);
 
           res.status(200).json({
@@ -104,15 +110,15 @@ function getCustomerCards(req, res, next) {
 function updateCard(req, res, next) {
   async.waterfall(
     [
-      // verify user
+      // verify customer
       (cb) => {
-        verifyToken(req, 'customer', (err, userId) => {
+        verifyToken(req, 'customer', (err, customerId) => {
           if (err) return cb(err);
-          cb(null, userId);
+          cb(null, customerId);
         });
       },
       // validate data
-      (userId, cb) => {
+      (customerId, cb) => {
         const { id, name } = req.body;
 
         const validator = new LIVR.Validator({
@@ -123,17 +129,17 @@ function updateCard(req, res, next) {
         const validData = validator.validate({ id, name });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
-        cb(null, userId, validData);
+        cb(null, customerId, validData);
       },
       // update card
-      (userId, data, cb) => {
-        fetchDB(cardsQuery.update, [data.name, data.id, userId], (err, result) => {
+      (customerId, data, cb) => {
+        fetchDB(cardsQuery.update, [data.name, data.id, customerId], (err, result) => {
           if (err) return cb(err);
           if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 
           res.status(200).json({
             success: true,
-            details: result.rows[0],
+            card: result.rows[0],
           });
           cb(null);
         });
@@ -148,15 +154,15 @@ function updateCard(req, res, next) {
 function deleteCard(req, res, next) {
   async.waterfall(
     [
-      // verify user
+      // verify customer
       (cb) => {
-        verifyToken(req, 'customer', (err, userId) => {
+        verifyToken(req, 'customer', (err, customerId) => {
           if (err) return cb(err);
-          cb(null, userId);
+          cb(null, customerId);
         });
       },
       // validate data
-      (userId, cb) => {
+      (customerId, cb) => {
         const { id } = req.body;
 
         const validator = new LIVR.Validator({
@@ -166,11 +172,11 @@ function deleteCard(req, res, next) {
         const validData = validator.validate({ id });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
-        cb(null, userId, validData);
+        cb(null, customerId, validData);
       },
       // delete card
-      (userId, data, cb) => {
-        fetchDB(cardsQuery.delete, [data.id, userId], (err, result) => {
+      (customerId, data, cb) => {
+        fetchDB(cardsQuery.delete, [data.id, customerId], (err, result) => {
           if (err) return cb(err);
           if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 

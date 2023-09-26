@@ -204,8 +204,7 @@ function loginMerchant(req, res, next) {
           merchant: {
             id: merchant.id,
             name: merchant.name,
-            phone: merchant.phone,
-            photo_url: merchant.photo_url,
+            email: merchant.email,
             reg_date: merchant.reg_date,
           },
         });
@@ -286,8 +285,11 @@ function updateMerchant(req, res, next) {
       // update merchant
       (cb) => {
         const { name, password } = inputs;
+
+        const newName = name || merchant.name;
         const hashedPassword = password ? bcrypt.hashSync(password, 10) : merchant.hashed_password;
-        fetchDB(merchantsQuery.update, [name, hashedPassword, merchant.id], (err, result) => {
+
+        fetchDB(merchantsQuery.update, [newName, hashedPassword, merchant.id], (err, result) => {
           if (err) return cb(err);
 
           merchant = result.rows[0];

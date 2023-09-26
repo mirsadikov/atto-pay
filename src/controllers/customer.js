@@ -17,21 +17,21 @@ function getCustomerProfile(req, res, next) {
   async.waterfall(
     [
       (cb) => {
-        verifyToken(req, 'customer', (err, userId) => {
+        verifyToken(req, 'customer', (err, customerId) => {
           if (err) return cb(err);
-          cb(null, userId);
+          cb(null, customerId);
         });
       },
-      (userId, cb) => {
-        fetchDB(customersQuery.getOneById, [userId], (err, result) => {
+      (customerId, cb) => {
+        fetchDB(customersQuery.getOneById, [customerId], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
 
-          const user = result.rows[0];
-          delete user.hashed_password;
-          user.photo_url = imageStorage.getImageUrl('/customer/photo', user.photo_url);
+          const customer = result.rows[0];
+          delete customer.hashed_password;
+          customer.photo_url = imageStorage.getImageUrl('/customer/photo', customer.photo_url);
 
-          res.status(200).json(user);
+          res.status(200).json(customer);
         });
       },
     ],
@@ -42,7 +42,7 @@ function getCustomerProfile(req, res, next) {
 // @Public
 function registerCustomer(req, res, next) {
   let inputs;
-  let user;
+  let customer;
 
   async.waterfall(
     [
@@ -71,7 +71,7 @@ function registerCustomer(req, res, next) {
         inputs = validData;
         cb(null);
       },
-      // if user exists, return error
+      // if customer exists, return error
       (cb) => {
         fetchDB(customersQuery.getOneByPhone, [inputs.phone], (err, result) => {
           if (err) return cb(err);
@@ -80,14 +80,14 @@ function registerCustomer(req, res, next) {
           cb(null);
         });
       },
-      // if new user, create user
+      // if new customer, create customer
       (cb) => {
         const { name, phone, password } = inputs;
         const hashedPassword = bcrypt.hashSync(password, 10);
         fetchDB(customersQuery.create, [name, phone, hashedPassword], (err, result) => {
           if (err) return cb(err);
 
-          user = result.rows[0];
+          customer = result.rows[0];
           cb(null);
         });
       },
@@ -97,12 +97,12 @@ function registerCustomer(req, res, next) {
             // save and return new token
             (cb) => {
               const token = v4();
-              redis.hSet('users', user.id, token);
+              redis.hSet('customers', customer.id, token);
               redis.hSet(
                 'tokens',
                 token,
                 JSON.stringify({
-                  id: user.id,
+                  id: customer.id,
                   role: 'customer',
                   expiresAt: moment().add(1, 'hour').valueOf(),
                 })
@@ -113,7 +113,7 @@ function registerCustomer(req, res, next) {
             // trust device if needed
             (cb) => {
               if (inputs.trust)
-                return fetchDB(devicesQuery.create, [user.id, inputs.uid], (err) => {
+                return fetchDB(devicesQuery.create, [customer.id, inputs.uid], (err) => {
                   if (err) return cb(err);
 
                   cb(null);
@@ -125,11 +125,11 @@ function registerCustomer(req, res, next) {
           (err, results) => {
             if (err) return cb(err);
 
-            // return user
+            // return customer
             res.status(200).json({
               success: true,
               token: results[0],
-              user,
+              customer,
             });
 
             cb(null);
@@ -159,7 +159,7 @@ function getCustomerLoginType(req, res, next) {
 
         cb(null, validData);
       },
-      // check if user exists
+      // check if customer exists
       (data, cb) => {
         fetchDB(customersQuery.getOneByPhone, [data.phone], (err, result) => {
           if (err) return cb(err);
@@ -184,7 +184,7 @@ function getCustomerLoginType(req, res, next) {
             };
 
             redis.hSet('otp', data.phone, JSON.stringify(otpObject)).then(() => {
-              // TODO: send otp to user
+              // TODO: send otp to customer
               res.json({ password: false, otp: true });
             });
           } else {
@@ -202,7 +202,7 @@ function getCustomerLoginType(req, res, next) {
 // @Public
 function loginCustomer(req, res, next) {
   let inputs;
-  let user;
+  let customer;
 
   async.waterfall(
     [
@@ -224,29 +224,29 @@ function loginCustomer(req, res, next) {
 
         cb(null);
       },
-      // if user not exists, return error
+      // if customer not exists, return error
       (cb) => {
         fetchDB(customersQuery.getOneByPhone, [inputs.phone], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
 
-          user = result.rows[0];
+          customer = result.rows[0];
           cb(null);
         });
       },
-      // check if user is not blocked
+      // check if customer is not blocked
       (cb) => {
-        if (user.is_blocked) {
-          const unblockTime = moment(user.last_login_attempt).add(1, 'minute');
+        if (customer.is_blocked) {
+          const unblockTime = moment(customer.last_login_attempt).add(1, 'minute');
           // if block time is not over, return error
           if (moment().isBefore(unblockTime)) {
             const timeLeft = unblockTime.diff(moment(), 'seconds');
             return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
           }
 
-          // if block time is over, unblock user
-          user.last_login_attempt = null;
-          user.is_blocked = false;
+          // if block time is over, unblock customer
+          customer.last_login_attempt = null;
+          customer.is_blocked = false;
         }
 
         cb(null);
@@ -274,20 +274,20 @@ function loginCustomer(req, res, next) {
       (loginType, cb) => {
         const { password, otp } = inputs;
         if (loginType === 'password') {
-          const isPasswordCorrect = bcrypt.compareSync(password, user.hashed_password);
+          const isPasswordCorrect = bcrypt.compareSync(password, customer.hashed_password);
           cb(null, isPasswordCorrect, loginType);
         } else {
-          redis.hGet('otp', user.phone).then((redisOtp) => {
+          redis.hGet('otp', customer.phone).then((redisOtp) => {
             if (!redisOtp) return cb(null, false, loginType);
             const otpObject = JSON.parse(redisOtp);
 
             if (moment().isAfter(otpObject.expiresAt)) {
-              redis.hDel('otp', user.phone);
+              redis.hDel('otp', customer.phone);
               return cb(new CustomError('EXPIRED_OTP'));
             }
 
             if (otpObject.code === parseInt(otp) && moment().isBefore(otpObject.expiresAt)) {
-              redis.hDel('otp', user.phone);
+              redis.hDel('otp', customer.phone);
               return cb(null, true, loginType);
             }
 
@@ -299,34 +299,36 @@ function loginCustomer(req, res, next) {
       (isValidCreadentials, loginType, cb) => {
         if (!isValidCreadentials) {
           if (
-            user.last_login_attempt &&
-            moment().isBefore(moment(user.last_login_attempt).add(user.safe_login_after, 'seconds'))
+            customer.last_login_attempt &&
+            moment().isBefore(
+              moment(customer.last_login_attempt).add(customer.safe_login_after, 'seconds')
+            )
           ) {
             // if 3 login attempts in one minute
-            user.is_blocked = true;
-            user.safe_login_after = 0;
+            customer.is_blocked = true;
+            customer.safe_login_after = 0;
           } else {
-            // calculate time that user should wait before next login not to be blocked
-            user.safe_login_after = user.last_login_attempt
-              ? Math.max(60 - moment().diff(user.last_login_attempt, 'seconds'), 0)
+            // calculate time that customer should wait before next login not to be blocked
+            customer.safe_login_after = customer.last_login_attempt
+              ? Math.max(60 - moment().diff(customer.last_login_attempt, 'seconds'), 0)
               : 0;
           }
 
           // save status
           return fetchDB(
             customersQuery.changeStatus,
-            [user.is_blocked, user.safe_login_after, moment(), user.id],
+            [customer.is_blocked, customer.safe_login_after, moment(), customer.id],
             (err) => {
               if (err) return cb(err);
 
-              if (user.is_blocked) cb(new CustomError('USER_BLOCKED', null, { timeLeft: 60 }));
+              if (customer.is_blocked) cb(new CustomError('USER_BLOCKED', null, { timeLeft: 60 }));
               else cb(new CustomError(loginType === 'password' ? 'WRONG_PASSWORD' : 'WRONG_OTP'));
             }
           );
         }
 
         // reset login attempts if password is correct
-        fetchDB(customersQuery.changeStatus, [false, 0, null, user.id], (err) => {
+        fetchDB(customersQuery.changeStatus, [false, 0, null, customer.id], (err) => {
           if (err) console.log(err);
         });
 
@@ -339,7 +341,7 @@ function loginCustomer(req, res, next) {
             // trust device if needed
             (cb) => {
               if (inputs.trust)
-                fetchDB(devicesQuery.create, [user.id, inputs.uid], (err) => {
+                fetchDB(devicesQuery.create, [customer.id, inputs.uid], (err) => {
                   if (err) return cb(err);
                   cb(null);
                 });
@@ -347,7 +349,7 @@ function loginCustomer(req, res, next) {
             },
             // delete old token
             (cb) =>
-              redis.hGet('users', user.id).then((oldToken) => {
+              redis.hGet('customers', customer.id).then((oldToken) => {
                 if (oldToken) redis.hDel('tokens', oldToken);
                 cb(null);
               }),
@@ -361,12 +363,12 @@ function loginCustomer(req, res, next) {
       // save and return new token
       (cb) => {
         const token = v4();
-        redis.hSet('users', user.id, token);
+        redis.hSet('customers', customer.id, token);
         redis.hSet(
           'tokens',
           token,
           JSON.stringify({
-            id: user.id,
+            id: customer.id,
             role: 'customer',
             expiresAt: moment().add(1, 'hour').valueOf(),
           })
@@ -374,12 +376,12 @@ function loginCustomer(req, res, next) {
 
         res.status(200).json({
           token,
-          user: {
-            id: user.id,
-            name: user.name,
-            phone: user.phone,
-            photo_url: imageStorage.getImageUrl('/customer/photo', user.photo_url),
-            reg_date: user.reg_date,
+          customer: {
+            id: customer.id,
+            name: customer.name,
+            phone: customer.phone,
+            photo_url: imageStorage.getImageUrl('/customer/photo', customer.photo_url),
+            reg_date: customer.reg_date,
           },
         });
         cb(null);
@@ -392,8 +394,8 @@ function loginCustomer(req, res, next) {
 // @Private
 // @Customer
 function updateCustomer(req, res, next) {
-  let userId;
-  let user;
+  let customerId;
+  let customer;
   let inputs;
 
   async.waterfall(
@@ -402,7 +404,7 @@ function updateCustomer(req, res, next) {
         verifyToken(req, 'customer', (err, id) => {
           if (err) return cb(err);
 
-          userId = id;
+          customerId = id;
           cb(null);
         });
       },
@@ -422,24 +424,24 @@ function updateCustomer(req, res, next) {
         inputs = validData;
         cb(null);
       },
-      // get user
+      // get customer
       (cb) => {
-        fetchDB(customersQuery.getOneById, [userId], (err, result) => {
+        fetchDB(customersQuery.getOneById, [customerId], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
-          user = result.rows[0];
+          customer = result.rows[0];
           cb(null);
         });
       },
       // delete old photo if requested or new photo attached
       (cb) => {
-        if (!user.photo_url) return cb(null);
+        if (!customer.photo_url) return cb(null);
 
         if (inputs.deletePhoto || (req.files && req.files.avatar)) {
-          imageStorage.delete(user.photo_url, 'profiles', (err) => {
+          imageStorage.delete(customer.photo_url, 'profiles', (err) => {
             if (err) return cb(err);
 
-            user.photo_url = null;
+            customer.photo_url = null;
             cb(null);
           });
         } else {
@@ -449,32 +451,32 @@ function updateCustomer(req, res, next) {
       // save new photo if attached
       (cb) => {
         if (req.files && req.files.avatar) {
-          imageStorage.upload(req.files.avatar, user.id, 'profiles', (err, newFileName) => {
+          imageStorage.upload(req.files.avatar, customer.id, 'profiles', (err, newFileName) => {
             if (err) return cb(err);
             cb(null, newFileName);
           });
         } else {
-          cb(null, user.photo_url);
+          cb(null, customer.photo_url);
         }
       },
-      // update user
+      // update customer
       (newFileName, cb) => {
         const { name, password } = inputs;
-        const newName = name || user.name;
-        const hashedPassword = password ? bcrypt.hashSync(password, 10) : user.hashed_password;
+        const newName = name || customer.name;
+        const hashedPassword = password ? bcrypt.hashSync(password, 10) : customer.hashed_password;
 
         fetchDB(
           customersQuery.update,
-          [newName, hashedPassword, newFileName, user.id],
+          [newName, hashedPassword, newFileName, customer.id],
           (err, result) => {
             if (err) return cb(err);
 
-            user = result.rows[0];
-            user.photo_url = imageStorage.getImageUrl('/customer/photo', user.photo_url);
+            customer = result.rows[0];
+            customer.photo_url = imageStorage.getImageUrl('/customer/photo', customer.photo_url);
 
             res.status(200).json({
               success: true,
-              user,
+              customer,
             });
 
             cb(null);
