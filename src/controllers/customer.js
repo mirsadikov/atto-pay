@@ -281,7 +281,9 @@ function loginCustomer(req, res, next) {
               redis.hDel('otp', user.phone);
               return cb(null, true, loginType);
             }
-
+            else if(moment().isAfter(otpJson.expiry)){
+              redis.hDel('otp',user.phone);
+            }
             cb(null, false, loginType);
           });
         }

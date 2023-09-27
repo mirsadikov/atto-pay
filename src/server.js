@@ -8,6 +8,7 @@ const cardRouter = require('./routes/card');
 const merchantRouter = require('./routes/merchant');
 const categoryRouter = require('./routes/category');
 const serviceRouter=require('./routes/service')
+const currencyRouter=require('./routes/currency')
 const errorHandler = require('./utils/errorHandler');
 
 const app = express();
@@ -23,6 +24,7 @@ app.use('/customer/card', cardRouter);
 app.use('/merchant', merchantRouter);
 app.use('/category', categoryRouter);
 app.use('/service',serviceRouter);
+app.use('/currency',currencyRouter)
 app.use(errorHandler);
 
 app.get('/', (_, res) => {

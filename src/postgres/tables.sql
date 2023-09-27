@@ -7,6 +7,7 @@ drop table if exists error;
 drop table if exists merchant;
 drop table if exists service_category;
 drop table if exists service;
+drop table if exists currency;
 
 create table if not exists customer(
   id uuid primary key default uuid_generate_v4(),
@@ -43,6 +44,11 @@ create table if not exists error(
   name varchar(64) not null unique,
   message jsonb not null,
   http_code int not null
+);
+create table if not exists currency(
+    id uuid primary key default uuid_generate_v4(),
+    name varchar not null,
+    abbreviation varchar
 );
 
 create table if not exists merchant(
