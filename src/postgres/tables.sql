@@ -4,9 +4,9 @@ drop table if exists customer_device;
 drop table if exists customer_card;
 drop table if exists customer;
 drop table if exists error;
-drop table if exists merchant;
-drop table if exists service_category;
 drop table if exists service;
+drop table if exists service_category;
+drop table if exists merchant;
 
 create table if not exists customer(
   id uuid primary key default uuid_generate_v4(),
