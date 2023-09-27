@@ -6,6 +6,7 @@ drop table if exists customer;
 drop table if exists error;
 drop table if exists merchant;
 drop table if exists service_category;
+drop table if exists service;
 
 create table if not exists customer(
   id uuid primary key default uuid_generate_v4(),
@@ -61,6 +62,17 @@ create table if not exists service_category(
   name jsonb not null
 );
 
+create table if not exists service(
+    id uuid primary key default uuid_generate_v4(),
+    name varchar (64),
+    price double precision ,
+    merchant_id uuid references merchant(id),
+    category_id serial references service_category(id),
+    logo_url varchar(256),
+    isActive Boolean default false,
+    constraint unique_merchant_category unique (merchant_id, category_id)
+    );
+
 insert into error(name, message, http_code) values
 ('VALIDATION_ERROR', '{"en": "Invalid input for {0}", "uz": "{0} uchun notog''ri kiritish", "ru": "Неверный ввод для {0}"}', 400),
 ('DATABASE_ERROR', '{"en": "Database error", "uz": "Ma''lumotlar bazasi xatosi", "ru": "Ошибка базы данных"}', 500),
@@ -84,7 +96,9 @@ insert into error(name, message, http_code) values
 ('USER_BLOCKED', '{"en": "User is blocked, try again after {0} seconds", "uz": "Foydalanuvchi bloklangan, {0} sekunddan keyin urinib ko''ring", "ru": "Пользователь заблокирован, попробуйте снова через {0} секунд"}', 403),
 ('WRONG_OTP', '{"en": "Wrong verification code", "uz": "Tekshirish kodi noto''g''ri", "ru": "Неверный код подтверждения"}', 400),
 ('EXPIRED_OTP', '{"en": "Verification code is expired", "uz": "Tasdiqlash kodi eskirgan", "ru": "Код подтверждения истек"}', 400),
-('EMAIL_TAKEN', '{"en": "This email address is already registered", "uz": "Bu elektron pochta allaqachon ro''yxatdan o''tgan", "ru": "Этот адрес электронной почты уже зарегистрирован"}', 400);
+('EMAIL_TAKEN', '{"en": "This email address is already registered", "uz": "Bu elektron pochta allaqachon ro''yxatdan o''tgan", "ru": "Этот адрес электронной почты уже зарегистрирован"}', 400),
+('NOT_ALLOWED','{"en": "You don`t have permission to access this recourse","uz":"Bu manbaga kirish uchun sizga ruxsat yo''q","ru": "У вас нет разрешения на доступ к этому ресурсу"}',403),
+('SERVICE_ALREADY_ADDED','{"en":"You have already added service to this category","uz":"Siz ushbu kategoriyaga xizmatni allaqachon qo''shgansiz","ru":"Вы уже добавили услугу в эту категорию"}',409);
 
 insert into service_category(code, name) values
 ('MOBILE_OPERATORS', '{"en": "Mobile operators", "uz": "Mobil aloqa operatorlari", "ru": "Мобильные операторы"}'),

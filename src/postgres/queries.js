@@ -44,7 +44,16 @@ const errorsQuery = {
 const categoriesQuery = {
   getAll: 'select id, code, name -> $1 as name from service_category',
 };
-
+const serviceQuery ={
+  add : 'insert into service(name,price,merchant_id,category_id,isActive) values ($1,$2,$3,$4,$5)returning *',
+  getAll: 'select * from service',
+  getOneById: 'select * from service where id=$1',
+  getByMerchantIdAndCategoryId: 'select * from service where merchant_id=$1 and category_id=$2',
+  getMerchantServices: 'select * from service where merchant_id=$1',
+  update: 'update service set name=$1, price=$2,category_id=$3,logo_url=$4,isActive=$5 where id =$6 and merchant_id=$7 returning *',
+  delete: 'delete from service where id=$1 and merchant_id=$2',
+  updatePhotoUrl: 'update service set logo_url=$1 where id=$2'
+}
 module.exports = {
   customersQuery,
   cardsQuery,
@@ -52,4 +61,5 @@ module.exports = {
   devicesQuery,
   merchantsQuery,
   categoriesQuery,
+  serviceQuery,
 };

@@ -356,7 +356,7 @@ function loginCustomer(req, res, next) {
         redis.hSet(
           'tokens',
           token,
-          JSON.stringify({ id: user.id, expiresAt: moment().add(1, 'hour').valueOf() })
+          JSON.stringify({ id: user.id, role: 'Customer',expiresAt: moment().add(1, 'hour').valueOf() })
         );
 
         res.status(200).json({
@@ -384,7 +384,7 @@ function updateCustomer(req, res, next) {
   async.waterfall(
     [
       (cb) => {
-        verifyToken(req, (err, id) => {
+        verifyToken(req, 'Customer',(err, id) => {
           if (err) return cb(err);
 
           userId = id;

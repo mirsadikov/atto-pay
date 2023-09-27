@@ -186,7 +186,7 @@ function loginMerchant(req, res, next) {
         redis.hSet(
           'tokens',
           token,
-          JSON.stringify({ id: merchant.id, expiresAt: moment().add(1, 'hour').valueOf() })
+          JSON.stringify({ id: merchant.id,role:'Merchant', expiresAt: moment().add(1, 'hour').valueOf() })
         );
 
         res.status(200).json({

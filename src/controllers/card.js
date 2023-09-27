@@ -70,7 +70,7 @@ function getCustomerCards(req, res, next) {
     [
       // verify user
       (cb) => {
-        verifyToken(req, (err, userId) => {
+        verifyToken(req, 'Customer',(err, userId) => {
           if (err) return cb(err);
           cb(null, userId);
         });
