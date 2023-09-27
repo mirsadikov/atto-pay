@@ -9,7 +9,7 @@ function getCategories(req, res, next) {
     if (err) return next(err);
 
     res.status(200).send({
-      count: result.rows.length,
+      count: result.rowCount,
       categories: result.rows,
     });
   });

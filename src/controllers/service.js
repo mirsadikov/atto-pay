@@ -11,10 +11,7 @@ const acceptsLanguages = require('../utils/acceptLanguages');
 // @Private
 // @Merchant
 function createService(req, res, next) {
-  let merchantId;
-  let inputs;
-  let newImage;
-  let newService;
+  let merchantId, inputs, newImage, newService;
 
   async.waterfall(
     [
@@ -316,11 +313,11 @@ function deleteService(req, res, next) {
         const validData = validator.validate({ id: req.body.id });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
-        cb(null, validData.id);
+        cb(null, validData);
       },
       // delete service
-      (serviceId, cb) => {
-        fetchDB(servicesQuery.delete, [serviceId, merchantId], (err, result) => {
+      (inputs, cb) => {
+        fetchDB(servicesQuery.delete, [inputs.id, merchantId], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('SERVICE_NOT_FOUND'));
 

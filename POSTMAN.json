@@ -35,11 +35,16 @@
 								"key": "Accept-Language",
 								"value": "en",
 								"disabled": true
+							},
+							{
+								"key": "X-Device-ID",
+								"value": "zeyds-chrome-mac",
+								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Mirabror\",\n    \"phone\": \"998993669802\",\n    \"password\": \"Hello1234.\"\n}",
+							"raw": "{\n    \"name\": \"Mirabror\",\n    \"phone\": \"998993669801\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -86,7 +91,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"phone\": \"998993669802\",\n    \"password\": \"Hello1234.\"\n}",
+							"raw": "{\n    \"phone\": \"998993669801\",\n    \"otp\": \"973302\",\n    \"trust\": true\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -113,7 +118,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "2d430e05-6d2d-4743-a3dc-7d54c416b67f"
+								"value": "786ecf8c-35a5-4231-9e64-8e1de8dc9ed7"
 							}
 						],
 						"url": {
@@ -136,7 +141,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "cf706736-5857-4286-8f1e-e53a7eca6bc9"
+								"value": "786ecf8c-35a5-4231-9e64-8e1de8dc9ed7"
 							}
 						],
 						"body": {
@@ -144,7 +149,7 @@
 							"formdata": [
 								{
 									"key": "name",
-									"value": "Mirabror",
+									"value": "Abbos",
 									"type": "default"
 								},
 								{
@@ -161,7 +166,7 @@
 								{
 									"key": "avatar",
 									"type": "file",
-									"src": "/Users/zeyds/Documents/Photo.png",
+									"src": "/Users/zeyds/Documents/IMG_20220329_111952_641.jpg.jpg",
 									"disabled": true
 								}
 							]
@@ -205,8 +210,7 @@
 						"header": [
 							{
 								"key": "X-Device-ID",
-								"value": "zeyds-mac-chromezeyds-mac-chrome",
-								"disabled": true
+								"value": "zeyds-mac-chrome"
 							}
 						],
 						"body": {
@@ -237,7 +241,7 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{url}}/customer/otp/recievebysms/998993669800",
+							"raw": "{{url}}/customer/otp/recievebysms/998993669801",
 							"host": [
 								"{{url}}"
 							],
@@ -245,7 +249,7 @@
 								"customer",
 								"otp",
 								"recievebysms",
-								"998993669800"
+								"998993669801"
 							]
 						}
 					},
@@ -254,7 +258,7 @@
 			]
 		},
 		{
-			"name": "Cards",
+			"name": "Card",
 			"item": [
 				{
 					"name": "Create",
@@ -263,7 +267,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "2d430e05-6d2d-4743-a3dc-7d54c416b67f"
+								"value": "7c1310a1-a6d0-4453-8ed6-eaa2f30498cb"
 							}
 						],
 						"body": {
@@ -276,14 +280,13 @@
 							}
 						},
 						"url": {
-							"raw": "{{url}}/customer/card/create",
+							"raw": "{{url}}/customer/card",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
-								"card",
-								"create"
+								"card"
 							]
 						}
 					},
@@ -296,18 +299,17 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "2d430e05-6d2d-4743-a3dc-7d54c416b67f"
+								"value": "7c1310a1-a6d0-4453-8ed6-eaa2f30498cb"
 							}
 						],
 						"url": {
-							"raw": "{{url}}/customer/card/all",
+							"raw": "{{url}}/customer/card",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
-								"card",
-								"all"
+								"card"
 							]
 						}
 					},
@@ -320,12 +322,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "2d430e05-6d2d-4743-a3dc-7d54c416b67f"
+								"value": "7c1310a1-a6d0-4453-8ed6-eaa2f30498cb"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"id\": \"a96ab63c-69dd-41b0-a87b-b9c48b83cb70\",\n  \"name\": \"to delete\"\n}",
+							"raw": "{\n  \"id\": \"460f4406-ec59-4733-8875-ff7f2b44c81c\",\n  \"name\": \"to delete\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -333,14 +335,13 @@
 							}
 						},
 						"url": {
-							"raw": "{{url}}/customer/card/update",
+							"raw": "{{url}}/customer/card",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
-								"card",
-								"update"
+								"card"
 							]
 						}
 					},
@@ -353,12 +354,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "2d430e05-6d2d-4743-a3dc-7d54c416b67f"
+								"value": "7c1310a1-a6d0-4453-8ed6-eaa2f30498cb"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"id\": \"a96ab63c-69dd-41b0-a87b-b9c48b83cb70\"\n}",
+							"raw": "{\n  \"id\": \"460f4406-ec59-4733-8875-ff7f2b44c81c\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -366,14 +367,36 @@
 							}
 						},
 						"url": {
-							"raw": "{{url}}/customer/card/delete",
+							"raw": "{{url}}/customer/card",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
-								"card",
-								"delete"
+								"card"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Category",
+			"item": [
+				{
+					"name": "Get categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/category/",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"category",
+								""
 							]
 						}
 					},
@@ -418,7 +441,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"itschool@gmail.com\",\n  \"password\": \"qwer1234\"\n}",
+							"raw": "{\n  \"email\": \"itschool@gmail.com\",\n  \"password\": \"test1234\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -445,7 +468,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "6b5bb98d-2651-4831-b974-1712682a339e"
+								"value": "0d19dc03-3485-41ec-9b1d-abc848688823"
 							}
 						],
 						"url": {
@@ -462,21 +485,13 @@
 					"response": []
 				},
 				{
-					"name": "New Request",
-					"request": {
-						"method": "GET",
-						"header": []
-					},
-					"response": []
-				},
-				{
 					"name": "Update merchant",
 					"request": {
 						"method": "PUT",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "fc806c6a-fc22-4983-a8ce-a00c17e31adf"
+								"value": "0d19dc03-3485-41ec-9b1d-abc848688823"
 							}
 						],
 						"body": {
@@ -502,6 +517,163 @@
 							"path": [
 								"merchant",
 								"profile"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Service",
+			"item": [
+				{
+					"name": "Create service",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "cbf89e11-ebc6-4185-a997-c0f438497ede",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "name",
+									"value": "Courses",
+									"type": "text"
+								},
+								{
+									"key": "price",
+									"value": "1000000",
+									"type": "text"
+								},
+								{
+									"key": "categoryCode",
+									"value": "OTHER",
+									"type": "text"
+								},
+								{
+									"key": "isActive",
+									"value": "true",
+									"type": "text"
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "/Users/zeyds/Documents/20220105_105005.jpg"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{url}}/service",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"service"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all services",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/service",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"service"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete service",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "cbf89e11-ebc6-4185-a997-c0f438497ede",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"1a42d40e-280a-40d1-8d9e-1f4a41bb6d62\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/service",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"service"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update service",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "cbf89e11-ebc6-4185-a997-c0f438497ede",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "id",
+									"value": "1a42d40e-280a-40d1-8d9e-1f4a41bb6d62",
+									"type": "text"
+								},
+								{
+									"key": "categoryCode",
+									"value": "OTHER",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "image",
+									"type": "file",
+									"src": "/Users/zeyds/Documents/Photo.png",
+									"disabled": true
+								},
+								{
+									"key": "deleteImage",
+									"value": "true",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{url}}/service",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"service"
 							]
 						}
 					},

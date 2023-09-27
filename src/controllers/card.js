@@ -10,17 +10,21 @@ const CustomError = require('../errors/CustomError');
 // @Private
 // @Customer
 function createCard(req, res, next) {
+  let customerId, inputs;
+
   async.waterfall(
     [
       // verify customer
       (cb) => {
-        verifyToken(req, 'customer', (err, customerId) => {
+        verifyToken(req, 'customer', (err, id) => {
           if (err) return cb(err);
-          cb(null, customerId);
+
+          customerId = id;
+          cb(null);
         });
       },
       // validate data
-      (customerId, cb) => {
+      (cb) => {
         const { name, pan, expiry_month, expiry_year } = req.body;
 
         const validator = new LIVR.Validator({
@@ -38,28 +42,23 @@ function createCard(req, res, next) {
         if (!expiryDate.isValid()) return cb(new CustomError('INVALID_EXPIRY_DATE'));
         if (expiryDate.isBefore(moment())) return cb(new CustomError('CARD_EXPIRED'));
 
-        cb(null, customerId, validData);
+        inputs = validData;
+        cb(null);
       },
       // check card is not already added
-      (customerId, validData, cb) => {
-        fetchDB(cardsQuery.getOneByPan, [validData.pan], (err, result) => {
+      (cb) => {
+        fetchDB(cardsQuery.getOneByPan, [inputs.pan], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length > 0) return cb(new CustomError('CARD_ALREADY_ADDED'));
 
-          cb(null, customerId, validData);
+          cb(null);
         });
       },
       // create card
-      (customerId, validData, cb) => {
+      (cb) => {
         fetchDB(
           cardsQuery.create,
-          [
-            customerId,
-            validData.name,
-            validData.pan,
-            validData.expiry_month,
-            validData.expiry_year,
-          ],
+          [customerId, inputs.name, inputs.pan, inputs.expiry_month, inputs.expiry_year],
           (err, result) => {
             if (err) return cb(err);
 
@@ -108,17 +107,21 @@ function getCustomerCards(req, res, next) {
 // @Private
 // @Customer
 function updateCard(req, res, next) {
+  let customerId;
+
   async.waterfall(
     [
       // verify customer
       (cb) => {
-        verifyToken(req, 'customer', (err, customerId) => {
+        verifyToken(req, 'customer', (err, id) => {
           if (err) return cb(err);
-          cb(null, customerId);
+
+          customerId = id;
+          cb(null);
         });
       },
       // validate data
-      (customerId, cb) => {
+      (cb) => {
         const { id, name } = req.body;
 
         const validator = new LIVR.Validator({
@@ -129,11 +132,11 @@ function updateCard(req, res, next) {
         const validData = validator.validate({ id, name });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
-        cb(null, customerId, validData);
+        cb(null, validData);
       },
       // update card
-      (customerId, data, cb) => {
-        fetchDB(cardsQuery.update, [data.name, data.id, customerId], (err, result) => {
+      (inputs, cb) => {
+        fetchDB(cardsQuery.update, [inputs.name, inputs.id, customerId], (err, result) => {
           if (err) return cb(err);
           if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 
@@ -152,17 +155,21 @@ function updateCard(req, res, next) {
 // @Private
 // @Customer
 function deleteCard(req, res, next) {
+  let customerId;
+
   async.waterfall(
     [
       // verify customer
       (cb) => {
-        verifyToken(req, 'customer', (err, customerId) => {
+        verifyToken(req, 'customer', (err, id) => {
           if (err) return cb(err);
-          cb(null, customerId);
+
+          customerId = id;
+          cb(null);
         });
       },
       // validate data
-      (customerId, cb) => {
+      (cb) => {
         const { id } = req.body;
 
         const validator = new LIVR.Validator({
@@ -172,11 +179,11 @@ function deleteCard(req, res, next) {
         const validData = validator.validate({ id });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
-        cb(null, customerId, validData);
+        cb(null, validData);
       },
       // delete card
-      (customerId, data, cb) => {
-        fetchDB(cardsQuery.delete, [data.id, customerId], (err, result) => {
+      (inputs, cb) => {
+        fetchDB(cardsQuery.delete, [inputs.id, customerId], (err, result) => {
           if (err) return cb(err);
           if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 

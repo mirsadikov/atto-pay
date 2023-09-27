@@ -29,7 +29,7 @@ function getCustomerProfile(req, res, next) {
 
           const customer = result.rows[0];
           delete customer.hashed_password;
-          customer.photo_url = imageStorage.getImageUrl('/customer/photo', customer.photo_url);
+          customer.image_url = imageStorage.getImageUrl('/customer/photo', customer.image_url);
 
           res.status(200).json(customer);
         });
@@ -41,22 +41,21 @@ function getCustomerProfile(req, res, next) {
 
 // @Public
 function registerCustomer(req, res, next) {
-  let inputs;
-  let customer;
+  let inputs, newCustomer;
 
   async.waterfall(
     [
       // validate data
       (cb) => {
         const { name, phone, password, trust } = req.body;
-        const uid = req.headers['x-device-id'];
+        const deviceId = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
           phone: ['trim', 'is_phone_number', 'required'],
           password: ['trim', 'required', { min_length: 6 }, 'alphanumeric'],
           trust: ['boolean', { default: false }],
-          uid: ['trim', 'string', { required_if: { trust: true } }],
+          deviceId: ['trim', 'string', { required_if: { trust: true } }],
         });
 
         const validData = validator.validate({
@@ -64,7 +63,7 @@ function registerCustomer(req, res, next) {
           phone: Math.abs(phone),
           password,
           trust,
-          uid,
+          deviceId,
         });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
@@ -87,33 +86,32 @@ function registerCustomer(req, res, next) {
         fetchDB(customersQuery.create, [name, phone, hashedPassword], (err, result) => {
           if (err) return cb(err);
 
-          customer = result.rows[0];
+          newCustomer = result.rows[0];
           cb(null);
         });
       },
       (cb) => {
+        const token = v4();
         async.parallel(
           [
-            // save and return new token
-            (cb) => {
-              const token = v4();
-              redis.hSet('customers', customer.id, token);
-              redis.hSet(
-                'tokens',
-                token,
-                JSON.stringify({
-                  id: customer.id,
-                  role: 'customer',
-                  expiresAt: moment().add(1, 'hour').valueOf(),
-                })
-              );
-
-              cb(null, token);
-            },
+            // save new token
+            (cb) => redis.hSet('customers', newCustomer.id, token).then(() => cb(null)),
+            (cb) =>
+              redis
+                .hSet(
+                  'tokens',
+                  token,
+                  JSON.stringify({
+                    id: newCustomer.id,
+                    role: 'customer',
+                    expiresAt: moment().add(1, 'hour').valueOf(),
+                  })
+                )
+                .then(() => cb(null)),
             // trust device if needed
             (cb) => {
               if (inputs.trust)
-                return fetchDB(devicesQuery.create, [customer.id, inputs.uid], (err) => {
+                return fetchDB(devicesQuery.create, [newCustomer.id, inputs.deviceId], (err) => {
                   if (err) return cb(err);
 
                   cb(null);
@@ -122,14 +120,14 @@ function registerCustomer(req, res, next) {
               cb(null);
             },
           ],
-          (err, results) => {
+          (err) => {
             if (err) return cb(err);
 
             // return customer
             res.status(200).json({
               success: true,
-              token: results[0],
-              customer,
+              token,
+              customer: newCustomer,
             });
 
             cb(null);
@@ -137,44 +135,54 @@ function registerCustomer(req, res, next) {
         );
       },
     ],
-    (err) => err && next(err)
+    (err) => {
+      if (err) {
+        // clear
+        if (newCustomer) fetchDB(customersQuery.delete, [newCustomer.id, newCustomer.phone]);
+
+        return next(err);
+      }
+    }
   );
 }
 
 // @Public
 function getCustomerLoginType(req, res, next) {
+  let inputs;
+
   async.waterfall(
     [
       (cb) => {
         const { phone } = req.body;
-        const uid = req.headers['x-device-id'];
+        const deviceId = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           phone: ['trim', 'is_phone_number', 'required'],
-          uid: ['trim', 'string'],
+          deviceId: ['trim', 'string'],
         });
 
-        const validData = validator.validate({ uid, phone: Math.abs(phone) });
+        const validData = validator.validate({ deviceId, phone: Math.abs(phone) });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
-        cb(null, validData);
+        inputs = validData;
+        cb(null);
       },
       // check if customer exists
-      (data, cb) => {
-        fetchDB(customersQuery.getOneByPhone, [data.phone], (err, result) => {
+      (cb) => {
+        fetchDB(customersQuery.getOneByPhone, [inputs.phone], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length == 0) return cb(new CustomError('USER_NOT_FOUND'));
 
-          cb(null, data);
+          cb(null);
         });
       },
-      (data, cb) => {
-        if (!data.uid) {
+      (cb) => {
+        if (!inputs.deviceId) {
           res.json({ password: true, otp: false });
           return cb(null);
         }
 
-        fetchDB(devicesQuery.getOneByUid, [data.uid, data.phone], (err, result) => {
+        fetchDB(devicesQuery.getOneByUid, [inputs.deviceId, inputs.phone], (err, result) => {
           if (err) return cb(err);
 
           if (result.rows.length > 0) {
@@ -183,7 +191,7 @@ function getCustomerLoginType(req, res, next) {
               expiresAt: moment().add(2, 'minutes').valueOf(),
             };
 
-            redis.hSet('otp', data.phone, JSON.stringify(otpObject)).then(() => {
+            redis.hSet('otp', inputs.phone, JSON.stringify(otpObject)).then(() => {
               // TODO: send otp to customer
               res.json({ password: false, otp: true });
             });
@@ -201,27 +209,33 @@ function getCustomerLoginType(req, res, next) {
 
 // @Public
 function loginCustomer(req, res, next) {
-  let inputs;
-  let customer;
+  let inputs, customer;
 
   async.waterfall(
     [
       // validate data
       (cb) => {
         const { phone, password, trust, otp } = req.body;
-        const uid = req.headers['x-device-id'];
+        const deviceId = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           phone: ['trim', 'is_phone_number', 'required'],
           trust: ['boolean', { default: false }],
-          uid: ['trim', 'string', 'required'],
+          deviceId: ['trim', 'string', 'required'],
           password: ['trim', 'string'],
           otp: ['trim'],
         });
 
-        inputs = validator.validate({ phone: Math.abs(phone), password, uid, trust, otp });
-        if (!inputs) return cb(new ValidationError(validator.getErrors()));
+        const validData = validator.validate({
+          phone: Math.abs(phone),
+          password,
+          deviceId,
+          trust,
+          otp,
+        });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
 
+        inputs = validData;
         cb(null);
       },
       // if customer not exists, return error
@@ -253,9 +267,9 @@ function loginCustomer(req, res, next) {
       },
       // determine login type
       (cb) => {
-        const { phone, uid, otp, password } = inputs;
+        const { phone, deviceId, otp, password } = inputs;
 
-        fetchDB(devicesQuery.getOneByUid, [uid, phone], (err, result) => {
+        fetchDB(devicesQuery.getOneByUid, [deviceId, phone], (err, result) => {
           if (err) return cb(err);
 
           const loginType = result.rows.length > 0 ? 'otp' : 'password';
@@ -328,9 +342,7 @@ function loginCustomer(req, res, next) {
         }
 
         // reset login attempts if password is correct
-        fetchDB(customersQuery.changeStatus, [false, 0, null, customer.id], (err) => {
-          if (err) console.log(err);
-        });
+        fetchDB(customersQuery.changeStatus, [false, 0, null, customer.id]);
 
         cb(null);
       },
@@ -341,7 +353,7 @@ function loginCustomer(req, res, next) {
             // trust device if needed
             (cb) => {
               if (inputs.trust)
-                fetchDB(devicesQuery.create, [customer.id, inputs.uid], (err) => {
+                fetchDB(devicesQuery.create, [customer.id, inputs.deviceId], (err) => {
                   if (err) return cb(err);
                   cb(null);
                 });
@@ -354,37 +366,46 @@ function loginCustomer(req, res, next) {
                 cb(null);
               }),
           ],
-          (err) => {
-            if (err) console.log(err);
-            cb(null);
-          }
+          () => cb(null)
         );
       },
       // save and return new token
       (cb) => {
         const token = v4();
-        redis.hSet('customers', customer.id, token);
-        redis.hSet(
-          'tokens',
-          token,
-          JSON.stringify({
-            id: customer.id,
-            role: 'customer',
-            expiresAt: moment().add(1, 'hour').valueOf(),
-          })
-        );
+        async.parallel(
+          [
+            (cb) => redis.hSet('customers', customer.id, token).then(() => cb(null)),
+            (cb) =>
+              redis
+                .hSet(
+                  'tokens',
+                  token,
+                  JSON.stringify({
+                    id: customer.id,
+                    role: 'customer',
+                    expiresAt: moment().add(1, 'hour').valueOf(),
+                  })
+                )
+                .then(() => cb(null)),
+          ],
+          (err) => {
+            if (err) return cb(err);
 
-        res.status(200).json({
-          token,
-          customer: {
-            id: customer.id,
-            name: customer.name,
-            phone: customer.phone,
-            photo_url: imageStorage.getImageUrl('/customer/photo', customer.photo_url),
-            reg_date: customer.reg_date,
-          },
-        });
-        cb(null);
+            // return customer
+            res.status(200).json({
+              token,
+              customer: {
+                id: customer.id,
+                name: customer.name,
+                phone: customer.phone,
+                image_url: imageStorage.getImageUrl('/customer/photo', customer.image_url),
+                reg_date: customer.reg_date,
+              },
+            });
+
+            cb(null);
+          }
+        );
       },
     ],
     (err) => err && next(err)
@@ -394,9 +415,7 @@ function loginCustomer(req, res, next) {
 // @Private
 // @Customer
 function updateCustomer(req, res, next) {
-  let customerId;
-  let customer;
-  let inputs;
+  let customerId, customer, inputs;
 
   async.waterfall(
     [
@@ -429,17 +448,18 @@ function updateCustomer(req, res, next) {
         fetchDB(customersQuery.getOneById, [customerId], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
+
           customer = result.rows[0];
           cb(null);
         });
       },
       // delete old photo if requested or new photo attached
       (cb) => {
-        if (!customer.photo_url) return cb(null);
+        if (!customer.image_url) return cb(null);
 
         if (inputs.deletePhoto || (req.files && req.files.avatar)) {
-          imageStorage.delete(customer.photo_url, 'profiles', (err) => {
-            if (!err) customer.photo_url = null;
+          imageStorage.delete(customer.image_url, 'profiles', (err) => {
+            if (!err) customer.image_url = null;
 
             cb(null);
           });
@@ -455,7 +475,7 @@ function updateCustomer(req, res, next) {
             cb(null, newFileName);
           });
         } else {
-          cb(null, customer.photo_url);
+          cb(null, customer.image_url);
         }
       },
       // update customer
@@ -471,7 +491,7 @@ function updateCustomer(req, res, next) {
             if (err) return cb(err);
 
             customer = result.rows[0];
-            customer.photo_url = imageStorage.getImageUrl('/customer/photo', customer.photo_url);
+            customer.image_url = imageStorage.getImageUrl('/customer/photo', customer.image_url);
 
             res.status(200).json({
               success: true,

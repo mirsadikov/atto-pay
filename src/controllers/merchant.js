@@ -12,8 +12,7 @@ const verifyToken = require('../middleware/verifyToken');
 
 // @Public
 function registerMerchant(req, res, next) {
-  let inputs;
-  let merchant;
+  let inputs, newMerchant;
 
   async.waterfall(
     [
@@ -53,45 +52,58 @@ function registerMerchant(req, res, next) {
         fetchDB(merchantsQuery.create, [name, email, hashedPassword], (err, result) => {
           if (err) return cb(err);
 
-          merchant = result.rows[0];
+          newMerchant = result.rows[0];
           cb(null);
         });
       },
       // save and return new token
       (cb) => {
         const token = v4();
-        redis.hSet('merchants', merchant.id, token);
-        redis.hSet(
-          'tokens',
-          token,
-          JSON.stringify({
-            id: merchant.id,
-            role: 'merchant',
-            expiresAt: moment().add(1, 'hour').valueOf(),
-          })
+        async.parallel(
+          [
+            (cb) => redis.hSet('merchants', newMerchant.id, token).then(() => cb(null)),
+            (cb) =>
+              redis
+                .hSet(
+                  'tokens',
+                  token,
+                  JSON.stringify({
+                    id: newMerchant.id,
+                    role: 'merchant',
+                    expiresAt: moment().add(1, 'hour').valueOf(),
+                  })
+                )
+                .then(() => cb(null)),
+          ],
+          (err) => {
+            if (err) return cb(err);
+
+            // return merchant
+            res.status(200).json({
+              success: true,
+              token,
+              merchant: newMerchant,
+            });
+
+            cb(null);
+          }
         );
-
-        cb(null, token);
-      },
-      // return merchant
-      (token, cb) => {
-        res.status(200).json({
-          success: true,
-          token: token,
-          merchant,
-        });
-
-        cb(null);
       },
     ],
-    (err) => err && next(err)
+    (err) => {
+      if (err) {
+        // clear
+        if (newMerchant) fetchDB(merchantsQuery.delete, [newMerchant.id, newMerchant.email]);
+
+        return next(err);
+      }
+    }
   );
 }
 
 // @Public
 function loginMerchant(req, res, next) {
-  let inputs;
-  let merchant;
+  let inputs, merchant;
 
   async.waterfall(
     [
@@ -104,9 +116,10 @@ function loginMerchant(req, res, next) {
           password: ['trim', 'string'],
         });
 
-        inputs = validator.validate({ email, password });
-        if (!inputs) return cb(new ValidationError(validator.getErrors()));
+        const validData = validator.validate({ email, password });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
 
+        inputs = validData;
         cb(null);
       },
       // if merchant not exists, return error
@@ -188,27 +201,39 @@ function loginMerchant(req, res, next) {
       // save and return new token
       (cb) => {
         const token = v4();
-        redis.hSet('merchants', merchant.id, token);
-        redis.hSet(
-          'tokens',
-          token,
-          JSON.stringify({
-            id: merchant.id,
-            role: 'merchant',
-            expiresAt: moment().add(1, 'hour').valueOf(),
-          })
-        );
+        async.parallel(
+          [
+            (cb) => redis.hSet('merchants', merchant.id, token).then(() => cb(null)),
+            (cb) =>
+              redis
+                .hSet(
+                  'tokens',
+                  token,
+                  JSON.stringify({
+                    id: merchant.id,
+                    role: 'merchant',
+                    expiresAt: moment().add(1, 'hour').valueOf(),
+                  })
+                )
+                .then(() => cb(null)),
+          ],
+          (err) => {
+            if (err) return cb(err);
 
-        res.status(200).json({
-          token,
-          merchant: {
-            id: merchant.id,
-            name: merchant.name,
-            email: merchant.email,
-            reg_date: merchant.reg_date,
-          },
-        });
-        cb(null);
+            // return merchant
+            res.status(200).json({
+              token,
+              merchant: {
+                id: merchant.id,
+                name: merchant.name,
+                email: merchant.email,
+                reg_date: merchant.reg_date,
+              },
+            });
+
+            cb(null);
+          }
+        );
       },
     ],
     (err) => err && next(err)
@@ -244,19 +269,20 @@ function getMerchantProfile(req, res, next) {
 // @Private
 // @Merchant
 function updateMerchant(req, res, next) {
-  let inputs;
-  let merchant;
+  let inputs, merchantId, merchant;
 
   async.waterfall(
     [
       (cb) => {
-        verifyToken(req, 'merchant', (err, merchantId) => {
+        verifyToken(req, 'merchant', (err, id) => {
           if (err) return cb(err);
-          cb(null, merchantId);
+
+          merchantId = id;
+          cb(null);
         });
       },
       // validate data
-      (merchantId, cb) => {
+      (cb) => {
         const { name, password } = req.body;
 
         const validator = new LIVR.Validator({
@@ -264,16 +290,17 @@ function updateMerchant(req, res, next) {
           password: ['trim', 'string', { min_length: 7 }, 'alphanumeric'],
         });
 
-        inputs = validator.validate({
+        const validData = validator.validate({
           name,
           password,
         });
-        if (!inputs) return cb(new ValidationError(validator.getErrors()));
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
 
-        cb(null, merchantId);
+        inputs = validData;
+        cb(null);
       },
       // check if merchant exists
-      (merchantId, cb) => {
+      (cb) => {
         fetchDB(merchantsQuery.getOneById, [merchantId], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
@@ -292,11 +319,9 @@ function updateMerchant(req, res, next) {
         fetchDB(merchantsQuery.update, [newName, hashedPassword, merchant.id], (err, result) => {
           if (err) return cb(err);
 
-          merchant = result.rows[0];
-
           res.status(200).json({
             success: true,
-            merchant,
+            merchant: result.rows[0],
           });
 
           cb(null);

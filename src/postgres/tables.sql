@@ -12,7 +12,7 @@ create table if not exists customer(
   id uuid primary key default uuid_generate_v4(),
   name varchar(64) not null,
   phone varchar(12) not null unique,
-  photo_url varchar(256),
+  image_url varchar(256),
   hashed_password text not null,
   reg_date timestamp not null default now(),
   is_blocked boolean not null default false,
