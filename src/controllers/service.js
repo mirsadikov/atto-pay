@@ -84,13 +84,7 @@ function createService(req, res, next) {
             if (err) return cb(err);
 
             newService = result.rows[0];
-            res.status(201).json({
-              success: true,
-              service: {
-                ...newService,
-                image_url: imageStorage.getImageUrl('/service/photo', newService.image_url),
-              },
-            });
+            newService.image_url = imageStorage.getImageUrl(newService.image_url);
             cb(null);
           }
         );
@@ -100,16 +94,23 @@ function createService(req, res, next) {
       if (err) {
         // clear
         if (newService) fetchDB(servicesQuery.delete, [newService.id, merchantId]);
-        if (newImage) imageStorage.delete(newImage, 'services');
+        if (newImage) imageStorage.delete(newImage);
 
         return next(err);
       }
+
+      res.status(201).json({
+        success: true,
+        service: newService,
+      });
     }
   );
 }
 
 // @Public
 function getAllServices(req, res, next) {
+  let services;
+
   async.waterfall(
     [
       // get services
@@ -118,43 +119,42 @@ function getAllServices(req, res, next) {
         fetchDB(servicesQuery.getAll, [lang], (err, result) => {
           if (err) return cb(err);
 
-          cb(null, result.rows);
+          services = result.rows;
+          cb(null);
         });
       },
       // get images
-      (services, cb) => {
+      (cb) => {
         services.forEach((service) => {
-          service.image_url = imageStorage.getImageUrl('/service/photo', service.image_url);
-        });
-
-        res.status(200).json({
-          count: services.length,
-          services,
+          service.image_url = imageStorage.getImageUrl(service.image_url);
         });
 
         cb(null);
       },
     ],
-    (err) => err && next(err)
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        count: services.length,
+        services,
+      });
+    }
   );
 }
 
 // @Public
 function getServiceImage(req, res, next) {
-  async.waterfall(
-    [
-      (cb) => {
-        const { file } = req.params;
+  try {
+    const { file } = req.params;
 
-        imageStorage.getPathIfExists(file, 'services', (err, filePath) => {
-          if (err) return cb(err);
-          res.sendFile(filePath);
-          cb(null);
-        });
-      },
-    ],
-    (err) => err && next(err)
-  );
+    imageStorage.getPathIfExists(file, 'services', (err, filePath) => {
+      if (err) return next(err);
+      res.sendFile(filePath);
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 // @Private
@@ -227,7 +227,7 @@ function updateService(req, res, next) {
         if (!service.image_url) return cb(null);
 
         if (inputs.deleteImage || (req.files && req.files.image)) {
-          imageStorage.delete(service.image_url, 'services', (err) => {
+          imageStorage.delete(service.image_url, (err) => {
             if (!err) service.image_url = null;
 
             cb(null);
@@ -272,19 +272,21 @@ function updateService(req, res, next) {
             if (err) return cb(err);
 
             service = result.rows[0];
-            res.status(200).json({
-              success: true,
-              service: {
-                ...service,
-                image_url: imageStorage.getImageUrl('/service/photo', service.image_url),
-              },
-            });
+            service.image_url = imageStorage.getImageUrl(service.image_url);
+
             cb(null);
           }
         );
       },
     ],
-    (err) => err && next(err)
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+        service,
+      });
+    }
   );
 }
 
@@ -322,17 +324,19 @@ function deleteService(req, res, next) {
           if (result.rows.length === 0) return cb(new CustomError('SERVICE_NOT_FOUND'));
 
           // delete image
-          if (result.rows[0].image_url) imageStorage.delete(result.rows[0].image_url, 'services');
-
-          res.status(200).json({
-            success: true,
-          });
+          if (result.rows[0].image_url) imageStorage.delete(result.rows[0].image_url);
 
           cb(null);
         });
       },
     ],
-    (err) => err && next(err)
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+      });
+    }
   );
 }
 

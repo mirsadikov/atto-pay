@@ -12,7 +12,7 @@ const verifyToken = require('../middleware/verifyToken');
 
 // @Public
 function registerMerchant(req, res, next) {
-  let inputs, newMerchant;
+  let inputs, newMerchant, token;
 
   async.waterfall(
     [
@@ -58,36 +58,21 @@ function registerMerchant(req, res, next) {
       },
       // save and return new token
       (cb) => {
-        const token = v4();
-        async.parallel(
-          [
-            (cb) => redis.hSet('merchants', newMerchant.id, token).then(() => cb(null)),
-            (cb) =>
-              redis
-                .hSet(
-                  'tokens',
-                  token,
-                  JSON.stringify({
-                    id: newMerchant.id,
-                    role: 'merchant',
-                    expiresAt: moment().add(1, 'hour').valueOf(),
-                  })
-                )
-                .then(() => cb(null)),
-          ],
-          (err) => {
-            if (err) return cb(err);
-
-            // return merchant
-            res.status(200).json({
-              success: true,
-              token,
-              merchant: newMerchant,
-            });
-
-            cb(null);
-          }
-        );
+        token = v4();
+        redis.hSet('merchants', newMerchant.id, token).then(() => cb(null));
+      },
+      (cb) => {
+        redis
+          .hSet(
+            'tokens',
+            token,
+            JSON.stringify({
+              id: newMerchant.id,
+              role: 'merchant',
+              expiresAt: moment().add(1, 'hour').valueOf(),
+            })
+          )
+          .then(() => cb(null));
       },
     ],
     (err) => {
@@ -97,13 +82,20 @@ function registerMerchant(req, res, next) {
 
         return next(err);
       }
+
+      // return merchant
+      res.status(200).json({
+        success: true,
+        token,
+        merchant: newMerchant,
+      });
     }
   );
 }
 
 // @Public
 function loginMerchant(req, res, next) {
-  let inputs, merchant;
+  let inputs, merchant, token;
 
   async.waterfall(
     [
@@ -186,9 +178,7 @@ function loginMerchant(req, res, next) {
         }
 
         // reset login attempts if password is correct
-        fetchDB(merchantsQuery.changeStatus, [false, 0, null, merchant.id], (err) => {
-          if (err) console.log(err);
-        });
+        fetchDB(merchantsQuery.changeStatus, [false, 0, null, merchant.id]);
 
         cb(null);
       },
@@ -200,43 +190,37 @@ function loginMerchant(req, res, next) {
         }),
       // save and return new token
       (cb) => {
-        const token = v4();
-        async.parallel(
-          [
-            (cb) => redis.hSet('merchants', merchant.id, token).then(() => cb(null)),
-            (cb) =>
-              redis
-                .hSet(
-                  'tokens',
-                  token,
-                  JSON.stringify({
-                    id: merchant.id,
-                    role: 'merchant',
-                    expiresAt: moment().add(1, 'hour').valueOf(),
-                  })
-                )
-                .then(() => cb(null)),
-          ],
-          (err) => {
-            if (err) return cb(err);
-
-            // return merchant
-            res.status(200).json({
-              token,
-              merchant: {
-                id: merchant.id,
-                name: merchant.name,
-                email: merchant.email,
-                reg_date: merchant.reg_date,
-              },
-            });
-
-            cb(null);
-          }
-        );
+        token = v4();
+        redis.hSet('merchants', merchant.id, token).then(() => cb(null));
+      },
+      (cb) => {
+        redis
+          .hSet(
+            'tokens',
+            token,
+            JSON.stringify({
+              id: merchant.id,
+              role: 'merchant',
+              expiresAt: moment().add(1, 'hour').valueOf(),
+            })
+          )
+          .then(() => cb(null));
       },
     ],
-    (err) => err && next(err)
+    (err) => {
+      if (err) return next(err);
+
+      // return merchant
+      res.status(200).json({
+        token,
+        merchant: {
+          id: merchant.id,
+          name: merchant.name,
+          email: merchant.email,
+          reg_date: merchant.reg_date,
+        },
+      });
+    }
   );
 }
 
@@ -258,11 +242,15 @@ function getMerchantProfile(req, res, next) {
 
           const merchant = result.rows[0];
           delete merchant.hashed_password;
-          res.status(200).json(merchant);
+          cb(null, merchant);
         });
       },
     ],
-    (err) => err && next(err)
+    (err, merchant) => {
+      if (err) return next(err);
+
+      res.status(200).json(merchant);
+    }
   );
 }
 
@@ -319,16 +307,18 @@ function updateMerchant(req, res, next) {
         fetchDB(merchantsQuery.update, [newName, hashedPassword, merchant.id], (err, result) => {
           if (err) return cb(err);
 
-          res.status(200).json({
-            success: true,
-            merchant: result.rows[0],
-          });
-
-          cb(null);
+          cb(null, result.rows[0]);
         });
       },
     ],
-    (err) => err && next(err)
+    (err, merchant) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+        merchant,
+      });
+    }
   );
 }
 

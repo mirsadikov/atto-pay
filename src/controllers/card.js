@@ -62,16 +62,19 @@ function createCard(req, res, next) {
           (err, result) => {
             if (err) return cb(err);
 
-            res.status(201).json({
-              success: true,
-              card: result.rows[0],
-            });
-            cb(null);
+            cb(null, result.rows[0]);
           }
         );
       },
     ],
-    (err) => err && next(err)
+    (err, card) => {
+      if (err) return next(err);
+
+      res.status(201).json({
+        success: true,
+        card,
+      });
+    }
   );
 }
 
@@ -92,15 +95,15 @@ function getCustomerCards(req, res, next) {
         fetchDB(cardsQuery.getAllByCustomerId, [customerId], (err, result) => {
           if (err) return cb(err);
 
-          res.status(200).json({
-            count: result.rowCount,
-            cards: result.rows,
-          });
-          cb(null);
+          cb(null, result.rowCount, result.rows);
         });
       },
     ],
-    (err) => err && next(err)
+    (err, count, cards) => {
+      if (err) return next(err);
+
+      res.status(200).json({ count, cards });
+    }
   );
 }
 
@@ -140,15 +143,18 @@ function updateCard(req, res, next) {
           if (err) return cb(err);
           if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 
-          res.status(200).json({
-            success: true,
-            card: result.rows[0],
-          });
-          cb(null);
+          cb(null, result.rows[0]);
         });
       },
     ],
-    (err) => err && next(err)
+    (err, card) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+        card,
+      });
+    }
   );
 }
 
@@ -187,14 +193,17 @@ function deleteCard(req, res, next) {
           if (err) return cb(err);
           if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 
-          res.status(200).json({
-            success: true,
-          });
           cb(null);
         });
       },
     ],
-    (err) => err && next(err)
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+      });
+    }
   );
 }
 

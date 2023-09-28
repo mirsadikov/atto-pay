@@ -16,6 +16,7 @@ const imageStorage = require('../utils/imageStorage');
 function getCustomerProfile(req, res, next) {
   async.waterfall(
     [
+      // verify customer
       (cb) => {
         verifyToken(req, 'customer', (err, customerId) => {
           if (err) return cb(err);
@@ -29,19 +30,22 @@ function getCustomerProfile(req, res, next) {
 
           const customer = result.rows[0];
           delete customer.hashed_password;
-          customer.image_url = imageStorage.getImageUrl('/customer/photo', customer.image_url);
+          customer.image_url = imageStorage.getImageUrl(customer.image_url);
 
-          res.status(200).json(customer);
+          cb(null, customer);
         });
       },
     ],
-    (err) => err && next(err)
+    (err, customer) => {
+      if (err) return next(err);
+      res.status(200).json(customer);
+    }
   );
 }
 
 // @Public
 function registerCustomer(req, res, next) {
-  let inputs, newCustomer;
+  let inputs, newCustomer, token;
 
   async.waterfall(
     [
@@ -90,58 +94,49 @@ function registerCustomer(req, res, next) {
           cb(null);
         });
       },
+      // save new token
       (cb) => {
-        const token = v4();
-        async.parallel(
-          [
-            // save new token
-            (cb) => redis.hSet('customers', newCustomer.id, token).then(() => cb(null)),
-            (cb) =>
-              redis
-                .hSet(
-                  'tokens',
-                  token,
-                  JSON.stringify({
-                    id: newCustomer.id,
-                    role: 'customer',
-                    expiresAt: moment().add(1, 'hour').valueOf(),
-                  })
-                )
-                .then(() => cb(null)),
-            // trust device if needed
-            (cb) => {
-              if (inputs.trust)
-                return fetchDB(devicesQuery.create, [newCustomer.id, inputs.deviceId], (err) => {
-                  if (err) return cb(err);
-
-                  cb(null);
-                });
-
-              cb(null);
-            },
-          ],
-          (err) => {
+        token = v4();
+        redis.hSet('customers', newCustomer.id, token).then(() => cb(null));
+      },
+      (cb) => {
+        redis
+          .hSet(
+            'tokens',
+            token,
+            JSON.stringify({
+              id: newCustomer.id,
+              role: 'customer',
+              expiresAt: moment().add(1, 'hour').valueOf(),
+            })
+          )
+          .then(() => cb(null));
+      },
+      // trust device if needed
+      (cb) => {
+        if (inputs.trust)
+          return fetchDB(devicesQuery.create, [newCustomer.id, inputs.deviceId], (err) => {
             if (err) return cb(err);
 
-            // return customer
-            res.status(200).json({
-              success: true,
-              token,
-              customer: newCustomer,
-            });
-
             cb(null);
-          }
-        );
+          });
+
+        cb(null);
       },
     ],
     (err) => {
       if (err) {
         // clear
         if (newCustomer) fetchDB(customersQuery.delete, [newCustomer.id, newCustomer.phone]);
-
         return next(err);
       }
+
+      // return customer
+      res.status(200).json({
+        success: true,
+        token,
+        customer: newCustomer,
+      });
     }
   );
 }
@@ -152,6 +147,7 @@ function getCustomerLoginType(req, res, next) {
 
   async.waterfall(
     [
+      // validate data
       (cb) => {
         const { phone } = req.body;
         const deviceId = req.headers['x-device-id'];
@@ -178,38 +174,36 @@ function getCustomerLoginType(req, res, next) {
       },
       (cb) => {
         if (!inputs.deviceId) {
-          res.json({ password: true, otp: false });
-          return cb(null);
+          return cb(null, { password: true, otp: false });
         }
 
         fetchDB(devicesQuery.getOneByUid, [inputs.deviceId, inputs.phone], (err, result) => {
           if (err) return cb(err);
 
-          if (result.rows.length > 0) {
-            const otpObject = {
-              code: Math.floor(100000 + Math.random() * 900000),
-              expiresAt: moment().add(2, 'minutes').valueOf(),
-            };
+          if (result.rows.length === 0) return cb(null, { password: true, otp: false });
 
-            redis.hSet('otp', inputs.phone, JSON.stringify(otpObject)).then(() => {
-              // TODO: send otp to customer
-              res.json({ password: false, otp: true });
-            });
-          } else {
-            res.json({ password: true, otp: false });
-          }
+          const otpObject = {
+            code: Math.floor(100000 + Math.random() * 900000),
+            expiresAt: moment().add(2, 'minutes').valueOf(),
+          };
 
-          cb(null);
+          redis.hSet('otp', inputs.phone, JSON.stringify(otpObject)).then(() => {
+            // TODO: send otp to customer
+            cb(null, { password: false, otp: true });
+          });
         });
       },
     ],
-    (err) => err && next(err)
+    (err, response) => {
+      if (err) return next(err);
+      res.json(response);
+    }
   );
 }
 
 // @Public
 function loginCustomer(req, res, next) {
-  let inputs, customer;
+  let inputs, customer, token;
 
   async.waterfall(
     [
@@ -346,69 +340,56 @@ function loginCustomer(req, res, next) {
 
         cb(null);
       },
-      // if login is successful
+      // trust device if needed
       (cb) => {
-        async.parallel(
-          [
-            // trust device if needed
-            (cb) => {
-              if (inputs.trust)
-                fetchDB(devicesQuery.create, [customer.id, inputs.deviceId], (err) => {
-                  if (err) return cb(err);
-                  cb(null);
-                });
-              else cb(null);
-            },
-            // delete old token
-            (cb) =>
-              redis.hGet('customers', customer.id).then((oldToken) => {
-                if (oldToken) redis.hDel('tokens', oldToken);
-                cb(null);
-              }),
-          ],
-          () => cb(null)
-        );
+        if (!inputs.trust) return cb(null);
+
+        fetchDB(devicesQuery.create, [customer.id, inputs.deviceId], (err) => {
+          if (err) return cb(err);
+          cb(null);
+        });
+      },
+      // delete old token
+      (cb) => {
+        redis.hGet('customers', customer.id).then((oldToken) => {
+          if (oldToken) redis.hDel('tokens', oldToken);
+          cb(null);
+        });
       },
       // save and return new token
       (cb) => {
-        const token = v4();
-        async.parallel(
-          [
-            (cb) => redis.hSet('customers', customer.id, token).then(() => cb(null)),
-            (cb) =>
-              redis
-                .hSet(
-                  'tokens',
-                  token,
-                  JSON.stringify({
-                    id: customer.id,
-                    role: 'customer',
-                    expiresAt: moment().add(1, 'hour').valueOf(),
-                  })
-                )
-                .then(() => cb(null)),
-          ],
-          (err) => {
-            if (err) return cb(err);
-
-            // return customer
-            res.status(200).json({
-              token,
-              customer: {
-                id: customer.id,
-                name: customer.name,
-                phone: customer.phone,
-                image_url: imageStorage.getImageUrl('/customer/photo', customer.image_url),
-                reg_date: customer.reg_date,
-              },
-            });
-
-            cb(null);
-          }
-        );
+        token = v4();
+        redis.hSet('customers', customer.id, token).then(() => cb(null));
+      },
+      (cb) => {
+        redis
+          .hSet(
+            'tokens',
+            token,
+            JSON.stringify({
+              id: customer.id,
+              role: 'customer',
+              expiresAt: moment().add(1, 'hour').valueOf(),
+            })
+          )
+          .then(() => cb(null));
       },
     ],
-    (err) => err && next(err)
+    (err) => {
+      if (err) return next(err);
+
+      // return customer
+      res.status(200).json({
+        token,
+        customer: {
+          id: customer.id,
+          name: customer.name,
+          phone: customer.phone,
+          image_url: imageStorage.getImageUrl(customer.image_url),
+          reg_date: customer.reg_date,
+        },
+      });
+    }
   );
 }
 
@@ -419,6 +400,7 @@ function updateCustomer(req, res, next) {
 
   async.waterfall(
     [
+      // verify customer
       (cb) => {
         verifyToken(req, 'customer', (err, id) => {
           if (err) return cb(err);
@@ -458,7 +440,7 @@ function updateCustomer(req, res, next) {
         if (!customer.image_url) return cb(null);
 
         if (inputs.deletePhoto || (req.files && req.files.avatar)) {
-          imageStorage.delete(customer.image_url, 'profiles', (err) => {
+          imageStorage.delete(customer.image_url, (err) => {
             if (!err) customer.image_url = null;
 
             cb(null);
@@ -491,19 +473,21 @@ function updateCustomer(req, res, next) {
             if (err) return cb(err);
 
             customer = result.rows[0];
-            customer.image_url = imageStorage.getImageUrl('/customer/photo', customer.image_url);
-
-            res.status(200).json({
-              success: true,
-              customer,
-            });
+            customer.image_url = imageStorage.getImageUrl(customer.image_url);
 
             cb(null);
           }
         );
       },
     ],
-    (err) => err && next(err)
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+        customer,
+      });
+    }
   );
 }
 
@@ -516,12 +500,14 @@ function getCustomerPhoto(req, res, next) {
 
         imageStorage.getPathIfExists(file, 'profiles', (err, filePath) => {
           if (err) return cb(err);
-          res.sendFile(filePath);
-          cb(null);
+          cb(null, filePath);
         });
       },
     ],
-    (err) => err && next(err)
+    (err, file) => {
+      if (err) return next(err);
+      res.sendFile(file);
+    }
   );
 }
 
