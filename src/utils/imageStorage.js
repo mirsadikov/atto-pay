@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const v4 = require('uuid').v4;
-const aws = require('aws-sdk');
+const { S3, PutObjectCommand } = require('@aws-sdk/client-s3');
 const CustomError = require('../errors/CustomError');
 
 class imageStorageLocal {
@@ -81,12 +81,15 @@ class imageStorageLocal {
 
 class imageStorageS3 {
   constructor() {
-    this.s3 = new aws.S3({
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    this.bucketName = process.env.AWS_BUCKET_NAME;
+    this.s3 = new S3({
+      region: process.env.AWS_BUCKET_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
       endpoint: process.env.AWS_BUCKET_ENDPOINT,
     });
-    this.bucketName = process.env.AWS_BUCKET_NAME;
   }
 
   upload(image, subFolder, cb) {
@@ -105,10 +108,10 @@ class imageStorageS3 {
         ACL: 'public-read',
       };
 
-      this.s3.upload(params, (err, data) => {
+      this.s3.send(new PutObjectCommand(params), (err) => {
         if (err) return cb(new CustomError('FILE_UPLOAD_ERROR', err.message));
 
-        cb(null, data.Key);
+        cb(null, uploadPath);
       });
     } catch (err) {
       cb(new CustomError('FILE_READER_ERROR', err.message));
