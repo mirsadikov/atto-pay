@@ -425,7 +425,7 @@ function loginCustomer(req, res, next) {
 // @Private
 // @Customer
 function updateCustomer(req, res, next) {
-  let customerId, customer, inputs;
+  let customerId, customer, inputs, newImage;
 
   async.waterfall(
     [
@@ -480,24 +480,25 @@ function updateCustomer(req, res, next) {
       },
       // save new photo if attached
       (cb) => {
-        if (req.files && req.files.avatar) {
-          imageStorage.upload(req.files.avatar, 'profiles', (err, newFileName) => {
-            if (err) return cb(err);
-            cb(null, newFileName);
-          });
-        } else {
-          cb(null, customer.image_url);
-        }
+        if (!req.files || !req.files.avatar) return cb(null);
+
+        imageStorage.upload(req.files.avatar, 'profiles', (err, newFileName) => {
+          if (err) return cb(err);
+
+          newImage = newFileName;
+          cb(null);
+        });
       },
       // update customer
-      (newFileName, cb) => {
+      (cb) => {
         const { name, password } = inputs;
         const newName = name || customer.name;
         const hashedPassword = password ? bcrypt.hashSync(password, 10) : customer.hashed_password;
+        const newImageUrl = newImage || customer.image_url;
 
         fetchDB(
           customersQuery.update,
-          [newName, hashedPassword, newFileName, customer.id],
+          [newName, hashedPassword, newImageUrl, customer.id],
           (err, result) => {
             if (err) return cb(err);
 
@@ -510,7 +511,11 @@ function updateCustomer(req, res, next) {
       },
     ],
     (err) => {
-      if (err) return next(err);
+      if (err) {
+        // clear
+        if (newImage) imageStorage.delete(newImage);
+        return next(err);
+      }
 
       res.status(200).json({
         success: true,

@@ -160,7 +160,7 @@ function getServiceImage(req, res, next) {
 // @Private
 // @Merchant
 function updateService(req, res, next) {
-  let merchantId, inputs, service;
+  let merchantId, inputs, service, newImage;
 
   async.waterfall(
     [
@@ -238,22 +238,24 @@ function updateService(req, res, next) {
       },
       // save image if attached
       (cb) => {
-        if (!req.files || !req.files.image) return cb(null, null);
+        if (!req.files || !req.files.image) return cb(null);
 
         imageStorage.upload(req.files.image, 'services', (err, newFileName) => {
           if (err) return cb(err);
-          cb(null, newFileName);
+
+          newImage = newFileName;
+          cb(null);
         });
       },
       // update service
-      (newFileName, cb) => {
+      (cb) => {
         const { name, price, categoryId, isActive } = inputs;
 
         const newName = name || service.name;
         const newPrice = price || service.price;
         const newCategoryId = categoryId || service.category_id;
         const newIsActive = isActive || service.is_active;
-        const newPhotoUrl = newFileName || service.image_url;
+        const newImageUrl = newImage || service.image_url;
         const lang = acceptsLanguages(req);
 
         fetchDB(
@@ -263,7 +265,7 @@ function updateService(req, res, next) {
             newPrice,
             newCategoryId,
             newIsActive,
-            newPhotoUrl,
+            newImageUrl,
             service.id,
             merchantId,
             lang,
@@ -280,7 +282,11 @@ function updateService(req, res, next) {
       },
     ],
     (err) => {
-      if (err) return next(err);
+      if (err) {
+        // clear
+        if (newImage) imageStorage.delete(newImage);
+        return next(err);
+      }
 
       res.status(200).json({
         success: true,
