@@ -7,7 +7,8 @@ async function verifyToken(req, role, cb) {
   if (!token) return cb(new CustomError('MISSING_TOKEN'));
 
   // check if token exists in redis
-  const details = JSON.parse(await redis.hGet('tokens', token));
+  const res = await redis.hGet('tokens', token);
+  const details = res ? JSON.parse(res) : null;
   if (!details) return cb(new CustomError('INVALID_TOKEN'));
 
   // check if token is expired

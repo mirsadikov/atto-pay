@@ -13,16 +13,27 @@ class RedisClient {
     this.client.connect();
   }
 
-  hSet(key, field, value) {
-    return this.client.hSet(key, field, value);
+  execute(promise, cb) {
+    cb = cb || (() => {});
+
+    return promise
+      .then((res) => {
+        cb(null, res);
+        return res;
+      })
+      .catch((err) => cb(err));
   }
 
-  hGet(key, field) {
-    return this.client.hGet(key, field);
+  hSet(key, field, value, cb) {
+    return this.execute(this.client.hSet(key, field, value), cb);
   }
 
-  hDel(key, field) {
-    return this.client.hDel(key, field);
+  hGet(key, field, cb) {
+    return this.execute(this.client.hGet(key, field), cb);
+  }
+
+  hDel(key, field, cb) {
+    return this.execute(this.client.hDel(key, field), cb);
   }
 
   disconnect() {

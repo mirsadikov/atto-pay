@@ -59,7 +59,10 @@ function registerMerchant(req, res, next) {
       // save and return new token
       (cb) => {
         token = v4();
-        redis.hSet('merchants', newMerchant.id, token).then(() => cb(null));
+        redis.hSet('merchants', newMerchant.id, token, (err) => {
+          if (err) return cb(err);
+          cb(null);
+        });
       },
       (cb) => {
         redis
@@ -184,14 +187,18 @@ function loginMerchant(req, res, next) {
       },
       // delete old token
       (cb) =>
-        redis.hGet('merchants', merchant.id).then((oldToken) => {
+        redis.hGet('merchants', merchant.id, (err, oldToken) => {
+          if (err) return cb(err);
           if (oldToken) redis.hDel('tokens', oldToken);
           cb(null);
         }),
       // save and return new token
       (cb) => {
         token = v4();
-        redis.hSet('merchants', merchant.id, token).then(() => cb(null));
+        redis.hSet('merchants', merchant.id, token, (err) => {
+          if (err) return cb(err);
+          cb(null);
+        });
       },
       (cb) => {
         redis

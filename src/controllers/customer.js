@@ -97,20 +97,25 @@ function registerCustomer(req, res, next) {
       // save new token
       (cb) => {
         token = v4();
-        redis.hSet('customers', newCustomer.id, token).then(() => cb(null));
+        redis.hSet('customers', newCustomer.id, token, (err) => {
+          if (err) return cb(err);
+          cb(null);
+        });
       },
       (cb) => {
-        redis
-          .hSet(
-            'tokens',
-            token,
-            JSON.stringify({
-              id: newCustomer.id,
-              role: 'customer',
-              expiresAt: moment().add(1, 'hour').valueOf(),
-            })
-          )
-          .then(() => cb(null));
+        redis.hSet(
+          'tokens',
+          token,
+          JSON.stringify({
+            id: newCustomer.id,
+            role: 'customer',
+            expiresAt: moment().add(1, 'hour').valueOf(),
+          }),
+          (err) => {
+            if (err) return cb(err);
+            cb(null);
+          }
+        );
       },
       // trust device if needed
       (cb) => {
@@ -187,7 +192,9 @@ function getCustomerLoginType(req, res, next) {
             expiresAt: moment().add(2, 'minutes').valueOf(),
           };
 
-          redis.hSet('otp', inputs.phone, JSON.stringify(otpObject)).then(() => {
+          redis.hSet('otp', inputs.phone, JSON.stringify(otpObject), (err) => {
+            if (err) return cb(err);
+
             // TODO: send otp to customer
             cb(null, { password: false, otp: true });
           });
@@ -285,7 +292,8 @@ function loginCustomer(req, res, next) {
           const isPasswordCorrect = bcrypt.compareSync(password, customer.hashed_password);
           cb(null, isPasswordCorrect, loginType);
         } else {
-          redis.hGet('otp', customer.phone).then((redisOtp) => {
+          redis.hGet('otp', customer.phone, (err, redisOtp) => {
+            if (err) return cb(err);
             if (!redisOtp) return cb(null, false, loginType);
             const otpObject = JSON.parse(redisOtp);
 
@@ -351,7 +359,8 @@ function loginCustomer(req, res, next) {
       },
       // delete old token
       (cb) => {
-        redis.hGet('customers', customer.id).then((oldToken) => {
+        redis.hGet('customers', customer.id, (err, oldToken) => {
+          if (err) return cb(err);
           if (oldToken) redis.hDel('tokens', oldToken);
           cb(null);
         });
@@ -359,20 +368,25 @@ function loginCustomer(req, res, next) {
       // save and return new token
       (cb) => {
         token = v4();
-        redis.hSet('customers', customer.id, token).then(() => cb(null));
+        redis.hSet('customers', customer.id, token, (err) => {
+          if (err) return cb(err);
+          cb(null);
+        });
       },
       (cb) => {
-        redis
-          .hSet(
-            'tokens',
-            token,
-            JSON.stringify({
-              id: customer.id,
-              role: 'customer',
-              expiresAt: moment().add(1, 'hour').valueOf(),
-            })
-          )
-          .then(() => cb(null));
+        redis.hSet(
+          'tokens',
+          token,
+          JSON.stringify({
+            id: customer.id,
+            role: 'customer',
+            expiresAt: moment().add(1, 'hour').valueOf(),
+          }),
+          (err) => {
+            if (err) return cb(err);
+            cb(null);
+          }
+        );
       },
     ],
     (err) => {
@@ -516,7 +530,8 @@ function getOtpFromSMS(req, res, next) {
   try {
     const { phone } = req.params;
 
-    redis.hGet('otp', phone).then((otp) => {
+    redis.hGet('otp', phone, (err, otp) => {
+      if (err) console.error(err);
       if (!otp) return res.send('');
 
       res.send(JSON.parse(otp).code.toString());
