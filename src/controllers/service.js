@@ -160,7 +160,7 @@ function getServiceImage(req, res, next) {
 // @Private
 // @Merchant
 function updateService(req, res, next) {
-  let merchantId, inputs, service, newImage;
+  let merchantId, inputs, service, oldImage, newImage;
 
   async.waterfall(
     [
@@ -222,22 +222,10 @@ function updateService(req, res, next) {
           cb(null);
         });
       },
-      // delete old image if requested or new image attached
-      (cb) => {
-        if (!service.image_url) return cb(null);
-
-        if (inputs.deleteImage || (req.files && req.files.image)) {
-          imageStorage.delete(service.image_url, (err) => {
-            if (!err) service.image_url = null;
-
-            cb(null);
-          });
-        } else {
-          cb(null);
-        }
-      },
       // save image if attached
       (cb) => {
+        oldImage = service.image_url;
+        if (inputs.deleteImage) service.image_url = null;
         if (!req.files || !req.files.image) return cb(null);
 
         imageStorage.upload(req.files.image, 'services', (err, newFileName) => {
@@ -276,9 +264,16 @@ function updateService(req, res, next) {
             service = result.rows[0];
             service.image_url = imageStorage.getImageUrl(service.image_url);
 
-            cb(null);
+            cb(null, newImageUrl !== oldImage);
           }
         );
+      },
+      // delete old image if needed
+      (imageChanged, cb) => {
+        if (!oldImage || !imageChanged) return cb(null);
+
+        imageStorage.delete(oldImage);
+        cb(null);
       },
     ],
     (err) => {

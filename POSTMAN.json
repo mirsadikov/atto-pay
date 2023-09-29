@@ -159,7 +159,7 @@
 									"disabled": true
 								},
 								{
-									"key": "deletePhoto",
+									"key": "deleteImage",
 									"value": "true",
 									"type": "default"
 								},

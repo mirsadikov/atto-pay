@@ -425,7 +425,7 @@ function loginCustomer(req, res, next) {
 // @Private
 // @Customer
 function updateCustomer(req, res, next) {
-  let customerId, customer, inputs, newImage;
+  let customerId, customer, inputs, oldImage, newImage;
 
   async.waterfall(
     [
@@ -440,15 +440,15 @@ function updateCustomer(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { name, password, deletePhoto } = req.body;
+        const { name, password, deleteImage } = req.body;
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', { min_length: 3 }, { max_length: 64 }],
           password: ['trim', { min_length: 6 }, 'alphanumeric'],
-          deletePhoto: ['trim', 'boolean', { default: false }],
+          deleteImage: ['trim', 'boolean', { default: false }],
         });
 
-        const validData = validator.validate({ name, password, deletePhoto });
+        const validData = validator.validate({ name, password, deleteImage });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         inputs = validData;
@@ -464,22 +464,10 @@ function updateCustomer(req, res, next) {
           cb(null);
         });
       },
-      // delete old photo if requested or new photo attached
-      (cb) => {
-        if (!customer.image_url) return cb(null);
-
-        if (inputs.deletePhoto || (req.files && req.files.avatar)) {
-          imageStorage.delete(customer.image_url, (err) => {
-            if (!err) customer.image_url = null;
-
-            cb(null);
-          });
-        } else {
-          cb(null);
-        }
-      },
       // save new photo if attached
       (cb) => {
+        oldImage = customer.image_url;
+        if (inputs.deleteImage) customer.image_url = null;
         if (!req.files || !req.files.avatar) return cb(null);
 
         imageStorage.upload(req.files.avatar, 'profiles', (err, newFileName) => {
@@ -505,9 +493,16 @@ function updateCustomer(req, res, next) {
             customer = result.rows[0];
             customer.image_url = imageStorage.getImageUrl(customer.image_url);
 
-            cb(null);
+            cb(null, newImageUrl !== oldImage);
           }
         );
+      },
+      // delete old image if needed
+      (imageChanged, cb) => {
+        if (!oldImage || !imageChanged) return cb(null);
+
+        imageStorage.delete(oldImage);
+        cb(null);
       },
     ],
     (err) => {
