@@ -552,8 +552,8 @@
 									"type": "text"
 								},
 								{
-									"key": "categoryCode",
-									"value": "OTHER",
+									"key": "categoryId",
+									"value": "12",
 									"type": "text"
 								},
 								{
@@ -649,10 +649,9 @@
 									"type": "text"
 								},
 								{
-									"key": "categoryCode",
-									"value": "OTHER",
-									"type": "text",
-									"disabled": true
+									"key": "categoryId",
+									"value": "14",
+									"type": "text"
 								},
 								{
 									"key": "image",

@@ -63,32 +63,31 @@ const categoriesQuery = {
 
 const servicesQuery = {
   getOneById: `
-select *, (select code from service_category where id = s.category_id) as category_code 
+select *
 from service s 
 where id = $1 and merchant_id = $2`,
   getUnique: `
 select * from service 
-where merchant_id = $1 and category_id = (select id from service_category where code = $2)`,
+where merchant_id = $1 and category_id = $2`,
   getAll: `
 select s.*, c.code as category_code, c.name -> $1 as category_name 
 from service s 
 JOIN service_category c on s.category_id = c.id 
 where is_active = true`,
   create: `
-WITH inserted as (
-  insert into service(merchant_id, category_id, name, price, image_url, is_active)
-  values($1, (select id from service_category where code = $2), $3, $4, $5, $6)
-  returning *
-)
-select i.*, c.code as category_code, c.name -> $7 as category_name 
-from inserted i 
-JOIN service_category c on i.category_id = c.id`,
+insert into service(merchant_id, category_id, name, price, image_url, is_active)
+select $1, $2, $3, $4, $5, $6
+returning *, 
+(select code from service_category where id = $2) as category_code, 
+(select name -> $7 from service_category where id = $2) as category_name
+`,
   update: `
-update service as s 
-set name = $1, price = $2, category_id = sc.id, is_active = $4, image_url = $5 
-from service_category as sc 
-where s.id = $6 and s.merchant_id = $7 and sc.code = $3 
-returning s.*, sc.code as category_code, sc.name -> $8 as category_name`,
+update service
+set name = $1, price = $2, category_id = $3, is_active = $4, image_url = $5 
+where id = $6 and merchant_id = $7
+returning *, 
+(select code from service_category where id = $3) as category_code, 
+(select name -> $8 from service_category where id = $3) as category_name`,
   delete: 'delete from service where id = $1 and merchant_id = $2 returning *',
 };
 

@@ -26,19 +26,19 @@ function createService(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { name, price, categoryCode, isActive } = req.body;
+        const { name, price, categoryId, isActive } = req.body;
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required', { min_length: 2 }, { max_length: 64 }],
           price: ['trim', 'integer', 'required'],
-          categoryCode: ['trim', 'string', 'required'],
+          categoryId: ['trim', 'integer', 'required'],
           isActive: ['trim', 'boolean', 'required', { default: false }],
         });
 
         const validData = validator.validate({
           name,
           price: Math.abs(price),
-          categoryCode: categoryCode.toUpperCase(),
+          categoryId: Math.abs(categoryId),
           isActive,
         });
 
@@ -49,7 +49,7 @@ function createService(req, res, next) {
       },
       // check if does not exist
       (cb) => {
-        fetchDB(servicesQuery.getUnique, [merchantId, inputs.categoryCode], (err, result) => {
+        fetchDB(servicesQuery.getUnique, [merchantId, inputs.categoryId], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length > 0) return cb(new CustomError('SERVICE_ALREADY_EXISTS'));
 
@@ -73,7 +73,7 @@ function createService(req, res, next) {
           servicesQuery.create,
           [
             merchantId,
-            inputs.categoryCode,
+            inputs.categoryId,
             inputs.name,
             inputs.price,
             newImage,
@@ -175,13 +175,13 @@ function updateService(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { id, name, price, categoryCode, isActive, deleteImage } = req.body;
+        const { id, name, price, categoryId, isActive, deleteImage } = req.body;
 
         const validator = new LIVR.Validator({
           id: ['trim', 'string', 'required'],
           name: ['trim', 'string', { min_length: 2 }, { max_length: 64 }],
           price: ['trim', 'integer'],
-          categoryCode: ['trim', 'string'],
+          categoryId: ['trim', 'integer'],
           isActive: ['trim', 'boolean'],
           deleteImage: ['trim', 'boolean', { default: false }],
         });
@@ -190,7 +190,7 @@ function updateService(req, res, next) {
           id,
           name,
           price: price ? Math.abs(price) : price,
-          categoryCode: categoryCode ? categoryCode.toUpperCase() : categoryCode,
+          categoryId: categoryId ? Math.abs(categoryId) : categoryId,
           isActive,
           deleteImage,
         });
@@ -212,10 +212,10 @@ function updateService(req, res, next) {
       },
       // if category changed, check if does not exist
       (cb) => {
-        const { categoryCode } = inputs;
-        if (!categoryCode || service.category_code === categoryCode) return cb(null);
+        const { categoryId } = inputs;
+        if (!categoryId || service.category_id === categoryId) return cb(null);
 
-        fetchDB(servicesQuery.getUnique, [merchantId, inputs.categoryCode], (err, result) => {
+        fetchDB(servicesQuery.getUnique, [merchantId, inputs.categoryId], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length > 0) return cb(new CustomError('SERVICE_ALREADY_EXISTS'));
 
@@ -247,11 +247,11 @@ function updateService(req, res, next) {
       },
       // update service
       (newFileName, cb) => {
-        const { name, price, categoryCode, isActive } = inputs;
+        const { name, price, categoryId, isActive } = inputs;
 
         const newName = name || service.name;
         const newPrice = price || service.price;
-        const newCategoryCode = categoryCode || service.category_code;
+        const newCategoryId = categoryId || service.category_id;
         const newIsActive = isActive || service.is_active;
         const newPhotoUrl = newFileName || service.image_url;
         const lang = acceptsLanguages(req);
@@ -261,7 +261,7 @@ function updateService(req, res, next) {
           [
             newName,
             newPrice,
-            newCategoryCode,
+            newCategoryId,
             newIsActive,
             newPhotoUrl,
             service.id,
