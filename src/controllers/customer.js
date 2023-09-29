@@ -210,7 +210,10 @@ function getCustomerLoginType(req, res, next) {
 
 // @Public
 function loginCustomer(req, res, next) {
-  let inputs, customer, token;
+  let inputs,
+    customer,
+    token,
+    customerStatus = {};
 
   async.waterfall(
     [
@@ -251,20 +254,26 @@ function loginCustomer(req, res, next) {
       },
       // check if customer is not blocked
       (cb) => {
-        if (customer.is_blocked) {
-          const unblockTime = moment(customer.last_login_attempt).add(1, 'minute');
-          // if block time is not over, return error
-          if (moment().isBefore(unblockTime)) {
-            const timeLeft = unblockTime.diff(moment(), 'seconds');
-            return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
+        redis.hGet('customer_login', inputs.phone, (err, loginObject) => {
+          if (err) return cb(err);
+          if (!loginObject) return cb(null);
+
+          customerStatus = JSON.parse(loginObject);
+          if (customerStatus.is_blocked) {
+            const unblockTime = moment(customerStatus.last_login_attempt).add(1, 'minute');
+            // if block time is not over, return error
+            if (moment().isBefore(unblockTime)) {
+              const timeLeft = unblockTime.diff(moment(), 'seconds');
+              return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
+            }
+
+            // if block time is over, unblock customer
+            customerStatus.last_login_attempt = null;
+            customerStatus.is_blocked = false;
           }
 
-          // if block time is over, unblock customer
-          customer.last_login_attempt = null;
-          customer.is_blocked = false;
-        }
-
-        cb(null);
+          cb(null);
+        });
       },
       // determine login type
       (cb) => {
@@ -315,36 +324,42 @@ function loginCustomer(req, res, next) {
       (isValidCreadentials, loginType, cb) => {
         if (!isValidCreadentials) {
           if (
-            customer.last_login_attempt &&
+            customerStatus.last_login_attempt &&
             moment().isBefore(
-              moment(customer.last_login_attempt).add(customer.safe_login_after, 'seconds')
+              moment(customerStatus.last_login_attempt).add(
+                customerStatus.safe_login_after,
+                'seconds'
+              )
             )
           ) {
             // if 3 login attempts in one minute
-            customer.is_blocked = true;
-            customer.safe_login_after = 0;
+            customerStatus.is_blocked = true;
+            customerStatus.safe_login_after = 0;
           } else {
             // calculate time that customer should wait before next login not to be blocked
-            customer.safe_login_after = customer.last_login_attempt
-              ? Math.max(60 - moment().diff(customer.last_login_attempt, 'seconds'), 0)
+            customerStatus.safe_login_after = customerStatus.last_login_attempt
+              ? Math.max(60 - moment().diff(customerStatus.last_login_attempt, 'seconds'), 0)
               : 0;
           }
 
+          customerStatus.last_login_attempt = moment();
           // save status
-          return fetchDB(
-            customersQuery.changeStatus,
-            [customer.is_blocked, customer.safe_login_after, moment(), customer.id],
+          return redis.hSet(
+            'customer_login',
+            customer.phone,
+            JSON.stringify(customerStatus),
             (err) => {
               if (err) return cb(err);
 
-              if (customer.is_blocked) cb(new CustomError('USER_BLOCKED', null, { timeLeft: 60 }));
+              if (customerStatus.is_blocked)
+                cb(new CustomError('USER_BLOCKED', null, { timeLeft: 60 }));
               else cb(new CustomError(loginType === 'password' ? 'WRONG_PASSWORD' : 'WRONG_OTP'));
             }
           );
         }
 
         // reset login attempts if password is correct
-        fetchDB(customersQuery.changeStatus, [false, 0, null, customer.id]);
+        redis.hDel('customer_login', customer.phone);
 
         cb(null);
       },

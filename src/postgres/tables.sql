@@ -14,10 +14,7 @@ create table if not exists customer(
   phone varchar(12) not null unique,
   image_url varchar(256),
   hashed_password text not null,
-  reg_date timestamp not null default now(),
-  is_blocked boolean not null default false,
-  safe_login_after int not null default 0,
-  last_login_attempt timestamp
+  reg_date timestamp not null default now()
 );
 
 create table if not exists customer_card(
@@ -50,10 +47,7 @@ create table if not exists merchant(
   name varchar(30) not null,
   email varchar(64) not null unique,
   hashed_password text not null,
-  reg_date timestamp not null default now(),
-  is_blocked boolean not null default false,
-  safe_login_after int not null default 0,
-  last_login_attempt timestamp
+  reg_date timestamp not null default now()
 );
 
 create table if not exists service_category(

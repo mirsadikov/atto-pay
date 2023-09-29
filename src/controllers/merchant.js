@@ -98,7 +98,10 @@ function registerMerchant(req, res, next) {
 
 // @Public
 function loginMerchant(req, res, next) {
-  let inputs, merchant, token;
+  let inputs,
+    merchant,
+    token,
+    merchantStatus = {};
 
   async.waterfall(
     [
@@ -129,20 +132,26 @@ function loginMerchant(req, res, next) {
       },
       // check if merchant is not blocked
       (cb) => {
-        if (merchant.is_blocked) {
-          const unblockTime = moment(merchant.last_login_attempt).add(1, 'minute');
-          // if block time is not over, return error
-          if (moment().isBefore(unblockTime)) {
-            const timeLeft = unblockTime.diff(moment(), 'seconds');
-            return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
+        redis.hGet('merchant_login', inputs.email, (err, loginObject) => {
+          if (err) return cb(err);
+          if (!loginObject) return cb(null);
+
+          merchantStatus = JSON.parse(loginObject);
+          if (merchantStatus.is_blocked) {
+            const unblockTime = moment(merchantStatus.last_login_attempt).add(1, 'minute');
+            // if block time is not over, return error
+            if (moment().isBefore(unblockTime)) {
+              const timeLeft = unblockTime.diff(moment(), 'seconds');
+              return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
+            }
+
+            // if block time is over, unblock merchant
+            merchantStatus.last_login_attempt = null;
+            merchantStatus.is_blocked = false;
           }
 
-          // if block time is over, unblock merchant
-          merchant.last_login_attempt = null;
-          merchant.is_blocked = false;
-        }
-
-        cb(null);
+          cb(null);
+        });
       },
       // check password
       (cb) => {
@@ -152,36 +161,42 @@ function loginMerchant(req, res, next) {
         // if password is wrong
         if (!isPasswordCorrect) {
           if (
-            merchant.last_login_attempt &&
+            merchantStatus.last_login_attempt &&
             moment().isBefore(
-              moment(merchant.last_login_attempt).add(merchant.safe_login_after, 'seconds')
+              moment(merchantStatus.last_login_attempt).add(
+                merchantStatus.safe_login_after,
+                'seconds'
+              )
             )
           ) {
             // if 3 login attempts in 2 minutes
-            merchant.is_blocked = true;
-            merchant.safe_login_after = 0;
+            merchantStatus.is_blocked = true;
+            merchantStatus.safe_login_after = 0;
           } else {
             // calculate time that merchant should wait before next login not to be blocked
-            merchant.safe_login_after = merchant.last_login_attempt
-              ? Math.max(120 - moment().diff(merchant.last_login_attempt, 'seconds'), 0)
+            merchantStatus.safe_login_after = merchantStatus.last_login_attempt
+              ? Math.max(120 - moment().diff(merchantStatus.last_login_attempt, 'seconds'), 0)
               : 0;
           }
 
+          merchantStatus.last_login_attempt = moment();
           // save status
-          return fetchDB(
-            merchantsQuery.changeStatus,
-            [merchant.is_blocked, merchant.safe_login_after, moment(), merchant.id],
+          return redis.hSet(
+            'merchant_login',
+            merchant.email,
+            JSON.stringify(merchantStatus),
             (err) => {
               if (err) return cb(err);
 
-              if (merchant.is_blocked) cb(new CustomError('USER_BLOCKED', null, { timeLeft: 60 }));
+              if (merchantStatus.is_blocked)
+                cb(new CustomError('USER_BLOCKED', null, { timeLeft: 60 }));
               else cb(new CustomError('WRONG_PASSWORD'));
             }
           );
         }
 
         // reset login attempts if password is correct
-        fetchDB(merchantsQuery.changeStatus, [false, 0, null, merchant.id]);
+        redis.hDel('merchant_login', inputs.email);
 
         cb(null);
       },
