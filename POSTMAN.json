@@ -91,7 +91,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"phone\": \"998993669801\",\n    \"otp\": \"973302\",\n    \"trust\": true\n}",
+							"raw": "{\n    \"phone\": \"998993669801\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -118,7 +118,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "786ecf8c-35a5-4231-9e64-8e1de8dc9ed7"
+								"value": "3335be50-da7b-4eb5-ae69-e7667a2bffe6"
 							}
 						],
 						"url": {
@@ -141,7 +141,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "786ecf8c-35a5-4231-9e64-8e1de8dc9ed7"
+								"value": "f2ab2330-a150-4c21-a359-b2a29e779c92"
 							}
 						],
 						"body": {
@@ -149,7 +149,7 @@
 							"formdata": [
 								{
 									"key": "name",
-									"value": "Abbos",
+									"value": "Abror",
 									"type": "default"
 								},
 								{
@@ -161,13 +161,13 @@
 								{
 									"key": "deleteImage",
 									"value": "true",
-									"type": "default"
+									"type": "default",
+									"disabled": true
 								},
 								{
 									"key": "avatar",
 									"type": "file",
-									"src": "/Users/zeyds/Documents/IMG_20220329_111952_641.jpg.jpg",
-									"disabled": true
+									"src": "/Users/zeyds/Documents/IMG_20220329_111952_641.jpg.jpg"
 								}
 							]
 						},
@@ -267,7 +267,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "7c1310a1-a6d0-4453-8ed6-eaa2f30498cb"
+								"value": "572d0689-fe96-47a6-bce4-fd6a5a9b9c6e"
 							}
 						],
 						"body": {
@@ -280,13 +280,14 @@
 							}
 						},
 						"url": {
-							"raw": "{{url}}/customer/card",
+							"raw": "{{url}}/customer/card/",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
-								"card"
+								"card",
+								""
 							]
 						}
 					},
@@ -299,7 +300,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "7c1310a1-a6d0-4453-8ed6-eaa2f30498cb"
+								"value": "16723b7a-d0f9-40ce-afed-0991a4a7c849"
 							}
 						],
 						"url": {
@@ -322,12 +323,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "7c1310a1-a6d0-4453-8ed6-eaa2f30498cb"
+								"value": "030f7cba-25e7-48ee-a8e2-98a925061ea6"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"id\": \"460f4406-ec59-4733-8875-ff7f2b44c81c\",\n  \"name\": \"to delete\"\n}",
+							"raw": "{\n  \"id\": \"5d6a276e-ad50-48da-9905-31f9479278ee\",\n  \"name\": \"to delete\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -374,6 +375,31 @@
 							"path": [
 								"customer",
 								"card"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get One By Id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "2bad24b7-b602-4315-aaaa-47af4c68b534",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url}}/customer/card/afec7a79-d334-431a-897e-c505a2ae91c2",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"card",
+								"afec7a79-d334-431a-897e-c505a2ae91c2"
 							]
 						}
 					},
@@ -441,7 +467,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"itschool@gmail.com\",\n  \"password\": \"test1234\"\n}",
+							"raw": "{\n  \"email\": \"itschool@gmail.com\",\n  \"password\": \"qwer1234\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -468,7 +494,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "0d19dc03-3485-41ec-9b1d-abc848688823"
+								"value": "ec139087-d3dc-4faf-a655-49c3758edb75"
 							}
 						],
 						"url": {
@@ -491,7 +517,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "0d19dc03-3485-41ec-9b1d-abc848688823"
+								"value": "920899dc-e301-4f98-b22c-77a413c99168"
 							}
 						],
 						"body": {
@@ -534,7 +560,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "cbf89e11-ebc6-4185-a997-c0f438497ede",
+								"value": "2df361db-2f45-4af9-b588-12e85f9d3a73",
 								"type": "text"
 							}
 						],
@@ -553,7 +579,7 @@
 								},
 								{
 									"key": "categoryId",
-									"value": "12",
+									"value": "-7",
 									"type": "text"
 								},
 								{
@@ -564,7 +590,8 @@
 								{
 									"key": "image",
 									"type": "file",
-									"src": "/Users/zeyds/Documents/20220105_105005.jpg"
+									"src": "/Users/zeyds/Documents/Photo.png",
+									"disabled": true
 								}
 							]
 						},
@@ -604,13 +631,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "cbf89e11-ebc6-4185-a997-c0f438497ede",
+								"value": "c036ba9f-3beb-4e89-9cc2-29fe5e3a925b",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": \"1a42d40e-280a-40d1-8d9e-1f4a41bb6d62\"\n}",
+							"raw": "{\n    \"id\": \"1f5e3a91-8247-4497-b972-39d5776b1c53\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -636,7 +663,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "cbf89e11-ebc6-4185-a997-c0f438497ede",
+								"value": "ded61f32-888f-4cad-b669-d34e52d8eb27",
 								"type": "text"
 							}
 						],
@@ -645,23 +672,29 @@
 							"formdata": [
 								{
 									"key": "id",
-									"value": "1a42d40e-280a-40d1-8d9e-1f4a41bb6d62",
+									"value": "98fdcebe-e52e-477a-87de-ba71beaaa1ec",
 									"type": "text"
 								},
 								{
 									"key": "categoryId",
-									"value": "14",
-									"type": "text"
+									"value": "5",
+									"type": "text",
+									"disabled": true
 								},
 								{
 									"key": "image",
 									"type": "file",
-									"src": "/Users/zeyds/Documents/Photo.png",
+									"src": "/Users/zeyds/Documents/IMG_20220329_111952_641.jpg.jpg",
 									"disabled": true
 								},
 								{
 									"key": "deleteImage",
 									"value": "true",
+									"type": "text"
+								},
+								{
+									"key": "name",
+									"value": "New Name",
 									"type": "text"
 								}
 							]

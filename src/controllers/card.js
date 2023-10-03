@@ -207,9 +207,57 @@ function deleteCard(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
+function getOneById(req, res, next) {
+  let customerId;
+
+  async.waterfall(
+    [
+      // verify customer
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // validate data
+      (cb) => {
+        const { id } = req.params;
+
+        const validator = new LIVR.Validator({
+          id: ['trim', 'string', 'required'],
+        });
+
+        const validData = validator.validate({ id });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        cb(null, validData);
+      },
+      // get card
+      (inputs, cb) => {
+        fetchDB(cardsQuery.getOneById, [inputs.id, customerId], (err, result) => {
+          if (err) return cb(err);
+          if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
+
+          cb(null, result.rows[0]);
+        });
+      },
+    ],
+    (err, card) => {
+      if (err) return next(err);
+
+      res.status(200).json(card);
+    }
+  );
+}
+
 module.exports = {
   createCard,
   getCustomerCards,
   updateCard,
   deleteCard,
+  getOneById,
 };

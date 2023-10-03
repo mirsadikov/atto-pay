@@ -1,10 +1,17 @@
 var express = require('express');
-const { createCard, getCustomerCards, updateCard, deleteCard } = require('../controllers/card');
+const {
+  createCard,
+  getCustomerCards,
+  updateCard,
+  deleteCard,
+  getOneById,
+} = require('../controllers/card');
 const router = express.Router();
 
 router.post('/', createCard);
 router.get('/', getCustomerCards);
 router.put('/', updateCard);
 router.delete('/', deleteCard);
+router.get('/:id', getOneById);
 
 module.exports = router;

@@ -29,7 +29,7 @@ returning id, name, email, reg_date`,
 };
 
 const cardsQuery = {
-  getOneById: 'select * from customer_card where id = $1',
+  getOneById: 'select * from customer_card where id = $1 and customer_id = $2',
   getOneByPan: 'select * from customer_card where pan = $1',
   getAllByCustomerId: 'select * from customer_card where customer_id = $1',
   create: `
