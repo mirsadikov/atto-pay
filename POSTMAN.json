@@ -494,7 +494,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "ec139087-d3dc-4faf-a655-49c3758edb75"
+								"value": "c0f824f1-39da-4568-8eb3-4d82ac3c7b57"
 							}
 						],
 						"url": {
@@ -706,6 +706,30 @@
 							],
 							"path": [
 								"service"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get merchant services",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "c529505c-7e5b-4179-aefb-92356c0dad24",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url}}/service/merchant",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"service",
+								"merchant"
 							]
 						}
 					},

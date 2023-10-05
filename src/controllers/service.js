@@ -341,10 +341,57 @@ function deleteService(req, res, next) {
   );
 }
 
+// @Private
+// @Merchant
+function getMechantServices(req, res, next) {
+  let merchantId, services;
+
+  async.waterfall(
+    [
+      // verify merchant
+      (cb) => {
+        verifyToken(req, 'merchant', (err, id) => {
+          if (err) return cb(err);
+
+          merchantId = id;
+          cb(null);
+        });
+      },
+      // get services
+      (cb) => {
+        const lang = acceptsLanguages(req);
+        fetchDB(servicesQuery.getAllByMerchant, [lang, merchantId], (err, result) => {
+          if (err) return cb(err);
+
+          services = result.rows;
+          cb(null);
+        });
+      },
+      // get images
+      (cb) => {
+        services.forEach((service) => {
+          service.image_url = imageStorage.getImageUrl(service.image_url);
+        });
+
+        cb(null);
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        count: services.length,
+        services,
+      });
+    }
+  );
+}
+
 module.exports = {
   getAllServices,
   getServiceImage,
   createService,
   updateService,
   deleteService,
+  getMechantServices,
 };

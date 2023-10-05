@@ -89,6 +89,11 @@ returning *,
 (select code from service_category where id = $3) as category_code, 
 (select name -> $8 from service_category where id = $3) as category_name`,
   delete: 'delete from service where id = $1 and merchant_id = $2 returning *',
+  getAllByMerchant: `
+select s.*, c.code as category_code, c.name -> $1 as category_name
+from service s
+JOIN service_category c on s.category_id = c.id
+where merchant_id = $2`,
 };
 
 module.exports = {
