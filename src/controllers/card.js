@@ -52,7 +52,7 @@ function createCard(req, res, next) {
           const card = result.rows[0];
 
           if (card) {
-            if (card.customer_id === customerId)
+            if (card.customer_id !== customerId)
               return cb(new CustomError('CARD_BELONGS_TO_ANOTHER'));
             return cb(new CustomError('CARD_ALREADY_ADDED'));
           }
