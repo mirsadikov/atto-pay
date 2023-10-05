@@ -49,7 +49,13 @@ function createCard(req, res, next) {
       (cb) => {
         fetchDB(cardsQuery.getOneByPan, [inputs.pan], (err, result) => {
           if (err) return cb(err);
-          if (result.rows.length > 0) return cb(new CustomError('CARD_ALREADY_ADDED'));
+          const card = result.rows[0];
+
+          if (card) {
+            if (card.customer_id === customerId)
+              return cb(new CustomError('CARD_BELONGS_TO_ANOTHER'));
+            return cb(new CustomError('CARD_ALREADY_ADDED'));
+          }
 
           cb(null);
         });

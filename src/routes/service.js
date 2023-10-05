@@ -6,14 +6,16 @@ const {
   getServiceImage,
   getAllServices,
   getMechantServices,
+  getOneById,
 } = require('../controllers/service');
 const router = express.Router();
 
 router.get('/', getAllServices);
+router.get('/merchant', getMechantServices);
+router.get('/:id', getOneById);
 router.get('/photo/:file', getServiceImage);
 router.post('/', createService);
 router.put('/', updateService);
 router.delete('/', deleteService);
-router.get('/merchant', getMechantServices);
 
 module.exports = router;

@@ -66,6 +66,11 @@ const servicesQuery = {
 select *
 from service s 
 where id = $1 and merchant_id = $2`,
+  getOneByIdWithCategory: `
+select s.*, c.code as category_code, c.name -> $3 as category_name
+from service s
+JOIN service_category c on s.category_id = c.id
+where s.id = $1 and s.merchant_id = $2`,
   getUnique: `
 select * from service 
 where merchant_id = $1 and category_id = $2`,
