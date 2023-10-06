@@ -118,7 +118,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "3335be50-da7b-4eb5-ae69-e7667a2bffe6"
+								"value": "f96467f0-5623-4aae-a076-6b0596f66c5c"
 							}
 						],
 						"url": {
@@ -141,7 +141,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "f2ab2330-a150-4c21-a359-b2a29e779c92"
+								"value": "f96467f0-5623-4aae-a076-6b0596f66c5c"
 							}
 						],
 						"body": {
@@ -167,7 +167,18 @@
 								{
 									"key": "avatar",
 									"type": "file",
-									"src": "/Users/zeyds/Documents/IMG_20220329_111952_641.jpg.jpg"
+									"src": [],
+									"disabled": true
+								},
+								{
+									"key": "gender",
+									"value": "M",
+									"type": "text"
+								},
+								{
+									"key": "birthDate",
+									"value": "11.07.02",
+									"type": "text"
 								}
 							]
 						},
@@ -254,6 +265,39 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Update customer lang",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "f96467f0-5623-4aae-a076-6b0596f66c5c",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"lang\": \"uz\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/lang",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"lang"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -267,7 +311,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "572d0689-fe96-47a6-bce4-fd6a5a9b9c6e"
+								"value": "609acb3a-9509-4909-ae18-277d079528a9"
 							}
 						],
 						"body": {
@@ -300,7 +344,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "16723b7a-d0f9-40ce-afed-0991a4a7c849"
+								"value": "6e5c35bb-b58c-4c76-a9da-16bf4baa76c7"
 							}
 						],
 						"url": {
@@ -387,19 +431,19 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "2bad24b7-b602-4315-aaaa-47af4c68b534",
+								"value": "6e5c35bb-b58c-4c76-a9da-16bf4baa76c7",
 								"type": "text"
 							}
 						],
 						"url": {
-							"raw": "{{url}}/customer/card/afec7a79-d334-431a-897e-c505a2ae91c2",
+							"raw": "{{url}}/customer/card/21b9c92e-ee03-4289-8e52-6395e77a7a5f",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
 								"card",
-								"afec7a79-d334-431a-897e-c505a2ae91c2"
+								"21b9c92e-ee03-4289-8e52-6395e77a7a5f"
 							]
 						}
 					},
@@ -494,7 +538,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "c0f824f1-39da-4568-8eb3-4d82ac3c7b57"
+								"value": "d2ad901d-e3da-4856-b3be-2302295853fc"
 							}
 						],
 						"url": {
@@ -517,7 +561,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "920899dc-e301-4f98-b22c-77a413c99168"
+								"value": "d2ad901d-e3da-4856-b3be-2302295853fc"
 							}
 						],
 						"body": {
@@ -547,6 +591,39 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Update merchant lang",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "d2ad901d-e3da-4856-b3be-2302295853fc",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"lang\": \"en\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/merchant/lang",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"merchant",
+								"lang"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -560,8 +637,9 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "2df361db-2f45-4af9-b588-12e85f9d3a73",
-								"type": "text"
+								"value": "a2b25c98-8692-4114-ac6e-8091f91a16e1",
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"body": {
@@ -579,13 +657,14 @@
 								},
 								{
 									"key": "categoryId",
-									"value": "-7",
+									"value": "7",
 									"type": "text"
 								},
 								{
 									"key": "isActive",
 									"value": "true",
-									"type": "text"
+									"type": "text",
+									"disabled": true
 								},
 								{
 									"key": "image",
@@ -718,7 +797,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "c529505c-7e5b-4179-aefb-92356c0dad24",
+								"value": "1b139e98-8f03-44c7-9c39-e0cfa6765dd0",
 								"type": "text"
 							}
 						],
@@ -730,6 +809,30 @@
 							"path": [
 								"service",
 								"merchant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get One By Id",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "3462765c-05e6-42d1-b40b-3a86a5cf03d6",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url}}/service/9176cf2d-6624-4fdb-b2f9-1b5b8e324710",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"service",
+								"9176cf2d-6624-4fdb-b2f9-1b5b8e324710"
 							]
 						}
 					},
