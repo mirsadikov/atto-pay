@@ -8,9 +8,9 @@ values($1, $2, $3)
 returning id, name, phone, image_url, reg_date`,
   update: `
 update customer 
-set name = $1, hashed_password = $2, image_url = $3 
-where id = $4 
-returning id, name, phone, image_url, reg_date`,
+set name = $1, hashed_password = $2, image_url = $3, gender = $4, birth_date = $5
+where id = $6
+returning id, name, phone, image_url, gender, birth_date, reg_date`,
 };
 
 const merchantsQuery = {

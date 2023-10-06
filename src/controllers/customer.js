@@ -137,7 +137,7 @@ function registerCustomer(req, res, next) {
       }
 
       // return customer
-      res.status(200).json({
+      res.status(201).json({
         success: true,
         token,
         customer: newCustomer,
@@ -440,15 +440,17 @@ function updateCustomer(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { name, password, deleteImage } = req.body;
+        const { name, password, deleteImage, gender, birthDate } = req.body;
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', { min_length: 3 }, { max_length: 64 }],
           password: ['trim', { min_length: 6 }, 'alphanumeric'],
           deleteImage: ['trim', 'boolean', { default: false }],
+          gender: ['trim', { one_of: ['M', 'F'] }],
+          birthDate: ['trim', 'valid_date'],
         });
 
-        const validData = validator.validate({ name, password, deleteImage });
+        const validData = validator.validate({ name, password, deleteImage, gender, birthDate });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         inputs = validData;
@@ -479,14 +481,16 @@ function updateCustomer(req, res, next) {
       },
       // update customer
       (cb) => {
-        const { name, password } = inputs;
+        const { name, password, gender, birthDate } = inputs;
         const newName = name || customer.name;
         const hashedPassword = password ? bcrypt.hashSync(password, 10) : customer.hashed_password;
+        const newGender = gender || customer.gender;
+        const newBirthDate = birthDate || customer.birth_date;
         const newImageUrl = newImage || customer.image_url;
 
         fetchDB(
           customersQuery.update,
-          [newName, hashedPassword, newImageUrl, customer.id],
+          [newName, hashedPassword, newImageUrl, newGender, newBirthDate, customer.id],
           (err, result) => {
             if (err) return cb(err);
 

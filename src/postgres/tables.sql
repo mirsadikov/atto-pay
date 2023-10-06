@@ -14,6 +14,8 @@ create table if not exists customer(
   phone varchar(12) not null unique,
   image_url varchar(256),
   hashed_password text not null,
+  gender varchar(1),
+  birth_date date,
   reg_date timestamp not null default now()
 );
 
