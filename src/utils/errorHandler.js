@@ -1,6 +1,6 @@
 const fetchDB = require('../postgres/index');
 const { errorsQuery } = require('../postgres/queries');
-const acceptsLanguages = require('./acceptLanguages');
+const acceptsLanguages = require('./acceptsLanguages');
 
 const errorHandler = (err, req, res, next) => {
   const isDevenv = process.env.NODE_ENV === 'development';

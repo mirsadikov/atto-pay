@@ -5,12 +5,16 @@ const customersQuery = {
   create: `
 insert into customer(name, phone, hashed_password) 
 values($1, $2, $3) 
-returning id, name, phone, image_url, reg_date`,
+returning id, name, phone, image_url, reg_date, lang`,
   update: `
 update customer 
 set name = $1, hashed_password = $2, image_url = $3, gender = $4, birth_date = $5
 where id = $6
-returning id, name, phone, image_url, gender, birth_date, reg_date`,
+returning id, name, phone, image_url, gender, birth_date, reg_date, lang`,
+  updateLang: `
+update customer
+set lang = $1
+where id = $2`,
 };
 
 const merchantsQuery = {
@@ -20,12 +24,16 @@ const merchantsQuery = {
   create: `
 insert into merchant(name, email, hashed_password) 
 values($1, $2, $3) 
-returning id, name, email, reg_date`,
+returning id, name, email, reg_date, lang`,
   update: `
 update merchant 
 set name = $1, hashed_password = $2 
 where id = $3 
-returning id, name, email, reg_date`,
+returning id, name, email, reg_date, lang`,
+  updateLang: `
+update merchant
+set lang = $1
+where id = $2`,
 };
 
 const cardsQuery = {

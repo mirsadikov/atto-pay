@@ -16,6 +16,7 @@ create table if not exists customer(
   hashed_password text not null,
   gender varchar(1),
   birth_date date,
+  lang varchar(2) not null default 'ru',
   reg_date timestamp not null default now()
 );
 
@@ -49,6 +50,7 @@ create table if not exists merchant(
   name varchar(30) not null,
   email varchar(64) not null unique,
   hashed_password text not null,
+  lang varchar(2) not null default 'ru',
   reg_date timestamp not null default now()
 );
 

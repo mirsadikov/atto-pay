@@ -1,6 +1,6 @@
 const fetchDB = require('../postgres/index');
 const { categoriesQuery } = require('../postgres/queries');
-const acceptsLanguages = require('../utils/acceptLanguages');
+const acceptsLanguages = require('../utils/acceptsLanguages');
 
 function getCategories(req, res, next) {
   const lang = acceptsLanguages(req);

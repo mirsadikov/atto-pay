@@ -7,6 +7,7 @@ const {
   getCustomerLoginType,
   loginCustomer,
   getCustomerPhoto,
+  updateCustomerLang,
 } = require('../controllers/customer');
 const router = express.Router();
 
@@ -16,6 +17,7 @@ router.post('/getlogin', getCustomerLoginType);
 router.post('/login', loginCustomer);
 router.put('/profile', updateCustomer);
 router.get('/photo/:file', getCustomerPhoto);
+router.put('/lang', updateCustomerLang);
 
 // FAKE OTP GETTER
 router.get('/otp/recievebysms/:phone', getOtpFromSMS);

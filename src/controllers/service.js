@@ -6,7 +6,7 @@ const fetchDB = require('../postgres');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 const imageStorage = require('../utils/imageStorage');
-const acceptsLanguages = require('../utils/acceptLanguages');
+const acceptsLanguages = require('../utils/acceptsLanguages');
 
 // @Private
 // @Merchant

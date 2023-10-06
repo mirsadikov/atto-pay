@@ -239,6 +239,7 @@ function loginMerchant(req, res, next) {
           id: merchant.id,
           name: merchant.name,
           email: merchant.email,
+          lang: merchant.lang,
           reg_date: merchant.reg_date,
         },
       });
@@ -344,9 +345,58 @@ function updateMerchant(req, res, next) {
   );
 }
 
+// @Private
+// @Merchant
+function updateMerchantLang(req, res, next) {
+  let merchantId;
+
+  async.waterfall(
+    [
+      // verify merchant
+      (cb) => {
+        verifyToken(req, 'merchant', (err, id) => {
+          if (err) return cb(err);
+
+          merchantId = id;
+          cb(null);
+        });
+      },
+      // validate data
+      (cb) => {
+        const { lang } = req.body;
+
+        const validator = new LIVR.Validator({
+          lang: ['trim', 'string', 'required', { one_of: ['en', 'ru', 'uz'] }],
+        });
+
+        const validData = validator.validate({ lang });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        cb(null, validData);
+      },
+      // update merchant
+      (inputs, cb) => {
+        fetchDB(merchantsQuery.updateLang, [inputs.lang, merchantId], (err) => {
+          if (err) return cb(err);
+
+          cb(null);
+        });
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+      });
+    }
+  );
+}
+
 module.exports = {
   registerMerchant,
   loginMerchant,
   updateMerchant,
   getMerchantProfile,
+  updateMerchantLang,
 };

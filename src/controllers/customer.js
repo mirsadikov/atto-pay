@@ -416,6 +416,7 @@ function loginCustomer(req, res, next) {
           phone: customer.phone,
           image_url: imageStorage.getImageUrl(customer.image_url),
           reg_date: customer.reg_date,
+          lang: customer.lang,
         },
       });
     }
@@ -544,6 +545,54 @@ function getCustomerPhoto(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
+function updateCustomerLang(req, res, next) {
+  let customerId;
+
+  async.waterfall(
+    [
+      // verify customer
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // validate data
+      (cb) => {
+        const { lang } = req.body;
+
+        const validator = new LIVR.Validator({
+          lang: ['trim', 'string', 'required', { one_of: ['en', 'ru', 'uz'] }],
+        });
+
+        const validData = validator.validate({ lang });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        cb(null, validData);
+      },
+      // update customer
+      (inputs, cb) => {
+        fetchDB(customersQuery.updateLang, [inputs.lang, customerId], (err) => {
+          if (err) return cb(err);
+
+          cb(null);
+        });
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+      });
+    }
+  );
+}
+
 // FAKE OTP GETTER
 function getOtpFromSMS(req, res, next) {
   try {
@@ -568,4 +617,5 @@ module.exports = {
   loginCustomer,
   updateCustomer,
   getCustomerPhoto,
+  updateCustomerLang,
 };
