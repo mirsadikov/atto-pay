@@ -32,7 +32,7 @@ function createService(req, res, next) {
           name: ['trim', 'string', 'required', { min_length: 2 }, { max_length: 64 }],
           price: ['trim', 'integer', 'required'],
           categoryId: ['trim', 'integer', 'required'],
-          isActive: ['trim', 'boolean', 'required', { default: false }],
+          isActive: ['trim', 'boolean', { default: false }],
         });
 
         const validData = validator.validate({
