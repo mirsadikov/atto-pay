@@ -6,7 +6,11 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "db:init": "node src/postgres/init.js"
+    "test": "mocha test",
+    "db:init": "node src/postgres/init.js",
+    "docker:start": "docker-compose up",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up",
+    "docker:test": "docker-compose -f docker-compose.test.yml up"
   },
   "keywords": [],
   "author": "",
@@ -27,6 +31,8 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0",
     "nodemon": "^3.0.1"
   }
 }

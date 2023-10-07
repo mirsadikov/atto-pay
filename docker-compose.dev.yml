@@ -8,13 +8,13 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
     command:
       - sh
       - -c
       - |
         npm install
-        npm start
+        npm run dev
     depends_on:
       - postgres
       - redis
