@@ -19,16 +19,15 @@ where id = $2`,
 const merchantsQuery = {
   getOneById: 'select * from merchant where id = $1',
   getOneByEmail: 'select * from merchant where email = $1',
-  delete: 'delete from merchant where id = $1 and email = $2 returning *',
+  delete: 'delete from merchant where id = $1',
   create: `
 insert into merchant(name, email, hashed_password) 
 values($1, $2, $3) 
-returning id, name, email, reg_date, lang`,
+returning id`,
   update: `
 update merchant 
 set name = $1, hashed_password = $2 
-where id = $3 
-returning id, name, email, reg_date, lang`,
+where id = $3`,
   updateLang: `
 update merchant
 set lang = $1
@@ -87,19 +86,12 @@ JOIN service_category c on s.category_id = c.id
 where is_active = true`,
   create: `
 insert into service(merchant_id, category_id, name, price, image_url, is_active)
-select $1, $2, $3, $4, $5, $6
-returning *, 
-(select code from service_category where id = $2) as category_code, 
-(select name -> $7 from service_category where id = $2) as category_name
-`,
+select $1, $2, $3, $4, $5, $6`,
   update: `
 update service
 set name = $1, price = $2, category_id = $3, is_active = $4, image_url = $5 
-where id = $6 and merchant_id = $7
-returning *, 
-(select code from service_category where id = $3) as category_code, 
-(select name -> $8 from service_category where id = $3) as category_name`,
-  delete: 'delete from service where id = $1 and merchant_id = $2 returning *',
+where id = $6 and merchant_id = $7`,
+  delete: 'delete from service where id = $1 and merchant_id = $2 returning id, image_url',
   getAllByMerchant: `
 select s.*, c.code as category_code, c.name -> $1 as category_name
 from service s

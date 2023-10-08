@@ -81,7 +81,7 @@ function registerMerchant(req, res, next) {
     (err) => {
       if (err) {
         // clear
-        if (newMerchant) fetchDB(merchantsQuery.delete, [newMerchant.id, newMerchant.email]);
+        if (newMerchant) fetchDB(merchantsQuery.delete, [newMerchant.id]);
 
         return next(err);
       }
@@ -90,7 +90,6 @@ function registerMerchant(req, res, next) {
       res.status(200).json({
         success: true,
         token,
-        merchant: newMerchant,
       });
     }
   );
@@ -235,13 +234,6 @@ function loginMerchant(req, res, next) {
       // return merchant
       res.status(200).json({
         token,
-        merchant: {
-          id: merchant.id,
-          name: merchant.name,
-          email: merchant.email,
-          lang: merchant.lang,
-          reg_date: merchant.reg_date,
-        },
       });
     }
   );
@@ -327,19 +319,18 @@ function updateMerchant(req, res, next) {
         const newName = name || merchant.name;
         const hashedPassword = password ? bcrypt.hashSync(password, 10) : merchant.hashed_password;
 
-        fetchDB(merchantsQuery.update, [newName, hashedPassword, merchant.id], (err, result) => {
+        fetchDB(merchantsQuery.update, [newName, hashedPassword, merchant.id], (err) => {
           if (err) return cb(err);
 
-          cb(null, result.rows[0]);
+          cb(null);
         });
       },
     ],
-    (err, merchant) => {
+    (err) => {
       if (err) return next(err);
 
       res.status(200).json({
         success: true,
-        merchant,
       });
     }
   );

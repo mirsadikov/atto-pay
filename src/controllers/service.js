@@ -11,7 +11,7 @@ const acceptsLanguages = require('../utils/acceptsLanguages');
 // @Private
 // @Merchant
 function createService(req, res, next) {
-  let merchantId, inputs, newImage, newService;
+  let merchantId, inputs, newImage;
 
   async.waterfall(
     [
@@ -68,23 +68,12 @@ function createService(req, res, next) {
       },
       // create service
       (cb) => {
-        const lang = acceptsLanguages(req);
         fetchDB(
           servicesQuery.create,
-          [
-            merchantId,
-            inputs.categoryId,
-            inputs.name,
-            inputs.price,
-            newImage,
-            inputs.isActive,
-            lang,
-          ],
-          (err, result) => {
+          [merchantId, inputs.categoryId, inputs.name, inputs.price, newImage, inputs.isActive],
+          (err) => {
             if (err) return cb(err);
 
-            newService = result.rows[0];
-            newService.image_url = imageStorage.getImageUrl(newService.image_url);
             cb(null);
           }
         );
@@ -93,7 +82,6 @@ function createService(req, res, next) {
     (err) => {
       if (err) {
         // clear
-        if (newService) fetchDB(servicesQuery.delete, [newService.id, merchantId]);
         if (newImage) imageStorage.delete(newImage);
 
         return next(err);
@@ -101,7 +89,6 @@ function createService(req, res, next) {
 
       res.status(201).json({
         success: true,
-        service: newService,
       });
     }
   );
@@ -244,25 +231,12 @@ function updateService(req, res, next) {
         const newCategoryId = categoryId || service.category_id;
         const newIsActive = isActive || service.is_active;
         const newImageUrl = newImage || service.image_url;
-        const lang = acceptsLanguages(req);
 
         fetchDB(
           servicesQuery.update,
-          [
-            newName,
-            newPrice,
-            newCategoryId,
-            newIsActive,
-            newImageUrl,
-            service.id,
-            merchantId,
-            lang,
-          ],
-          (err, result) => {
+          [newName, newPrice, newCategoryId, newIsActive, newImageUrl, service.id, merchantId],
+          (err) => {
             if (err) return cb(err);
-
-            service = result.rows[0];
-            service.image_url = imageStorage.getImageUrl(service.image_url);
 
             cb(null, newImageUrl !== oldImage);
           }
@@ -285,7 +259,6 @@ function updateService(req, res, next) {
 
       res.status(200).json({
         success: true,
-        service,
       });
     }
   );
