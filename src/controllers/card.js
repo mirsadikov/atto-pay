@@ -65,20 +65,19 @@ function createCard(req, res, next) {
         fetchDB(
           cardsQuery.create,
           [customerId, inputs.name, inputs.pan, inputs.expiry_month, inputs.expiry_year],
-          (err, result) => {
+          (err) => {
             if (err) return cb(err);
 
-            cb(null, result.rows[0]);
+            cb(null);
           }
         );
       },
     ],
-    (err, card) => {
+    (err) => {
       if (err) return next(err);
 
       res.status(201).json({
         success: true,
-        card,
       });
     }
   );
@@ -98,7 +97,7 @@ function getCustomerCards(req, res, next) {
       },
       // get cards
       (customerId, cb) => {
-        fetchDB(cardsQuery.getAllByCustomerId, [customerId], (err, result) => {
+        fetchDB(cardsQuery.getAllByCustomer, [customerId], (err, result) => {
           if (err) return cb(err);
 
           cb(null, result.rowCount, result.rows);
@@ -149,16 +148,15 @@ function updateCard(req, res, next) {
           if (err) return cb(err);
           if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 
-          cb(null, result.rows[0]);
+          cb(null);
         });
       },
     ],
-    (err, card) => {
+    (err) => {
       if (err) return next(err);
 
       res.status(200).json({
         success: true,
-        card,
       });
     }
   );

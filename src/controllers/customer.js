@@ -132,7 +132,7 @@ function registerCustomer(req, res, next) {
     (err) => {
       if (err) {
         // clear
-        if (newCustomer) fetchDB(customersQuery.delete, [newCustomer.id, newCustomer.phone]);
+        if (newCustomer) fetchDB(customersQuery.delete, [newCustomer.id]);
         return next(err);
       }
 
@@ -140,7 +140,6 @@ function registerCustomer(req, res, next) {
       res.status(201).json({
         success: true,
         token,
-        customer: newCustomer,
       });
     }
   );
@@ -410,14 +409,6 @@ function loginCustomer(req, res, next) {
       // return customer
       res.status(200).json({
         token,
-        customer: {
-          id: customer.id,
-          name: customer.name,
-          phone: customer.phone,
-          image_url: imageStorage.getImageUrl(customer.image_url),
-          reg_date: customer.reg_date,
-          lang: customer.lang,
-        },
       });
     }
   );
@@ -492,11 +483,8 @@ function updateCustomer(req, res, next) {
         fetchDB(
           customersQuery.update,
           [newName, hashedPassword, newImageUrl, newGender, newBirthDate, customer.id],
-          (err, result) => {
+          (err) => {
             if (err) return cb(err);
-
-            customer = result.rows[0];
-            customer.image_url = imageStorage.getImageUrl(customer.image_url);
 
             cb(null, newImageUrl !== oldImage);
           }
@@ -519,7 +507,6 @@ function updateCustomer(req, res, next) {
 
       res.status(200).json({
         success: true,
-        customer,
       });
     }
   );

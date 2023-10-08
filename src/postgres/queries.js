@@ -1,16 +1,15 @@
 const customersQuery = {
   getOneById: 'select * from customer where id = $1',
   getOneByPhone: 'select * from customer where phone = $1',
-  delete: 'delete from customer where id = $1 and phone = $2 returning *',
+  delete: 'delete from customer where id = $1',
   create: `
 insert into customer(name, phone, hashed_password) 
 values($1, $2, $3) 
-returning id, name, phone, image_url, reg_date, lang`,
+returning id`,
   update: `
 update customer 
 set name = $1, hashed_password = $2, image_url = $3, gender = $4, birth_date = $5
-where id = $6
-returning id, name, phone, image_url, gender, birth_date, reg_date, lang`,
+where id = $6`,
   updateLang: `
 update customer
 set lang = $1
@@ -39,17 +38,16 @@ where id = $2`,
 const cardsQuery = {
   getOneById: 'select * from customer_card where id = $1 and customer_id = $2',
   getOneByPan: 'select * from customer_card where pan = $1',
-  getAllByCustomerId: 'select * from customer_card where customer_id = $1',
+  getAllByCustomer: 'select * from customer_card where customer_id = $1',
   create: `
 insert into customer_card(customer_id, name, pan, expiry_month, expiry_year) 
-values($1, $2, $3, $4, $5) 
-returning *`,
+values($1, $2, $3, $4, $5)`,
   update: `
 update customer_card set name = $1 
-where id = $2 and customer_id = $3 returning *`,
+where id = $2 and customer_id = $3`,
   delete: `
 delete from customer_card 
-where id = $1 and customer_id = $2 returning *`,
+where id = $1 and customer_id = $2 returning id`,
 };
 
 const devicesQuery = {
