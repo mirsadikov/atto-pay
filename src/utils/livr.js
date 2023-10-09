@@ -19,7 +19,7 @@ LIVR.Validator.registerDefaultRules({
   valid_date() {
     return (value) => {
       if (!value) return undefined;
-      const date = moment(value, 'DD/MM/YYYY');
+      const date = moment(value);
       return date.isValid() && date.isBefore(moment()) ? undefined : 'INVALID_DATE';
     };
   },
