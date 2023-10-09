@@ -229,7 +229,7 @@ function updateService(req, res, next) {
         const newName = name || service.name;
         const newPrice = price || service.price;
         const newCategoryId = categoryId || service.category_id;
-        const newIsActive = isActive || service.is_active;
+        const newIsActive = isActive === null ? service.is_active : isActive;
         const newImageUrl = newImage || service.image_url;
 
         fetchDB(
