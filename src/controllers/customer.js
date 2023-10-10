@@ -442,7 +442,13 @@ function updateCustomer(req, res, next) {
           birthDate: ['trim', 'valid_date'],
         });
 
-        const validData = validator.validate({ name, password, deleteImage, gender, birthDate });
+        const validData = validator.validate({
+          name,
+          password,
+          deleteImage,
+          gender,
+          birthDate: birthDate ? moment(birthDate, 'DD/MM/YYYY') : undefined,
+        });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         inputs = validData;
