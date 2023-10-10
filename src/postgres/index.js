@@ -6,28 +6,26 @@ const pgClient = new Pool({
   ssl: process.env.POSTGRES_SSL === 'true',
 });
 
-const fetchDB = (QUERY, params, cb) =>
-  new Promise((resolve) => {
-    cb = cb || function () {};
-    pgClient
-      .connect()
-      .then((client) => {
-        client
-          .query(QUERY, params.length ? params : null)
-          .catch((err) => {
-            cb(new DatabaseError(err));
-          })
-          .then((res) => {
-            cb(null, res);
-          })
-          .finally(() => {
-            client.release();
-            resolve();
-          });
-      })
-      .catch((err) => {
-        cb(new DatabaseError(err));
-      });
-  });
+const fetchDB = (QUERY, params, cb) => {
+  cb = cb || function () {};
+  let client;
+  return pgClient
+    .connect()
+    .then((c) => {
+      client = c;
+      return client.query(QUERY, params.length ? params : null);
+    })
+    .then((res) => {
+      cb(null, res);
+      return res;
+    })
+    .catch((err) => {
+      cb(new DatabaseError(err));
+      return err;
+    })
+    .finally(() => {
+      client.release();
+    });
+};
 
 module.exports = fetchDB;

@@ -1,12 +1,10 @@
 services:
   express-app:
     image: node:12-alpine
-    container_name: express-app
+    container_name: server-test
     working_dir: /usr/app
     volumes:
       - .:/usr/app/
-    ports:
-      - "3000:3000"
     environment:
       - NODE_ENV=test
     command:
@@ -14,25 +12,23 @@ services:
       - -c
       - |
         npm install
-        npm test
+        tail -f /dev/null
     depends_on:
       - postgres
       - redis
 
   postgres:
     image: postgres:alpine
-    container_name: postgres
+    container_name: postgres-test
     environment:
       POSTGRES_DB: atto_project
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123456
-    volumes:
-      - ./src/postgres/tables.sql:/docker-entrypoint-initdb.d/tables.sql
     ports:
       - "5432:5432"
 
   redis:
     image: redis:alpine
-    container_name: redis
+    container_name: redis-test
     ports:
       - "6379:6379"

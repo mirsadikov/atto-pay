@@ -7,17 +7,18 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "mocha test",
-    "db:init": "node src/postgres/init.js",
-    "docker:start": "docker-compose up",
-    "docker:dev": "docker-compose -f docker-compose.dev.yml up",
-    "docker:test": "docker-compose -f docker-compose.test.yml up"
+    "db:init": "node src/postgres/seeder.js --init",
+    "db:drop": "node src/postgres/seeder.js --drop",
+    "docker:start": "docker-compose -p atto up",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml -p atto-dev up",
+    "docker:test": "docker-compose -f docker-compose.test.yml -p atto-test up"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "async": "^3.2.4",
     "@aws-sdk/client-s3": "v3.200.0",
+    "async": "^3.2.4",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -28,6 +29,8 @@
     "moment": "^2.29.4",
     "pg": "^8.11.3",
     "redis": "4.0.0",
+    "sinon": "13.0.2",
+    "sinon-chai": "^3.7.0",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

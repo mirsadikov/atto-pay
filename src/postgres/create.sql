@@ -1,13 +1,5 @@
 create extension if not exists "uuid-ossp";
 
-drop table if exists customer_device;
-drop table if exists customer_card;
-drop table if exists customer;
-drop table if exists error;
-drop table if exists service;
-drop table if exists service_category;
-drop table if exists merchant;
-
 create table if not exists customer(
   id uuid primary key default uuid_generate_v4(),
   name varchar(64) not null,
@@ -98,7 +90,8 @@ insert into error(name, message, http_code) values
 ('EMAIL_TAKEN', '{"en": "This email address is already registered", "uz": "Bu elektron pochta allaqachon ro''yxatdan o''tgan", "ru": "Этот адрес электронной почты уже зарегистрирован"}', 400),
 ('NOT_ALLOWED', '{"en": "Not allowed", "uz": "Ruxsat etilmagan", "ru": "Не разрешено"}', 403),
 ('SERVICE_ALREADY_EXISTS', '{"en": "Adding multiple services in one category is not allowed", "uz": "Bitta kategoriyada bir nechta xizmat qo''shib bo''lmaydi", "ru": "Нельзя добавить несколько услуг в одну категорию"}', 409),
-('SERVICE_NOT_FOUND', '{"en": "Service not found", "uz": "Xizmat topilmadi", "ru": "Услуга не найдена"}', 404);
+('SERVICE_NOT_FOUND', '{"en": "Service not found", "uz": "Xizmat topilmadi", "ru": "Услуга не найдена"}', 404)
+ON CONFLICT DO NOTHING;
 
 insert into service_category(code, name) values
 ('MOBILE_OPERATORS', '{"en": "Mobile operators", "uz": "Mobil aloqa operatorlari", "ru": "Мобильные операторы"}'),
@@ -120,4 +113,5 @@ insert into service_category(code, name) values
 ('TOURISM', '{"en": "Tourism", "uz": "Turizm", "ru": "Туризм"}'),
 ('SPORT', '{"en": "Sport", "uz": "Sport", "ru": "Спорт"}'),
 ('E_COMMERCE', '{"en": "E-commerce", "uz": "Internet magazinlar", "ru": "Интернет магазины"}'),
-('OTHER', '{"en": "Other", "uz": "Boshqa", "ru": "Другое"}');
+('OTHER', '{"en": "Other", "uz": "Boshqa", "ru": "Другое"}')
+ON CONFLICT DO NOTHING;

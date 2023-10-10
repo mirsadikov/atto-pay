@@ -1,7 +1,7 @@
 services:
   express-app:
     image: node:12-alpine
-    container_name: express-app
+    container_name: server-dev
     working_dir: /usr/app
     volumes:
       - .:/usr/app/
@@ -21,18 +21,18 @@ services:
 
   postgres:
     image: postgres:alpine
-    container_name: postgres
+    container_name: postgres-dev
     environment:
       POSTGRES_DB: atto_project
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: 123456
     volumes:
-      - ./src/postgres/tables.sql:/docker-entrypoint-initdb.d/tables.sql
+      - ./src/postgres/create.sql:/docker-entrypoint-initdb.d/create.sql
     ports:
       - "5432:5432"
 
   redis:
     image: redis:alpine
-    container_name: redis
+    container_name: redis-dev
     ports:
       - "6379:6379"
