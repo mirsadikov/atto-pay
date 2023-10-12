@@ -36,6 +36,10 @@ class RedisClient {
     return this.execute(this.client.hDel(key, field), cb);
   }
 
+  flushall(cb) {
+    return this.execute(this.client.flushAll(), cb);
+  }
+
   disconnect() {
     this.client.quit();
   }
