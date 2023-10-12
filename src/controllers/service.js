@@ -297,9 +297,6 @@ function deleteService(req, res, next) {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('SERVICE_NOT_FOUND'));
 
-          // delete image
-          if (result.rows[0].image_url) imageStorage.delete(result.rows[0].image_url);
-
           cb(null);
         });
       },

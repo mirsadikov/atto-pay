@@ -43,6 +43,7 @@ create table if not exists merchant(
   email varchar(64) not null unique,
   hashed_password text not null,
   lang varchar(2) not null default 'ru',
+  balance numeric(10, 2) not null default (random() * 3000000),
   reg_date timestamp not null default now()
 );
 
@@ -60,9 +61,72 @@ create table if not exists service (
   price int not null,
   image_url varchar(256),
   is_active boolean not null default false,
-  constraint unique_merchant_category unique(merchant_id, category_id)
+  deleted boolean not null default false
 );
 
+create unique index if not exists unique_merchant_category on service(merchant_id, category_id) where deleted = false;
+
+create table if not exists transactions (
+  id uuid primary key default uuid_generate_v4(),
+  customer_id uuid not null references customer(id),
+  service_id uuid not null references service(id),
+  amount int not null,
+  created_at timestamp not null default now()
+);
+
+-- PROCEDURES --
+CREATE OR REPLACE PROCEDURE pay_for_service(
+  _customer_id uuid,
+  card_id uuid,
+  service_id uuid,
+  OUT transaction_id uuid,
+  OUT error_code varchar(64),
+  OUT error_message text
+)
+AS $$
+DECLARE
+  result jsonb;
+  service_row service;
+  card_row customer_card;
+  merchant_row merchant;
+BEGIN
+  BEGIN
+    select * into service_row from service where id = service_id and deleted = false;
+    if not found then 
+      error_code := 'SERVICE_NOT_FOUND';
+      return;
+    end if;
+
+    select * into card_row from customer_card where id = card_id and customer_id = _customer_id;
+    if not found then 
+      error_code := 'CARD_NOT_FOUND';
+      return;
+    end if;
+
+    if card_row.balance < service_row.price then 
+      error_code := 'INSUFFICIENT_FUNDS';
+      return;
+    end if;
+
+    insert into transactions (customer_id, service_id, amount) 
+    values (_customer_id, service_id, service_row.price) returning id into transaction_id;
+
+    update customer_card set balance = balance - service_row.price where id = card_id;
+    update merchant set balance = balance + service_row.price where id = service_row.merchant_id;
+  EXCEPTION
+    WHEN OTHERS THEN
+      ROLLBACK;
+      error_code := 'DATABASE_ERROR';
+      error_message := SQLERRM;
+      return;
+  END;
+
+  COMMIT;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- DATA INSERTION --
 insert into error(name, message, http_code) values
 ('VALIDATION_ERROR', '{"en": "Invalid input for {0}", "uz": "{0} uchun notog''ri kiritish", "ru": "Неверный ввод для {0}"}', 400),
 ('DATABASE_ERROR', '{"en": "Database error", "uz": "Ma''lumotlar bazasi xatosi", "ru": "Ошибка базы данных"}', 500),
@@ -90,7 +154,9 @@ insert into error(name, message, http_code) values
 ('EMAIL_TAKEN', '{"en": "This email address is already registered", "uz": "Bu elektron pochta allaqachon ro''yxatdan o''tgan", "ru": "Этот адрес электронной почты уже зарегистрирован"}', 400),
 ('NOT_ALLOWED', '{"en": "Not allowed", "uz": "Ruxsat etilmagan", "ru": "Не разрешено"}', 403),
 ('SERVICE_ALREADY_EXISTS', '{"en": "Adding multiple services in one category is not allowed", "uz": "Bitta kategoriyada bir nechta xizmat qo''shib bo''lmaydi", "ru": "Нельзя добавить несколько услуг в одну категорию"}', 409),
-('SERVICE_NOT_FOUND', '{"en": "Service not found", "uz": "Xizmat topilmadi", "ru": "Услуга не найдена"}', 404)
+('SERVICE_NOT_FOUND', '{"en": "Service not found", "uz": "Xizmat topilmadi", "ru": "Услуга не найдена"}', 404),
+('INSUFFICIENT_FUNDS', '{"en": "Insufficient funds", "uz": "Mablag'' yetarli emas", "ru": "Недостаточно средств"}', 400),
+('PAYMENT_ERROR', '{"en": "Payment error", "uz": "To''lovda xatolik", "ru": "Ошибка при оплате"}', 500)
 ON CONFLICT DO NOTHING;
 
 insert into service_category(code, name) values

@@ -70,33 +70,44 @@ const servicesQuery = {
   getOneById: `
 select *
 from service s 
-where id = $1 and merchant_id = $2`,
+where id = $1 and merchant_id = $2 and deleted = false`,
+  getOneActiveById: `
+select *
+from service s
+where id = $1 and is_active = true and deleted = false`,
   getOneByIdWithCategory: `
 select s.*, c.code as category_code, c.name -> $3 as category_name
 from service s
 JOIN service_category c on s.category_id = c.id
-where s.id = $1 and s.merchant_id = $2`,
+where s.id = $1 and s.merchant_id = $2 and s.deleted = false`,
   getUnique: `
 select * from service 
-where merchant_id = $1 and category_id = $2`,
+where merchant_id = $1 and category_id = $2 and deleted = false`,
   getAll: `
 select s.*, c.code as category_code, c.name -> $1 as category_name 
 from service s 
 JOIN service_category c on s.category_id = c.id 
-where is_active = true`,
+where is_active = true and deleted = false`,
   create: `
 insert into service(merchant_id, category_id, name, price, image_url, is_active)
 select $1, $2, $3, $4, $5, $6`,
   update: `
 update service
 set name = $1, price = $2, category_id = $3, is_active = $4, image_url = $5 
-where id = $6 and merchant_id = $7`,
-  delete: 'delete from service where id = $1 and merchant_id = $2 returning id, image_url',
+where id = $6 and merchant_id = $7 and deleted = false`,
+  delete: `
+update service
+set is_active = false, deleted = true
+where id = $1 and merchant_id = $2 returning id`,
   getAllByMerchant: `
 select s.*, c.code as category_code, c.name -> $1 as category_name
 from service s
 JOIN service_category c on s.category_id = c.id
-where merchant_id = $2`,
+where merchant_id = $2 and deleted = false`,
+};
+
+const paymentsQuery = {
+  payForService: `call pay_for_service($1, $2, $3, null, null, null)`,
 };
 
 module.exports = {
@@ -107,4 +118,5 @@ module.exports = {
   merchantsQuery,
   categoriesQuery,
   servicesQuery,
+  paymentsQuery,
 };
