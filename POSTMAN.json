@@ -44,7 +44,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Abror\",\n    \"phone\": \"998993669801\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false\n}",
+							"raw": "{\n    \"name\": \"Abror\",\n    \"phone\": \"998993669800\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -118,7 +118,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "823eacf6-324f-4614-9eb8-ebe0384d077f"
+								"value": "f412e744-1857-40a1-ba24-9a36a647e795"
 							}
 						],
 						"url": {
@@ -312,12 +312,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "05042d41-fbee-43c6-96c5-138d547eb3de"
+								"value": "da54c6ea-61ab-4d63-961a-23188343ce8a"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"pan\": \"3600552579883112\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"24\"\n}",
+							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"pan\": \"2600234174539906\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"25\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -348,7 +348,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "05042d41-fbee-43c6-96c5-138d547eb3de"
+								"value": "20b18594-4de0-489d-8f6b-ae205606ddfe"
 							}
 						],
 						"body": {
@@ -444,19 +444,19 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "6e5c35bb-b58c-4c76-a9da-16bf4baa76c7",
+								"value": "fafba36c-8f87-4fce-b35e-8c6d94cfc168",
 								"type": "text"
 							}
 						],
 						"url": {
-							"raw": "{{url}}/customer/card/21b9c92e-ee03-4289-8e52-6395e77a7a5f",
+							"raw": "{{url}}/customer/card/b9b9af07-00df-49bd-8808-a7f60f884630",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
 								"card",
-								"21b9c92e-ee03-4289-8e52-6395e77a7a5f"
+								"b9b9af07-00df-49bd-8808-a7f60f884630"
 							]
 						}
 					},
@@ -919,7 +919,7 @@
 					"response": []
 				},
 				{
-					"name": "Transfer money to card",
+					"name": "Transfer money to card by pan",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -953,6 +953,40 @@
 									"value": null,
 									"disabled": true
 								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transfer money to self",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "4d484478-c139-479a-957d-8370c3852d8e",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fromCardId\": \"757572db-f61d-478d-b9db-c1d8e84c7437\",\n    \"toCardId\": \"65ed9b65-f948-4571-8141-bd1a8260a46c\",\n    \"amount\": 150000\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/transaction/transfer/self",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"transaction",
+								"transfer",
+								"self"
 							]
 						}
 					},
