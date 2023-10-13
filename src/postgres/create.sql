@@ -225,6 +225,54 @@ begin
 end;
 $$ language plpgsql;
 
+create or replace procedure transfer_money_to_self(
+  _customer_id uuid,
+  _from_id uuid,
+  _to_id uuid,
+  _amount int,
+  out transfer_id uuid,
+  out error_code varchar(64),
+  out error_message text
+) as $$
+declare
+  from_row customer_card;
+  to_row customer_card;
+begin
+  begin
+    select * into from_row from customer_card where id = _from_id and customer_id = _customer_id;
+    if not found then 
+      error_code := 'CARD_NOT_FOUND';
+      return;
+    end if;
+
+    select * into to_row from customer_card where id = _to_id and customer_id = _customer_id;
+    if not found then 
+      error_code := 'CARD_NOT_FOUND';
+      return;
+    end if;
+
+    if from_row.balance < _amount then 
+      error_code := 'INSUFFICIENT_FUNDS';
+      return;
+    end if;
+
+    insert into customer_transfer (customer_id, from_card_id, receiver_id, amount)
+    values (_customer_id, _from_id, to_row.customer_id, _amount) returning id into transfer_id;
+
+    update customer_card set balance = balance - _amount where id = from_row.id;
+    update customer_card set balance = balance + _amount where id = to_row.id;
+  exception
+    when others then
+      rollback;
+      error_code := 'TRANSACTION_ERROR';
+      error_message := sqlerrm;
+      return;
+  end;
+
+  commit;
+end;
+$$ language plpgsql;
+
 
 -- ############################
 -- DATA INSERTION --

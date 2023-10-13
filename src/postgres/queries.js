@@ -116,6 +116,7 @@ where merchant_id = $2 and deleted = false`,
 const transactionsQuery = {
   payForService: `call pay_for_service($1, $2, $3, null, null, null)`,
   transferMoney: `call transfer_money($1, $2, $3, $4, null, null, null)`,
+  transferMoneyToSelf: `call transfer_money_to_self($1, $2, $3, $4, null, null, null)`,
 };
 
 module.exports = {

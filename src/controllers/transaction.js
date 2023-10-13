@@ -121,7 +121,66 @@ function transferMoney(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
+function transferMoneyToSelf(req, res, next) {
+  let customerId, inputs;
+
+  async.waterfall(
+    [
+      // verify customer
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // validate data
+      (cb) => {
+        const { fromCardId, toCardId, amount } = req.body;
+
+        const validator = new LIVR.Validator({
+          fromCardId: ['trim', 'required', 'string'],
+          toCardId: ['trim', 'required', 'string'],
+          amount: ['required', 'positive_integer'],
+        });
+
+        const validData = validator.validate({ fromCardId, toCardId, amount });
+
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        inputs = validData;
+        cb(null);
+      },
+      // transfer money
+      (cb) => {
+        fetchDB(
+          transactionsQuery.transferMoneyToSelf,
+          [customerId, inputs.fromCardId, inputs.toCardId, inputs.amount],
+          (err, result) => {
+            if (err) return cb(err);
+
+            const { error_code, error_message, transfer_id } = result.rows[0];
+
+            if (error_code) return cb(new CustomError(error_code, error_message));
+
+            cb(null, transfer_id);
+          }
+        );
+      },
+    ],
+    (err, transfer_id) => {
+      if (err) return next(err);
+
+      res.status(200).json({ success: true, transfer_id });
+    }
+  );
+}
+
 module.exports = {
   payForService,
   transferMoney,
+  transferMoneyToSelf,
 };
