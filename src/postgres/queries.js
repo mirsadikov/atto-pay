@@ -1,5 +1,7 @@
 const customersQuery = {
-  getOneById: 'select * from customer where id = $1',
+  getOneById: `
+select *, (select sum(balance) from customer_card where customer_id = $1) as balance 
+from customer where id = $1`,
   getOneByPhone: 'select * from customer where phone = $1',
   delete: 'delete from customer where id = $1',
   create: `
