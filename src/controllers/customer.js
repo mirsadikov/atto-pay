@@ -586,6 +586,104 @@ function updateCustomerLang(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
+function addServiceToSaved(req, res, next) {
+  let customerId, serviceId;
+
+  async.waterfall(
+    [
+      // verify customer
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // validate data
+      (cb) => {
+        const { serviceId: id } = req.body;
+
+        const validator = new LIVR.Validator({
+          serviceId: ['trim', 'required', 'string'],
+        });
+
+        const validData = validator.validate({ serviceId: id });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        serviceId = validData.serviceId;
+        cb(null);
+      },
+      // add service to saved
+      (cb) => {
+        fetchDB(customersQuery.addServiceToSaved, [customerId, serviceId], (err) => {
+          if (err) return cb(err);
+
+          cb(null);
+        });
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+      });
+    }
+  );
+}
+
+// @Private
+// @Customer
+function removeServiceFromSaved(req, res, next) {
+  let customerId, serviceId;
+
+  async.waterfall(
+    [
+      // verify customer
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // validate data
+      (cb) => {
+        const { serviceId: id } = req.body;
+
+        const validator = new LIVR.Validator({
+          serviceId: ['trim', 'required', 'string'],
+        });
+
+        const validData = validator.validate({ serviceId: id });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        serviceId = validData.serviceId;
+        cb(null);
+      },
+      // remove service from saved
+      (cb) => {
+        fetchDB(customersQuery.removeServiceFromSaved, [customerId, serviceId], (err) => {
+          if (err) return cb(err);
+
+          cb(null);
+        });
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+      });
+    }
+  );
+}
+
 // FAKE OTP GETTER
 function getOtpFromSMS(req, res, next) {
   try {
@@ -611,4 +709,6 @@ module.exports = {
   updateCustomer,
   getCustomerPhoto,
   updateCustomerLang,
+  addServiceToSaved,
+  removeServiceFromSaved,
 };

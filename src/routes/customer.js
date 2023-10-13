@@ -8,6 +8,8 @@ const {
   loginCustomer,
   getCustomerPhoto,
   updateCustomerLang,
+  addServiceToSaved,
+  removeServiceFromSaved,
 } = require('../controllers/customer');
 const router = express.Router();
 
@@ -18,6 +20,8 @@ router.post('/login', loginCustomer);
 router.put('/profile', updateCustomer);
 router.get('/photo/:file', getCustomerPhoto);
 router.put('/lang', updateCustomerLang);
+router.post('/services', addServiceToSaved);
+router.delete('/services', removeServiceFromSaved);
 
 // FAKE OTP GETTER
 router.get('/otp/recievebysms/:phone', getOtpFromSMS);

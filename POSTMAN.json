@@ -299,6 +299,79 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Save services",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "959a56de-601a-430f-b171-d90db8ed2e1c",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceId\": \"03717087-0c06-4885-9743-9ceb5e1da871\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/services",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"services"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove saved service",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "959a56de-601a-430f-b171-d90db8ed2e1c",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceId\": \"03717087-0c06-4885-9743-9ceb5e1da871\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/services",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"services"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": null,
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -681,7 +754,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "52bb3fff-879e-454c-a239-e58133fad012",
+								"value": "04d6291b-1dae-4439-93a0-2b044a59bb64",
 								"type": "text"
 							}
 						],
@@ -690,7 +763,7 @@
 							"formdata": [
 								{
 									"key": "name",
-									"value": "Courses",
+									"value": "Books",
 									"type": "text"
 								},
 								{
@@ -700,7 +773,7 @@
 								},
 								{
 									"key": "categoryId",
-									"value": "7",
+									"value": "8",
 									"type": "text"
 								},
 								{
@@ -730,9 +803,44 @@
 				},
 				{
 					"name": "Get all services",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/service",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"service"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all services with user saved",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "959a56de-601a-430f-b171-d90db8ed2e1c",
+								"type": "text"
+							}
+						],
 						"url": {
 							"raw": "{{url}}/service",
 							"host": [

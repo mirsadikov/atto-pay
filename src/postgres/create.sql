@@ -66,6 +66,12 @@ create table if not exists service (
 
 create unique index if not exists unique_merchant_category on service(merchant_id, category_id) where deleted = false;
 
+create table if not exists customer_saved_service(
+  customer_id uuid not null references customer(id),
+  service_id uuid not null references service(id),
+  constraint unique_customer_service unique(customer_id, service_id)
+);
+
 create table if not exists customer_payment (
   id uuid primary key default uuid_generate_v4(),
   customer_id uuid not null references customer(id),
@@ -306,7 +312,7 @@ insert into error(name, message, http_code) values
 ('SERVICE_NOT_FOUND', '{"en": "Service not found", "uz": "Xizmat topilmadi", "ru": "Услуга не найдена"}', 404),
 ('INSUFFICIENT_FUNDS', '{"en": "Insufficient funds", "uz": "Mablag'' yetarli emas", "ru": "Недостаточно средств"}', 400),
 ('TRANSACTION_ERROR', '{"en": "Transaction error", "uz": "Tranzaksiyada xatolik", "ru": "Ошибка транзакции"}', 500)
-ON CONFLICT DO NOTHING;
+on conflict do nothing;
 
 insert into service_category(code, name) values
 ('MOBILE_OPERATORS', '{"en": "Mobile operators", "uz": "Mobil aloqa operatorlari", "ru": "Мобильные операторы"}'),
@@ -328,5 +334,6 @@ insert into service_category(code, name) values
 ('TOURISM', '{"en": "Tourism", "uz": "Turizm", "ru": "Туризм"}'),
 ('SPORT', '{"en": "Sport", "uz": "Sport", "ru": "Спорт"}'),
 ('E_COMMERCE', '{"en": "E-commerce", "uz": "Internet magazinlar", "ru": "Интернет магазины"}'),
-('OTHER', '{"en": "Other", "uz": "Boshqa", "ru": "Другое"}')
-ON CONFLICT DO NOTHING;
+('OTHER', '{"en": "Other", "uz": "Boshqa", "ru": "Другое"}'),
+('USER_SAVED', '{"en": "Saved services", "uz": "Saqlangan xizmatlar", "ru": "Сохраненные услуги"}')
+on conflict do nothing;

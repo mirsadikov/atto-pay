@@ -16,6 +16,13 @@ where id = $6`,
 update customer
 set lang = $1
 where id = $2`,
+  addServiceToSaved: `
+insert into customer_saved_service(customer_id, service_id)
+values($1, $2)
+on conflict do nothing`,
+  removeServiceFromSaved: `
+delete from customer_saved_service
+where customer_id = $1 and service_id = $2`,
 };
 
 const merchantsQuery = {
@@ -111,6 +118,12 @@ select s.*, c.code as category_code, c.name -> $1 as category_name
 from service s
 JOIN service_category c on s.category_id = c.id
 where merchant_id = $2 and deleted = false`,
+  getUserSaved: `
+select s.*, c.code as category_code, c.name -> $2 as category_name
+from customer_saved_service css
+join service s on css.service_id = s.id
+join service_category c on c.code = 'USER_SAVED'
+where css.customer_id = $1`,
 };
 
 const transactionsQuery = {

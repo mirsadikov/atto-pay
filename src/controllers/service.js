@@ -95,18 +95,43 @@ function createService(req, res, next) {
 }
 
 // @Public
+// @Private
+// @Customer
 function getAllServices(req, res, next) {
-  let services;
+  let services, customerId;
+  const lang = acceptsLanguages(req);
 
   async.waterfall(
     [
+      // verify customer
+      (cb) => {
+        if (!req.headers.authorization) return cb(null);
+
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
       // get services
       (cb) => {
-        const lang = acceptsLanguages(req);
         fetchDB(servicesQuery.getAll, [lang], (err, result) => {
           if (err) return cb(err);
 
           services = result.rows;
+          cb(null);
+        });
+      },
+      // get user saved services
+      (cb) => {
+        if (!customerId) return cb(null);
+
+        fetchDB(servicesQuery.getUserSaved, [customerId, lang], (err, result) => {
+          if (err) return cb(err);
+
+          services = [...services, ...result.rows];
+
           cb(null);
         });
       },
