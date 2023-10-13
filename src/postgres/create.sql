@@ -86,7 +86,19 @@ create table if not exists customer_transfer (
 
 
 -- ############################
--- PROCEDURES --
+-- UTILITY PROCEDURES --
+create or replace function mask_credit_card(pan varchar(16))
+returns varchar(16) as $$
+begin
+  return concat(
+    left(pan, 6),
+    '******',
+    right(pan, 4)
+  );
+end;
+$$ language plpgsql;
+
+-- MUTATION PROCEDURES --
 create or replace procedure delete_card(
   _card_id uuid,
   _customer_id uuid,

@@ -47,12 +47,12 @@ function createCard(req, res, next) {
       },
       // check card is not already added
       (cb) => {
-        fetchDB(cardsQuery.getOneByPan, [inputs.pan], (err, result) => {
+        fetchDB(cardsQuery.checkIsUnique, [inputs.pan], (err, result) => {
           if (err) return cb(err);
-          const card = result.rows[0];
+          const existingCard = result.rows[0];
 
-          if (card) {
-            if (card.customer_id !== customerId)
+          if (existingCard) {
+            if (existingCard.customer_id !== customerId)
               return cb(new CustomError('CARD_BELONGS_TO_ANOTHER'));
             return cb(new CustomError('CARD_ALREADY_ADDED'));
           }
