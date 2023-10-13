@@ -195,7 +195,10 @@ function deleteCard(req, res, next) {
       (inputs, cb) => {
         fetchDB(cardsQuery.delete, [inputs.id, customerId], (err, result) => {
           if (err) return cb(err);
-          if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
+
+          const { error_code, error_message } = result.rows[0];
+
+          if (error_code) return cb(new CustomError(error_code, error_message));
 
           cb(null);
         });
@@ -258,10 +261,45 @@ function getOneById(req, res, next) {
   );
 }
 
+// @Public
+function getOnwerByPan(req, res, next) {
+  async.waterfall(
+    [
+      // validate data
+      (cb) => {
+        const { pan } = req.body;
+        const validator = new LIVR.Validator({
+          pan: ['positive_integer', 'required', { length_equal: 16 }],
+        });
+
+        const validData = validator.validate({ pan });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        cb(null, validData);
+      },
+      // get card
+      (inputs, cb) => {
+        fetchDB(cardsQuery.getOwnerByPan, [inputs.pan], (err, result) => {
+          if (err) return cb(err);
+          if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
+
+          cb(null, result.rows[0]);
+        });
+      },
+    ],
+    (err, owner) => {
+      if (err) return next(err);
+
+      res.status(200).json({ owner });
+    }
+  );
+}
+
 module.exports = {
   createCard,
   getCustomerCards,
   updateCard,
   deleteCard,
   getOneById,
+  getOnwerByPan,
 };

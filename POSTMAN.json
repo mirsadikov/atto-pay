@@ -44,7 +44,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Mirabror\",\n    \"phone\": \"998993669801\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false\n}",
+							"raw": "{\n    \"name\": \"Abror\",\n    \"phone\": \"998993669801\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -91,7 +91,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"phone\": \"998993669801\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false\n}",
+							"raw": "{\n    \"phone\": \"998993669800\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -118,7 +118,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "f96467f0-5623-4aae-a076-6b0596f66c5c"
+								"value": "823eacf6-324f-4614-9eb8-ebe0384d077f"
 							}
 						],
 						"url": {
@@ -141,7 +141,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "f96467f0-5623-4aae-a076-6b0596f66c5c"
+								"value": "f61eed94-aa34-4ac5-b50c-fe70d9a432df"
 							}
 						],
 						"body": {
@@ -173,11 +173,12 @@
 								{
 									"key": "gender",
 									"value": "M",
-									"type": "text"
+									"type": "text",
+									"disabled": true
 								},
 								{
 									"key": "birthDate",
-									"value": "11.07.02",
+									"value": "11/11/2004",
 									"type": "text"
 								}
 							]
@@ -311,12 +312,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "609acb3a-9509-4909-ae18-277d079528a9"
+								"value": "05042d41-fbee-43c6-96c5-138d547eb3de"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"pan\": \"8600552579883112\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"24\"\n}",
+							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"pan\": \"3600552579883112\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"24\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -339,14 +340,26 @@
 				},
 				{
 					"name": "Get Customer Cards",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "6e5c35bb-b58c-4c76-a9da-16bf4baa76c7"
+								"value": "05042d41-fbee-43c6-96c5-138d547eb3de"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
 							"raw": "{{url}}/customer/card",
 							"host": [
@@ -399,12 +412,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "7c1310a1-a6d0-4453-8ed6-eaa2f30498cb"
+								"value": "823eacf6-324f-4614-9eb8-ebe0384d077f"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"id\": \"460f4406-ec59-4733-8875-ff7f2b44c81c\"\n}",
+							"raw": "{\n  \"id\": \"ff7e1f42-8d5f-4410-baa2-e493577e24b6\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -444,6 +457,37 @@
 								"customer",
 								"card",
 								"21b9c92e-ee03-4289-8e52-6395e77a7a5f"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get card owner by pan",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"pan\": \"4600552579883112\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/card/owner",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"card",
+								"owner"
 							]
 						}
 					},
@@ -538,7 +582,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "d2ad901d-e3da-4856-b3be-2302295853fc"
+								"value": "1c55300a-968e-438e-88bc-2ce8e4763156"
 							}
 						],
 						"url": {
@@ -637,9 +681,8 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "a2b25c98-8692-4114-ac6e-8091f91a16e1",
-								"type": "text",
-								"disabled": true
+								"value": "52bb3fff-879e-454c-a239-e58133fad012",
+								"type": "text"
 							}
 						],
 						"body": {
@@ -652,7 +695,7 @@
 								},
 								{
 									"key": "price",
-									"value": "1000000",
+									"value": "500000",
 									"type": "text"
 								},
 								{
@@ -663,13 +706,12 @@
 								{
 									"key": "isActive",
 									"value": "true",
-									"type": "text",
-									"disabled": true
+									"type": "text"
 								},
 								{
 									"key": "image",
 									"type": "file",
-									"src": "/Users/zeyds/Documents/Photo.png",
+									"src": [],
 									"disabled": true
 								}
 							]
@@ -833,6 +875,84 @@
 							"path": [
 								"service",
 								"9176cf2d-6624-4fdb-b2f9-1b5b8e324710"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment",
+			"item": [
+				{
+					"name": "Pay for service",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "a1c171bf-1b15-4c2d-ba16-60f39b8c7b14",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceId\": \"e88897fa-11b5-4fc7-8e28-d0c087b8bc45\",\n    \"fromCardId\": \"e9d632b4-8bce-491c-afb5-ec2589f9a4ff\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/transaction/pay",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"transaction",
+								"pay"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Transfer money to card",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "a1c171bf-1b15-4c2d-ba16-60f39b8c7b14",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fromCardId\": \"e9d632b4-8bce-491c-afb5-ec2589f9a4ff\",\n    \"toCardPan\": \"3600552579883112\",\n    \"amount\": 150000\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/transaction/transfer",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"transaction",
+								"transfer"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": null,
+									"disabled": true
+								}
 							]
 						}
 					},

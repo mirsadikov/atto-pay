@@ -37,6 +37,10 @@ where id = $2`,
 const cardsQuery = {
   getOneById: 'select * from customer_card where id = $1 and customer_id = $2',
   getOneByPan: 'select * from customer_card where pan = $1',
+  getOwnerByPan: `
+select name from customer where id = (
+  select customer_id from customer_card where pan = $1
+)`,
   getAllByCustomer: 'select * from customer_card where customer_id = $1',
   create: `
 insert into customer_card(customer_id, name, pan, expiry_month, expiry_year) 
@@ -44,9 +48,7 @@ values($1, $2, $3, $4, $5)`,
   update: `
 update customer_card set name = $1 
 where id = $2 and customer_id = $3`,
-  delete: `
-delete from customer_card 
-where id = $1 and customer_id = $2 returning id`,
+  delete: `call delete_card($1, $2, null, null)`,
 };
 
 const devicesQuery = {
@@ -106,8 +108,9 @@ JOIN service_category c on s.category_id = c.id
 where merchant_id = $2 and deleted = false`,
 };
 
-const paymentsQuery = {
+const transactionsQuery = {
   payForService: `call pay_for_service($1, $2, $3, null, null, null)`,
+  transferMoney: `call transfer_money($1, $2, $3, $4, null, null, null)`,
 };
 
 module.exports = {
@@ -118,5 +121,5 @@ module.exports = {
   merchantsQuery,
   categoriesQuery,
   servicesQuery,
-  paymentsQuery,
+  transactionsQuery,
 };

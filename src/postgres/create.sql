@@ -66,38 +66,78 @@ create table if not exists service (
 
 create unique index if not exists unique_merchant_category on service(merchant_id, category_id) where deleted = false;
 
-create table if not exists transactions (
+create table if not exists customer_payment (
   id uuid primary key default uuid_generate_v4(),
   customer_id uuid not null references customer(id),
+  from_card_id uuid not null references customer_card(id),
   service_id uuid not null references service(id),
   amount int not null,
   created_at timestamp not null default now()
 );
 
+create table if not exists customer_transfer (
+  id uuid primary key default uuid_generate_v4(),
+  customer_id uuid not null references customer(id),
+  from_card_id uuid not null references customer_card(id),
+  receiver_id uuid not null references customer(id),
+  amount int not null,
+  created_at timestamp not null default now()
+);
+
+
+-- ############################
 -- PROCEDURES --
-CREATE OR REPLACE PROCEDURE pay_for_service(
+create or replace procedure delete_card(
+  _card_id uuid,
   _customer_id uuid,
-  card_id uuid,
-  service_id uuid,
-  OUT transaction_id uuid,
-  OUT error_code varchar(64),
-  OUT error_message text
+  out error_code varchar(64),
+  out error_message text
+) as $$
+begin
+  begin
+    delete from customer_payment where from_card_id = _card_id;
+    delete from customer_transfer where from_card_id = _card_id;
+  
+    delete from customer_card where id = _card_id and customer_id = _customer_id;
+    if not found then 
+      error_code := 'CARD_NOT_FOUND';
+      return;
+    end if;
+  exception
+    when others then
+      rollback;
+      error_code := 'DATABASE_ERROR';
+      error_message := sqlerrm;
+      return;
+  end;
+
+  commit;
+end;
+$$ language plpgsql;
+
+create or replace procedure pay_for_service(
+  _customer_id uuid,
+  _card_id uuid,
+  _service_id uuid,
+  out payment_id uuid,
+  out error_code varchar(64),
+  out error_message text
 )
-AS $$
-DECLARE
+as $$
+declare
   result jsonb;
   service_row service;
   card_row customer_card;
   merchant_row merchant;
-BEGIN
-  BEGIN
-    select * into service_row from service where id = service_id and deleted = false;
+begin
+  begin
+    select * into service_row from service where id = _service_id and deleted = false;
     if not found then 
       error_code := 'SERVICE_NOT_FOUND';
       return;
     end if;
 
-    select * into card_row from customer_card where id = card_id and customer_id = _customer_id;
+    select * into card_row from customer_card where id = _card_id and customer_id = _customer_id;
     if not found then 
       error_code := 'CARD_NOT_FOUND';
       return;
@@ -108,24 +148,73 @@ BEGIN
       return;
     end if;
 
-    insert into transactions (customer_id, service_id, amount) 
-    values (_customer_id, service_id, service_row.price) returning id into transaction_id;
+    insert into customer_payment (customer_id, from_card_id, service_id, amount) 
+    values (_customer_id, card_row.id, _service_id, service_row.price) returning id into payment_id;
 
-    update customer_card set balance = balance - service_row.price where id = card_id;
+    update customer_card set balance = balance - service_row.price where id = _card_id;
     update merchant set balance = balance + service_row.price where id = service_row.merchant_id;
-  EXCEPTION
-    WHEN OTHERS THEN
-      ROLLBACK;
-      error_code := 'DATABASE_ERROR';
-      error_message := SQLERRM;
+  exception
+    when others then
+      rollback;
+      error_code := 'TRANSACTION_ERROR';
+      error_message := sqlerrm;
       return;
-  END;
+  end;
 
-  COMMIT;
-END;
-$$ LANGUAGE plpgsql;
+  commit;
+end;
+$$ language plpgsql;
+
+create or replace procedure transfer_money(
+  _customer_id uuid,
+  _from_id uuid,
+  _to_pan varchar(16),
+  _amount int,
+  out transfer_id uuid,
+  out error_code varchar(64),
+  out error_message text
+) as $$
+declare
+  from_row customer_card;
+  to_row customer_card;
+begin
+  begin
+    select * into from_row from customer_card where id = _from_id and customer_id = _customer_id;
+    if not found then 
+      error_code := 'CARD_NOT_FOUND';
+      return;
+    end if;
+
+    select * into to_row from customer_card where pan = _to_pan;
+    if not found then 
+      error_code := 'CARD_NOT_FOUND';
+      return;
+    end if;
+
+    if from_row.balance < _amount then 
+      error_code := 'INSUFFICIENT_FUNDS';
+      return;
+    end if;
+
+    insert into customer_transfer (customer_id, from_card_id, receiver_id, amount)
+    values (_customer_id, _from_id, to_row.customer_id, _amount) returning id into transfer_id;
+
+    update customer_card set balance = balance - _amount where id = from_row.id;
+    update customer_card set balance = balance + _amount where id = to_row.id;
+  exception
+    when others then
+      rollback;
+      error_code := 'TRANSACTION_ERROR';
+      error_message := sqlerrm;
+      return;
+  end;
+
+  commit;
+end;
+$$ language plpgsql;
 
 
+-- ############################
 -- DATA INSERTION --
 insert into error(name, message, http_code) values
 ('VALIDATION_ERROR', '{"en": "Invalid input for {0}", "uz": "{0} uchun notog''ri kiritish", "ru": "Неверный ввод для {0}"}', 400),
@@ -156,7 +245,7 @@ insert into error(name, message, http_code) values
 ('SERVICE_ALREADY_EXISTS', '{"en": "Adding multiple services in one category is not allowed", "uz": "Bitta kategoriyada bir nechta xizmat qo''shib bo''lmaydi", "ru": "Нельзя добавить несколько услуг в одну категорию"}', 409),
 ('SERVICE_NOT_FOUND', '{"en": "Service not found", "uz": "Xizmat topilmadi", "ru": "Услуга не найдена"}', 404),
 ('INSUFFICIENT_FUNDS', '{"en": "Insufficient funds", "uz": "Mablag'' yetarli emas", "ru": "Недостаточно средств"}', 400),
-('PAYMENT_ERROR', '{"en": "Payment error", "uz": "To''lovda xatolik", "ru": "Ошибка при оплате"}', 500)
+('TRANSACTION_ERROR', '{"en": "Transaction error", "uz": "Tranzaksiyada xatolik", "ru": "Ошибка транзакции"}', 500)
 ON CONFLICT DO NOTHING;
 
 insert into service_category(code, name) values
