@@ -95,10 +95,12 @@ function createService(req, res, next) {
 }
 
 // @Public
+// or
 // @Private
 // @Customer
 function getAllServices(req, res, next) {
-  let services, customerId;
+  let customerId,
+    services = {};
   const lang = acceptsLanguages(req);
 
   async.waterfall(
@@ -119,7 +121,10 @@ function getAllServices(req, res, next) {
         fetchDB(servicesQuery.getAll, [lang], (err, result) => {
           if (err) return cb(err);
 
-          services = result.rows;
+          result.rows.forEach((service) => {
+            services[service.id] = service;
+          });
+
           cb(null);
         });
       },
@@ -130,13 +135,16 @@ function getAllServices(req, res, next) {
         fetchDB(servicesQuery.getUserSaved, [customerId, lang], (err, result) => {
           if (err) return cb(err);
 
-          services = [...services, ...result.rows];
+          result.rows.forEach((service) => {
+            services[service.id].saved = true;
+          });
 
           cb(null);
         });
       },
       // get images
       (cb) => {
+        services = Object.values(services);
         services.forEach((service) => {
           service.image_url = imageStorage.getImageUrl(service.image_url);
         });
