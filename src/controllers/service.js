@@ -110,7 +110,7 @@ function getAllServices(req, res, next) {
         if (!req.headers.authorization) return cb(null);
 
         verifyToken(req, 'customer', (err, id) => {
-          if (err) return cb(err);
+          if (err) return cb(null);
 
           customerId = id;
           cb(null);
@@ -132,7 +132,7 @@ function getAllServices(req, res, next) {
       (cb) => {
         if (!customerId) return cb(null);
 
-        fetchDB(servicesQuery.getUserSaved, [customerId, lang], (err, result) => {
+        fetchDB(servicesQuery.getUserSaved, [customerId], (err, result) => {
           if (err) return cb(err);
 
           result.rows.forEach((service) => {

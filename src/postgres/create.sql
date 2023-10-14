@@ -90,6 +90,24 @@ create table if not exists customer_transfer (
   created_at timestamp not null default now()
 );
 
+-- ############################
+-- TRIGGERS --
+
+-- remove saved services when service is marked as deleted
+create or replace function remove_saved_services()
+returns trigger as $$
+begin
+  delete from customer_saved_service where service_id = old.id;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace trigger service_deleted_trigger
+after update on service
+for each row
+when (old.deleted = false and new.deleted = true)
+execute procedure remove_saved_services();
+
 
 -- ############################
 -- UTILITY PROCEDURES --

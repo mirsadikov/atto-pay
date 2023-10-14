@@ -85,10 +85,6 @@ const servicesQuery = {
 select *
 from service s 
 where id = $1 and merchant_id = $2 and deleted = false`,
-  getOneActiveById: `
-select *
-from service s
-where id = $1 and is_active = true and deleted = false`,
   getOneByIdWithCategory: `
 select s.*, c.code as category_code, c.name -> $3 as category_name
 from service s
@@ -98,7 +94,8 @@ where s.id = $1 and s.merchant_id = $2 and s.deleted = false`,
 select * from service 
 where merchant_id = $1 and category_id = $2 and deleted = false`,
   getAll: `
-select s.*, c.code as category_code, c.name -> $1 as category_name 
+select s.id, s.merchant_id, s.category_id, s.name, s.price, s.image_url, 
+  c.code as category_code, c.name -> $1 as category_name 
 from service s 
 JOIN service_category c on s.category_id = c.id 
 where is_active = true and deleted = false`,
@@ -112,18 +109,18 @@ where id = $6 and merchant_id = $7 and deleted = false`,
   delete: `
 update service
 set is_active = false, deleted = true
-where id = $1 and merchant_id = $2 returning id`,
+where id = $1 and merchant_id = $2 and deleted = false
+returning id`,
   getAllByMerchant: `
-select s.*, c.code as category_code, c.name -> $1 as category_name
+select s.id, s.merchant_id, s.category_id, s.name, s.price, s.image_url, s.is_active,
+  c.code as category_code, c.name -> $1 as category_name
 from service s
 JOIN service_category c on s.category_id = c.id
 where merchant_id = $2 and deleted = false`,
   getUserSaved: `
-select s.*, c.code as category_code, c.name -> $2 as category_name
-from customer_saved_service css
-join service s on css.service_id = s.id
-join service_category c on c.code = 'USER_SAVED'
-where css.customer_id = $1`,
+select service_id as id
+from customer_saved_service
+where customer_id = $1`,
 };
 
 const transactionsQuery = {
