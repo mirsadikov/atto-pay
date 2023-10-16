@@ -199,15 +199,17 @@ function getTransactions(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { offset, fromDate, toDate } = req.body;
+        const { offset, fromDate, toDate, byCardId = null, byServiceId = null } = req.body;
 
         const validator = new LIVR.Validator({
           offset: ['trim', 'required', 'decimal', { number_between: [-12, 12] }],
           fromDate: ['trim', 'required', 'string', { past_date: offset }],
           toDate: ['trim', 'required', 'string', { past_date: offset }],
+          byCardId: ['trim', 'string'],
+          byServiceId: ['trim', 'string'],
         });
 
-        const validData = validator.validate({ offset, fromDate, toDate });
+        const validData = validator.validate({ offset, fromDate, toDate, byCardId, byServiceId });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
@@ -228,7 +230,7 @@ function getTransactions(req, res, next) {
 
         fetchDB(
           transactionsQuery.getTransactions,
-          [customerId, inputs.fromDate, inputs.toDate],
+          [customerId, inputs.fromDate, inputs.toDate, inputs.byCardId, inputs.byServiceId],
           (err, result) => {
             if (err) return cb(err);
 

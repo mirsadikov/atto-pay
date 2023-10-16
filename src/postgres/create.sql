@@ -19,7 +19,7 @@ create table if not exists customer_card(
   pan varchar(16) not null unique,
   expiry_month varchar(2) not null,
   expiry_year varchar(2) not null,
-  balance numeric(10, 2) not null default 1000000,
+  balance numeric(12, 2) not null default 1000000,
   constraint unique_customer_pan unique(customer_id, pan)
 );
 
@@ -43,7 +43,7 @@ create table if not exists merchant(
   email varchar(64) not null unique,
   hashed_password text not null,
   lang varchar(2) not null default 'ru',
-  balance numeric(10, 2) not null default (random() * 3000000),
+  balance numeric(12, 2) not null default (random() * 3000000),
   reg_date timestamp not null default now()
 );
 
@@ -317,7 +317,9 @@ $$ language plpgsql;
 create or replace function get_transactions(
   _customer_id uuid,
   _from timestamp,
-  _to timestamp
+  _to timestamp,
+  _card_id uuid default null,
+  _service_id uuid default null
 )
 returns table (
   id uuid,
@@ -359,6 +361,9 @@ begin
       join customer_card own_card on own_card.id = (t.receiver->>'id')::uuid
       where t.owner_id = _customer_id and t.created_at between _from and _to
     ) as transactions
+    where ((transactions.sender->>'id')::uuid = coalesce(_card_id, (transactions.sender->>'id')::uuid)
+    or (transactions.receiver->>'id')::uuid = coalesce(_card_id, (transactions.receiver->>'id')::uuid))
+    and (transactions.receiver->>'id')::uuid = coalesce(_service_id, (transactions.receiver->>'id')::uuid)
     order by transactions.created_at desc, (transactions.type = 'income') desc;
 end;
 $$ language plpgsql;
