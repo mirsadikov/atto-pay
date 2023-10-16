@@ -268,7 +268,7 @@ function getOnwerByPan(req, res, next) {
     [
       // validate data
       (cb) => {
-        const { pan } = req.params;
+        const { pan } = req.body;
         const validator = new LIVR.Validator({
           pan: ['positive_integer', 'required', { length_equal: 16 }],
         });

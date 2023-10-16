@@ -13,7 +13,7 @@ router.post('/', createCard);
 router.get('/', getCustomerCards);
 router.put('/', updateCard);
 router.delete('/', deleteCard);
-router.get('/owner/:pan', getOnwerByPan);
+router.post('/owner', getOnwerByPan);
 router.get('/:id', getOneById);
 
 module.exports = router;
