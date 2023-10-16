@@ -16,10 +16,17 @@ LIVR.Validator.registerAliasedDefaultRule({
 });
 
 LIVR.Validator.registerDefaultRules({
-  valid_date() {
+  past_date(offset = 0) {
     return (value) => {
-      if (!value) return undefined;
-      return value.isValid() && value.isBefore(moment()) ? undefined : 'INVALID_DATE';
+      if (!value) return;
+
+      const date = moment(value, 'DD/MM/YYYY');
+      if (!date.isValid()) return 'INVALID_DATE';
+
+      date.add(offset, 'hours');
+
+      if (!date.isBefore(moment())) return 'INVALID_DATE';
+      return;
     };
   },
 });

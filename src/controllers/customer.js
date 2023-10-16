@@ -439,7 +439,7 @@ function updateCustomer(req, res, next) {
           password: ['trim', { min_length: 6 }, 'alphanumeric'],
           deleteImage: ['trim', 'boolean', { default: false }],
           gender: ['trim', { one_of: ['M', 'F'] }],
-          birthDate: ['trim', 'valid_date'],
+          birthDate: ['trim', 'string', 'past_date'],
         });
 
         const validData = validator.validate({
@@ -447,7 +447,7 @@ function updateCustomer(req, res, next) {
           password,
           deleteImage,
           gender,
-          birthDate: birthDate ? moment(birthDate, 'DD/MM/YYYY') : undefined,
+          birthDate,
         });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
@@ -483,7 +483,9 @@ function updateCustomer(req, res, next) {
         const newName = name || customer.name;
         const hashedPassword = password ? bcrypt.hashSync(password, 10) : customer.hashed_password;
         const newGender = gender || customer.gender;
-        const newBirthDate = birthDate || customer.birth_date;
+        const newBirthDate = birthDate
+          ? moment(birthDate, 'DD/MM/YYYY').toISOString()
+          : customer.birth_date;
         const newImageUrl = newImage || customer.image_url;
 
         fetchDB(

@@ -1,9 +1,15 @@
 const express = require('express');
-const { payForService, transferMoney, transferMoneyToSelf } = require('../controllers/transaction');
+const {
+  payForService,
+  transferMoney,
+  transferMoneyToSelf,
+  getTransactions,
+} = require('../controllers/transaction');
 const router = express.Router();
 
 router.post('/pay', payForService);
 router.post('/transfer', transferMoney);
 router.post('/transfer/self', transferMoneyToSelf);
+router.get('/', getTransactions);
 
 module.exports = router;
