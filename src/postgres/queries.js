@@ -55,8 +55,8 @@ select name from customer where id = (
 select *, mask_credit_card(pan) as pan
 from customer_card where customer_id = $1`,
   create: `
-insert into customer_card(customer_id, name, pan, expiry_month, expiry_year) 
-values($1, $2, $3, $4, $5)`,
+insert into customer_card(customer_id, name, owner_name, pan, expiry_month, expiry_year) 
+values($1, $2, $3, $4, $5, $6)`,
   update: `
 update customer_card set name = $1 
 where id = $2 and customer_id = $3`,

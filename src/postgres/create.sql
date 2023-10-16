@@ -16,6 +16,7 @@ create table if not exists customer_card(
   id uuid primary key default uuid_generate_v4(),
   customer_id uuid not null references customer(id),
   name varchar(64) not null,
+  owner_name varchar(64) not null,
   pan varchar(16) not null unique,
   expiry_month varchar(2) not null,
   expiry_year varchar(2) not null,

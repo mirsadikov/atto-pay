@@ -25,16 +25,17 @@ function createCard(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { name, pan, expiry_month, expiry_year } = req.body;
+        const { name, onwer_name, pan, expiry_month, expiry_year } = req.body;
 
         const validator = new LIVR.Validator({
-          name: ['trim', 'string', 'required', { min_length: 2 }, { max_length: 64 }],
+          name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
+          onwer_name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
           pan: ['positive_integer', 'required', { length_equal: 16 }],
           expiry_month: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
           expiry_year: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
         });
 
-        const validData = validator.validate({ name, pan, expiry_month, expiry_year });
+        const validData = validator.validate({ name, onwer_name, pan, expiry_month, expiry_year });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         // check card expiry date is valid and not expired
@@ -64,7 +65,7 @@ function createCard(req, res, next) {
       (cb) => {
         fetchDB(
           cardsQuery.create,
-          [customerId, inputs.name, inputs.pan, inputs.expiry_month, inputs.expiry_year],
+          [customerId, inputs.name, inputs.onwer_name, inputs.pan, inputs.expiry_month, inputs.expiry_year],
           (err) => {
             if (err) return cb(err);
 
