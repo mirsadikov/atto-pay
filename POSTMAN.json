@@ -118,7 +118,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "f412e744-1857-40a1-ba24-9a36a647e795"
+								"value": "45a81069-bf65-4873-95f0-162fa7ca2817"
 							}
 						],
 						"url": {
@@ -141,7 +141,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "f61eed94-aa34-4ac5-b50c-fe70d9a432df"
+								"value": "45a81069-bf65-4873-95f0-162fa7ca2817"
 							}
 						],
 						"body": {
@@ -150,7 +150,8 @@
 								{
 									"key": "name",
 									"value": "Abror",
-									"type": "default"
+									"type": "default",
+									"disabled": true
 								},
 								{
 									"key": "password",
@@ -167,8 +168,7 @@
 								{
 									"key": "avatar",
 									"type": "file",
-									"src": [],
-									"disabled": true
+									"src": "/Users/zeyds/Documents/20220105_105005.jpg"
 								},
 								{
 									"key": "gender",
@@ -178,7 +178,7 @@
 								},
 								{
 									"key": "birthDate",
-									"value": "11/11/2004",
+									"value": "21/01/2005",
 									"type": "text"
 								}
 							]
@@ -307,13 +307,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "959a56de-601a-430f-b171-d90db8ed2e1c",
+								"value": "c98b4a8e-473d-4324-8603-ca7b0b935ce1",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"serviceId\": \"03717087-0c06-4885-9743-9ceb5e1da871\"\n}",
+							"raw": "{\n    \"serviceId\": \"dd367f51-8267-45a4-b850-ea5bfbfcd3fc\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -385,12 +385,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "da54c6ea-61ab-4d63-961a-23188343ce8a"
+								"value": "ef3c1562-c123-41d3-9596-13baf8d7ff00"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"pan\": \"2600234174539906\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"25\"\n}",
+							"raw": "{\n  \"name\": \"My Humo\",\n  \"owner_name\": \"Mirabror Sodikov\",\n  \"pan\": \"5800234174533527\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"25\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -421,7 +421,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "20b18594-4de0-489d-8f6b-ae205606ddfe"
+								"value": "8dc534de-82fc-4926-bdc5-d1caf812a9e8"
 							}
 						],
 						"body": {
@@ -485,12 +485,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "823eacf6-324f-4614-9eb8-ebe0384d077f"
+								"value": "b62669b4-4177-4b21-950e-ba2f5eb8ef93"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"id\": \"ff7e1f42-8d5f-4410-baa2-e493577e24b6\"\n}",
+							"raw": "{\n  \"id\": \"9cc3fcf4-1efe-4fe2-8859-7e03699d3882\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -655,7 +655,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "1c55300a-968e-438e-88bc-2ce8e4763156"
+								"value": "b27e9afb-0244-46f8-8727-ba3f0e5b7ebd"
 							}
 						],
 						"url": {
@@ -754,7 +754,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "04d6291b-1dae-4439-93a0-2b044a59bb64",
+								"value": "06ae4b58-5306-4540-95fd-4027d1f54bd9",
 								"type": "text"
 							}
 						],
@@ -763,17 +763,17 @@
 							"formdata": [
 								{
 									"key": "name",
-									"value": "Books",
+									"value": "Courses",
 									"type": "text"
 								},
 								{
 									"key": "price",
-									"value": "500000",
+									"value": "88000",
 									"type": "text"
 								},
 								{
 									"key": "categoryId",
-									"value": "8",
+									"value": "9",
 									"type": "text"
 								},
 								{
@@ -837,7 +837,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "959a56de-601a-430f-b171-d90db8ed2e1c",
+								"value": "c98b4a8e-473d-4324-8603-ca7b0b935ce1",
 								"type": "text"
 							}
 						],
@@ -860,13 +860,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "c036ba9f-3beb-4e89-9cc2-29fe5e3a925b",
+								"value": "59a3da44-7338-4498-8f26-a3fbaf79ce69",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": \"1f5e3a91-8247-4497-b972-39d5776b1c53\"\n}",
+							"raw": "{\n    \"id\": \"eb3f0791-eb43-4057-841d-d3eb80d18775\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -947,7 +947,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "1b139e98-8f03-44c7-9c39-e0cfa6765dd0",
+								"value": "2445f880-0718-4038-bbc5-1249f56b41e1",
 								"type": "text"
 							}
 						],
@@ -991,7 +991,7 @@
 			]
 		},
 		{
-			"name": "Payment",
+			"name": "Transaction",
 			"item": [
 				{
 					"name": "Pay for service",
@@ -1000,13 +1000,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "a1c171bf-1b15-4c2d-ba16-60f39b8c7b14",
+								"value": "8dc534de-82fc-4926-bdc5-d1caf812a9e8",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"serviceId\": \"e88897fa-11b5-4fc7-8e28-d0c087b8bc45\",\n    \"fromCardId\": \"e9d632b4-8bce-491c-afb5-ec2589f9a4ff\"\n}",
+							"raw": "{\n    \"serviceId\": \"c7913efe-ac13-4d4d-9321-a40a97b4fb9b\",\n    \"fromCardId\": \"ba263c61-36f4-4c78-8d15-07393d5d166e\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1033,13 +1033,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "a1c171bf-1b15-4c2d-ba16-60f39b8c7b14",
+								"value": "521ff55d-a686-4901-b7fd-a8511a389f1c",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"fromCardId\": \"e9d632b4-8bce-491c-afb5-ec2589f9a4ff\",\n    \"toCardPan\": \"3600552579883112\",\n    \"amount\": 150000\n}",
+							"raw": "{\n    \"fromCardId\": \"b9b9af07-00df-49bd-8808-a7f60f884630\",\n    \"toCardPan\": \"8600552519887654\",\n    \"amount\": 77700\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1073,13 +1073,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "4d484478-c139-479a-957d-8370c3852d8e",
+								"value": "8dc534de-82fc-4926-bdc5-d1caf812a9e8",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"fromCardId\": \"757572db-f61d-478d-b9db-c1d8e84c7437\",\n    \"toCardId\": \"65ed9b65-f948-4571-8141-bd1a8260a46c\",\n    \"amount\": 150000\n}",
+							"raw": "{\n    \"fromCardId\": \"77dd9895-1576-4758-8c9b-c2eacc17ef8a\",\n    \"toCardId\": \"ba263c61-36f4-4c78-8d15-07393d5d166e\",\n    \"amount\": 66000\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1095,6 +1095,41 @@
 								"transaction",
 								"transfer",
 								"self"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get transactions",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "8dc534de-82fc-4926-bdc5-d1caf812a9e8",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fromDate\": \"15/10/2023\",\n    \"toDate\": \"16/10/2023\",\n    \"offset\": -5,\n    \"byServiceId\": \"c7913efe-ac13-4d4d-9321-a40a97b4fb9b\", // optional\n    \"byCardId\": \"ba263c61-36f4-4c78-8d15-07393d5d166e\" // optional\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/transaction",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"transaction"
 							]
 						}
 					},
