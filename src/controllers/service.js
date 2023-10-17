@@ -443,6 +443,45 @@ function getOneById(req, res, next) {
   );
 }
 
+// @Public
+function getOnePublicById(req, res, next) {
+  let service;
+
+  async.waterfall(
+    [
+      // validate data
+      (cb) => {
+        const validator = new LIVR.Validator({
+          id: ['trim', 'string', 'required'],
+        });
+
+        const validData = validator.validate({ id: req.params.id });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        cb(null, validData);
+      },
+      // get service
+      (inputs, cb) => {
+        const lang = acceptsLanguages(req);
+        fetchDB(servicesQuery.getOnePublicByIdWithCategory, [inputs.id, lang], (err, result) => {
+          if (err) return cb(err);
+          if (result.rows.length === 0) return cb(new CustomError('SERVICE_NOT_FOUND'));
+
+          service = result.rows[0];
+          service.image_url = imageStorage.getImageUrl(service.image_url);
+
+          cb(null);
+        });
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json(service);
+    }
+  );
+}
+
 module.exports = {
   getAllServices,
   getServiceImage,
@@ -451,4 +490,5 @@ module.exports = {
   deleteService,
   getMechantServices,
   getOneById,
+  getOnePublicById,
 };

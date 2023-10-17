@@ -965,7 +965,7 @@
 					"response": []
 				},
 				{
-					"name": "Get One By Id",
+					"name": "Get one for Merchant",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -983,6 +983,31 @@
 							"path": [
 								"service",
 								"9176cf2d-6624-4fdb-b2f9-1b5b8e324710"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get one Public",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "3462765c-05e6-42d1-b40b-3a86a5cf03d6",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url}}/service/public/cf5caa51-21e3-4dac-ba38-6eab357ce38e",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"service",
+								"public",
+								"cf5caa51-21e3-4dac-ba38-6eab357ce38e"
 							]
 						}
 					},
@@ -1102,9 +1127,6 @@
 				},
 				{
 					"name": "Get transactions",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
 						"method": "POST",
 						"header": [

@@ -59,7 +59,7 @@ create table if not exists service (
   merchant_id uuid not null references merchant(id),
   category_id int not null references service_category(id),
   name varchar(64) not null,
-  price number(12, 2) not null,
+  price numeric(12, 2) not null,
   image_url varchar(256),
   is_active boolean not null default false,
   deleted boolean not null default false
@@ -364,7 +364,7 @@ begin
     ) as transactions
     where ((transactions.sender->>'id')::uuid = coalesce(_card_id, (transactions.sender->>'id')::uuid)
     or (transactions.receiver->>'id')::uuid = coalesce(_card_id, (transactions.receiver->>'id')::uuid))
-    and (transactions.receiver->>'id')::uuid = coalesce(_service_id, (transactions.receiver->>'id')::uuid)
+      and (transactions.receiver->>'id')::uuid = coalesce(_service_id, (transactions.receiver->>'id')::uuid)
     order by transactions.created_at desc, (transactions.type = 'income') desc;
 end;
 $$ language plpgsql;

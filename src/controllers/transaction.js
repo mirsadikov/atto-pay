@@ -87,7 +87,7 @@ function transferMoney(req, res, next) {
 
         const validator = new LIVR.Validator({
           fromCardId: ['trim', 'required', 'string'],
-          toCardPan: ['positive_integer', 'required', { length_equal: 16 }],
+          toCardPan: ['required', 'valid_pan'],
           amount: ['required', 'positive_integer'],
         });
 

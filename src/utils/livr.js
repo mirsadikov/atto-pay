@@ -10,6 +10,12 @@ LIVR.Validator.registerAliasedDefaultRule({
 });
 
 LIVR.Validator.registerAliasedDefaultRule({
+  name: 'valid_pan',
+  rules: { like: '^\\d{16}$' },
+  error: 'PAN_NOT_VALID',
+});
+
+LIVR.Validator.registerAliasedDefaultRule({
   name: 'is_phone_number',
   rules: { like: '^\\998\\d{9}$' },
   error: 'NOT_PHONE_NUMBER',

@@ -30,7 +30,7 @@ function createCard(req, res, next) {
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
           owner_name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
-          pan: ['positive_integer', 'required', { length_equal: 16 }],
+          pan: ['required', 'valid_pan'],
           expiry_month: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
           expiry_year: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
         });
@@ -65,7 +65,14 @@ function createCard(req, res, next) {
       (cb) => {
         fetchDB(
           cardsQuery.create,
-          [customerId, inputs.name, inputs.owner_name, inputs.pan, inputs.expiry_month, inputs.expiry_year],
+          [
+            customerId,
+            inputs.name,
+            inputs.owner_name,
+            inputs.pan,
+            inputs.expiry_month,
+            inputs.expiry_year,
+          ],
           (err) => {
             if (err) return cb(err);
 
@@ -270,7 +277,7 @@ function getOnwerByPan(req, res, next) {
       (cb) => {
         const { pan } = req.body;
         const validator = new LIVR.Validator({
-          pan: ['positive_integer', 'required', { length_equal: 16 }],
+          pan: ['required', 'valid_pan'],
         });
 
         const validData = validator.validate({ pan });

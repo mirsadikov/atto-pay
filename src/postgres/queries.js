@@ -121,6 +121,11 @@ where merchant_id = $2 and deleted = false`,
 select service_id as id
 from customer_saved_service
 where customer_id = $1`,
+  getOnePublicByIdWithCategory: `
+select s.*, c.code as category_code, c.name -> $2 as category_name
+from service s
+JOIN service_category c on s.category_id = c.id
+where s.id = $1 and s.deleted = false and s.is_active = true`,
 };
 
 const transactionsQuery = {
