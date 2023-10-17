@@ -362,10 +362,8 @@ begin
       join customer_card own_card on own_card.id = (t.receiver->>'id')::uuid
       where t.owner_id = _customer_id and t.created_at between _from and _to
     ) as transactions
-    where ((transactions.sender->>'id')::uuid = coalesce(_card_id, (transactions.sender->>'id')::uuid)
-    or (transactions.receiver->>'id')::uuid = coalesce(_card_id, (transactions.receiver->>'id')::uuid))
-      and (transactions.receiver->>'id')::uuid = coalesce(_service_id, (transactions.receiver->>'id')::uuid)
-    order by transactions.created_at desc, (transactions.type = 'income') desc;
+    where (_card_id is null or (transactions.sender->>'id')::uuid = _card_id or (transactions.receiver->>'id')::uuid = _card_id)
+    and (_service_id is null or (transactions.receiver->>'id')::uuid = _service_id);
 end;
 $$ language plpgsql;
 

@@ -992,13 +992,7 @@
 					"name": "Get one Public",
 					"request": {
 						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "3462765c-05e6-42d1-b40b-3a86a5cf03d6",
-								"type": "text"
-							}
-						],
+						"header": [],
 						"url": {
 							"raw": "{{url}}/service/public/cf5caa51-21e3-4dac-ba38-6eab357ce38e",
 							"host": [
