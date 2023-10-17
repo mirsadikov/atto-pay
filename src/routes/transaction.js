@@ -10,6 +10,6 @@ const router = express.Router();
 router.post('/pay', payForService);
 router.post('/transfer', transferMoney);
 router.post('/transfer/self', transferMoneyToSelf);
-router.get('/', getTransactions);
+router.post('/', getTransactions);
 
 module.exports = router;
