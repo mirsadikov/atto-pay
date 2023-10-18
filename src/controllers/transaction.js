@@ -153,6 +153,8 @@ function transferMoneyToSelf(req, res, next) {
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
+        if (fromCardId === toCardId) return cb(new CustomError('SAME_CARD'));
+
         inputs = validData;
         cb(null);
       },

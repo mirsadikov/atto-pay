@@ -231,6 +231,11 @@ begin
       return;
     end if;
 
+    if sender_card.id = receiver_card.id then 
+      error_code := 'SAME_CARD';
+      return;
+    end if;
+
     if sender_card.balance < _amount then 
       error_code := 'INSUFFICIENT_FUNDS';
       return;
@@ -399,7 +404,8 @@ insert into error(name, message, http_code) values
 ('SERVICE_ALREADY_EXISTS', '{"en": "Adding multiple services in one category is not allowed", "uz": "Bitta kategoriyada bir nechta xizmat qo''shib bo''lmaydi", "ru": "Нельзя добавить несколько услуг в одну категорию"}', 409),
 ('SERVICE_NOT_FOUND', '{"en": "Service not found", "uz": "Xizmat topilmadi", "ru": "Услуга не найдена"}', 404),
 ('INSUFFICIENT_FUNDS', '{"en": "Insufficient funds", "uz": "Mablag'' yetarli emas", "ru": "Недостаточно средств"}', 400),
-('TRANSACTION_ERROR', '{"en": "Transaction error", "uz": "Tranzaksiyada xatolik", "ru": "Ошибка транзакции"}', 500)
+('TRANSACTION_ERROR', '{"en": "Transaction error", "uz": "Tranzaksiyada xatolik", "ru": "Ошибка транзакции"}', 500),
+('SAME_CARD', '{"en": "You cannot transfer money to the same card", "uz": "Bitta kartaga pul o''tkazib bo''lmaydi", "ru": "Нельзя перевести деньги на ту же карту"}', 400)
 on conflict do nothing;
 
 insert into service_category(code, name) values
