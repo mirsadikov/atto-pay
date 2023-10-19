@@ -1,5 +1,5 @@
-drop table if exists customer_transfer;
-drop table if exists customer_payment;
+drop table if exists transactions;
+drop table if exists customer_saved_service;
 drop table if exists customer_device;
 drop table if exists customer_card;
 drop table if exists customer;

@@ -6,7 +6,6 @@ const {
   registerCustomer,
   getCustomerLoginType,
   loginCustomer,
-  getCustomerPhoto,
   updateCustomerLang,
   addServiceToSaved,
   removeServiceFromSaved,
@@ -18,7 +17,6 @@ router.post('/register', registerCustomer);
 router.post('/getlogin', getCustomerLoginType);
 router.post('/login', loginCustomer);
 router.put('/profile', updateCustomer);
-router.get('/photo/:file', getCustomerPhoto);
 router.put('/lang', updateCustomerLang);
 router.post('/services', addServiceToSaved);
 router.delete('/services', removeServiceFromSaved);

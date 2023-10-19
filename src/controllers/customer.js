@@ -9,7 +9,7 @@ const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
-const imageStorage = require('../utils/imageStorage');
+const fileStorageS3 = require('../utils/fileStorageS3');
 
 // @Private
 // @Customer
@@ -30,7 +30,7 @@ function getCustomerProfile(req, res, next) {
 
           const customer = result.rows[0];
           delete customer.hashed_password;
-          customer.image_url = imageStorage.getImageUrl(customer.image_url);
+          customer.image_url = fileStorageS3.getFileUrl(customer.image_url);
 
           cb(null, customer);
         });
@@ -470,7 +470,7 @@ function updateCustomer(req, res, next) {
         if (inputs.deleteImage) customer.image_url = null;
         if (!req.files || !req.files.avatar) return cb(null);
 
-        imageStorage.upload(req.files.avatar, 'profiles', (err, newFileName) => {
+        fileStorageS3.uploadImage(req.files.avatar, 'profiles', (err, newFileName) => {
           if (err) return cb(err);
 
           newImage = newFileName;
@@ -502,40 +502,20 @@ function updateCustomer(req, res, next) {
       (imageChanged, cb) => {
         if (!oldImage || !imageChanged) return cb(null);
 
-        imageStorage.delete(oldImage);
+        fileStorageS3.delete(oldImage);
         cb(null);
       },
     ],
     (err) => {
       if (err) {
         // clear
-        if (newImage) imageStorage.delete(newImage);
+        if (newImage) fileStorageS3.delete(newImage);
         return next(err);
       }
 
       res.status(200).json({
         success: true,
       });
-    }
-  );
-}
-
-// @Public
-function getCustomerPhoto(req, res, next) {
-  async.waterfall(
-    [
-      (cb) => {
-        const { file } = req.params;
-
-        imageStorage.getPathIfExists(file, 'profiles', (err, filePath) => {
-          if (err) return cb(err);
-          cb(null, filePath);
-        });
-      },
-    ],
-    (err, file) => {
-      if (err) return next(err);
-      res.sendFile(file);
     }
   );
 }
@@ -709,7 +689,6 @@ module.exports = {
   getOtpFromSMS,
   loginCustomer,
   updateCustomer,
-  getCustomerPhoto,
   updateCustomerLang,
   addServiceToSaved,
   removeServiceFromSaved,

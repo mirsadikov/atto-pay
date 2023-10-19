@@ -1,6 +1,6 @@
 const async = require('async');
 const moment = require('moment');
-const imageStorage = require('../utils/imageStorage');
+const fileStorage = require('../utils/fileStorageS3');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
 const fetchDB = require('../postgres');
@@ -243,10 +243,10 @@ function getTransactions(req, res, next) {
       },
       (cb) => {
         transactions.forEach((t) => {
-          if (t.sender.image_url) t.sender.image_url = imageStorage.getImageUrl(t.sender.image_url);
+          if (t.sender.image_url) t.sender.image_url = fileStorage.getFileUrl(t.sender.image_url);
 
           if (t.receiver.image_url)
-            t.receiver.image_url = imageStorage.getImageUrl(t.receiver.image_url);
+            t.receiver.image_url = fileStorage.getFileUrl(t.receiver.image_url);
         });
 
         cb(null);

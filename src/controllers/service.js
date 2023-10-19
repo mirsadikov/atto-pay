@@ -5,7 +5,7 @@ const { servicesQuery } = require('../postgres/queries');
 const fetchDB = require('../postgres');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
-const imageStorage = require('../utils/imageStorage');
+const fileStorageS3 = require('../utils/fileStorageS3');
 const acceptsLanguages = require('../utils/acceptsLanguages');
 
 // @Private
@@ -60,7 +60,7 @@ function createService(req, res, next) {
       (cb) => {
         if (!req.files || !req.files.image) return cb(null);
 
-        imageStorage.upload(req.files.image, 'services', (err, newFileName) => {
+        fileStorageS3.uploadImage(req.files.image, 'services', (err, newFileName) => {
           if (err) return cb(err);
           newImage = newFileName;
           cb(null);
@@ -82,7 +82,7 @@ function createService(req, res, next) {
     (err) => {
       if (err) {
         // clear
-        if (newImage) imageStorage.delete(newImage);
+        if (newImage) fileStorageS3.delete(newImage);
 
         return next(err);
       }
@@ -146,7 +146,7 @@ function getAllServices(req, res, next) {
       (cb) => {
         services = Object.values(services);
         services.forEach((service) => {
-          service.image_url = imageStorage.getImageUrl(service.image_url);
+          service.image_url = fileStorageS3.getFileUrl(service.image_url);
         });
 
         cb(null);
@@ -161,20 +161,6 @@ function getAllServices(req, res, next) {
       });
     }
   );
-}
-
-// @Public
-function getServiceImage(req, res, next) {
-  try {
-    const { file } = req.params;
-
-    imageStorage.getPathIfExists(file, 'services', (err, filePath) => {
-      if (err) return next(err);
-      res.sendFile(filePath);
-    });
-  } catch (err) {
-    next(err);
-  }
 }
 
 // @Private
@@ -248,7 +234,7 @@ function updateService(req, res, next) {
         if (inputs.deleteImage) service.image_url = null;
         if (!req.files || !req.files.image) return cb(null);
 
-        imageStorage.upload(req.files.image, 'services', (err, newFileName) => {
+        fileStorageS3.uploadImage(req.files.image, 'services', (err, newFileName) => {
           if (err) return cb(err);
 
           newImage = newFileName;
@@ -279,14 +265,14 @@ function updateService(req, res, next) {
       (imageChanged, cb) => {
         if (!oldImage || !imageChanged) return cb(null);
 
-        imageStorage.delete(oldImage);
+        fileStorageS3.delete(oldImage);
         cb(null);
       },
     ],
     (err) => {
       if (err) {
         // clear
-        if (newImage) imageStorage.delete(newImage);
+        if (newImage) fileStorageS3.delete(newImage);
         return next(err);
       }
 
@@ -373,7 +359,7 @@ function getMechantServices(req, res, next) {
       // get images
       (cb) => {
         services.forEach((service) => {
-          service.image_url = imageStorage.getImageUrl(service.image_url);
+          service.image_url = fileStorageS3.getFileUrl(service.image_url);
         });
 
         cb(null);
@@ -428,7 +414,7 @@ function getOneById(req, res, next) {
             if (result.rows.length === 0) return cb(new CustomError('SERVICE_NOT_FOUND'));
 
             service = result.rows[0];
-            service.image_url = imageStorage.getImageUrl(service.image_url);
+            service.image_url = fileStorageS3.getFileUrl(service.image_url);
 
             cb(null);
           }
@@ -468,7 +454,7 @@ function getOnePublicById(req, res, next) {
           if (result.rows.length === 0) return cb(new CustomError('SERVICE_NOT_FOUND'));
 
           service = result.rows[0];
-          service.image_url = imageStorage.getImageUrl(service.image_url);
+          service.image_url = fileStorageS3.getFileUrl(service.image_url);
 
           cb(null);
         });
@@ -484,7 +470,6 @@ function getOnePublicById(req, res, next) {
 
 module.exports = {
   getAllServices,
-  getServiceImage,
   createService,
   updateService,
   deleteService,
