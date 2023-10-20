@@ -62,6 +62,7 @@ create table if not exists service (
   price numeric(12, 2) not null,
   image_url varchar(256),
   is_active boolean not null default false,
+  public_key varchar(64) not null,
   deleted boolean not null default false
 );
 
@@ -405,7 +406,8 @@ insert into error(name, message, http_code) values
 ('SERVICE_NOT_FOUND', '{"en": "Service not found", "uz": "Xizmat topilmadi", "ru": "Услуга не найдена"}', 404),
 ('INSUFFICIENT_FUNDS', '{"en": "Insufficient funds", "uz": "Mablag'' yetarli emas", "ru": "Недостаточно средств"}', 400),
 ('TRANSACTION_ERROR', '{"en": "Transaction error", "uz": "Tranzaksiyada xatolik", "ru": "Ошибка транзакции"}', 500),
-('SAME_CARD', '{"en": "You cannot transfer money to the same card", "uz": "Bitta kartaga pul o''tkazib bo''lmaydi", "ru": "Нельзя перевести деньги на ту же карту"}', 400)
+('SAME_CARD', '{"en": "You cannot transfer money to the same card", "uz": "Bitta kartaga pul o''tkazib bo''lmaydi", "ru": "Нельзя перевести деньги на ту же карту"}', 400),
+('SERVICE_NOT_ACTIVE', '{"en": "Service not available", "uz": "Xizmat mavjud emas", "ru": "Услуга недоступна"}', 400)
 on conflict do nothing;
 
 insert into service_category(code, name) values

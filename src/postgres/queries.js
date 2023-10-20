@@ -86,7 +86,8 @@ select *
 from service s 
 where id = $1 and merchant_id = $2 and deleted = false`,
   getOneByIdWithCategory: `
-select s.*, c.code as category_code, c.name -> $3 as category_name
+select s.id, s.merchant_id, s.category_id, s.name, s.price, s.image_url, s.is_active, s.public_key,
+  c.code as category_code, c.name -> $3 as category_name
 from service s
 JOIN service_category c on s.category_id = c.id
 where s.id = $1 and s.merchant_id = $2 and s.deleted = false`,
@@ -100,8 +101,8 @@ from service s
 JOIN service_category c on s.category_id = c.id 
 where is_active = true and deleted = false`,
   create: `
-insert into service(merchant_id, category_id, name, price, image_url, is_active)
-select $1, $2, $3, $4, $5, $6`,
+insert into service(merchant_id, category_id, name, price, image_url, is_active, public_key)
+select $1, $2, $3, $4, $5, $6, $7`,
   update: `
 update service
 set name = $1, price = $2, category_id = $3, is_active = $4, image_url = $5 
@@ -122,10 +123,12 @@ select service_id as id
 from customer_saved_service
 where customer_id = $1`,
   getOnePublicByIdWithCategory: `
-select s.*, c.code as category_code, c.name -> $2 as category_name
+select s.id, s.merchant_id, s.category_id, s.name, s.price, s.image_url,
+  c.code as category_code, c.name -> $2 as category_name
 from service s
 JOIN service_category c on s.category_id = c.id
 where s.id = $1 and s.deleted = false and s.is_active = true`,
+  getIdWithQr: `select id, is_active from service where public_key = $1 and deleted = false`,
 };
 
 const transactionsQuery = {

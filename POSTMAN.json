@@ -65,6 +65,38 @@
 					"response": []
 				},
 				{
+					"name": "Get login type",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Device-ID",
+								"value": "zeyds-mac-chrome"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"phone\": \"998993669801\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/getlogin",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"getlogin"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Login customer",
 					"event": [
 						{
@@ -112,13 +144,66 @@
 					"response": []
 				},
 				{
+					"name": "Save services",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "5eef0d26-0f43-4596-bf46-3c478289be53",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceId\": \"5eef0d26-0f43-4596-bf46-3c478289be53\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/services",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"services"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "OTP from SMS",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/customer/otp/recievebysms/998993669801",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"otp",
+								"recievebysms",
+								"998993669801"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Get customer profile",
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "45a81069-bf65-4873-95f0-162fa7ca2817"
+								"value": "1502408d-7455-424e-8603-bba1a7dce24c"
 							}
 						],
 						"url": {
@@ -197,77 +282,6 @@
 					"response": []
 				},
 				{
-					"name": "Get customer photo",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{url}}/customer/photo/140fa560-d8bf-4386-ace2-2dbbdde93439.png",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"photo",
-								"140fa560-d8bf-4386-ace2-2dbbdde93439.png"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get login type",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "X-Device-ID",
-								"value": "zeyds-mac-chrome"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"phone\": \"998993669801\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{url}}/customer/getlogin",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"getlogin"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "OTP from SMS",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{url}}/customer/otp/recievebysms/998993669801",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"otp",
-								"recievebysms",
-								"998993669801"
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "Update customer lang",
 					"request": {
 						"method": "PUT",
@@ -295,39 +309,6 @@
 							"path": [
 								"customer",
 								"lang"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Save services",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "c98b4a8e-473d-4324-8603-ca7b0b935ce1",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"serviceId\": \"dd367f51-8267-45a4-b850-ea5bfbfcd3fc\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{url}}/customer/services",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"services"
 							]
 						}
 					},
@@ -385,12 +366,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "ef3c1562-c123-41d3-9596-13baf8d7ff00"
+								"value": "b0794802-338f-4511-8129-6997a5e07a20"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"My Humo\",\n  \"owner_name\": \"Mirabror Sodikov\",\n  \"pan\": \"5800234174533527\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"25\"\n}",
+							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"owner_name\": \"Mirabror Sodikov\",\n  \"pan\": \"8600000000000011\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"26\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -427,70 +408,6 @@
 						"body": {
 							"mode": "raw",
 							"raw": "",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{url}}/customer/card",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"card"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Update",
-					"request": {
-						"method": "PUT",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "030f7cba-25e7-48ee-a8e2-98a925061ea6"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"id\": \"5d6a276e-ad50-48da-9905-31f9479278ee\",\n  \"name\": \"to delete\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "{{url}}/customer/card",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"card"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Delete",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "b62669b4-4177-4b21-950e-ba2f5eb8ef93"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"id\": \"9cc3fcf4-1efe-4fe2-8859-7e03699d3882\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -561,6 +478,70 @@
 								"customer",
 								"card",
 								"owner"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "030f7cba-25e7-48ee-a8e2-98a925061ea6"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"5d6a276e-ad50-48da-9905-31f9479278ee\",\n  \"name\": \"to delete\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/card",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"card"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "b62669b4-4177-4b21-950e-ba2f5eb8ef93"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"id\": \"9cc3fcf4-1efe-4fe2-8859-7e03699d3882\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/card",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"card"
 							]
 						}
 					},
@@ -754,7 +735,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "06ae4b58-5306-4540-95fd-4027d1f54bd9",
+								"value": "64374364-deff-48f0-bc66-5233132c57a3",
 								"type": "text"
 							}
 						],
@@ -837,7 +818,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "c98b4a8e-473d-4324-8603-ca7b0b935ce1",
+								"value": "64374364-deff-48f0-bc66-5233132c57a3",
 								"type": "text"
 							}
 						],
@@ -854,32 +835,48 @@
 					"response": []
 				},
 				{
-					"name": "Delete service",
+					"name": "Get merchant services",
 					"request": {
-						"method": "DELETE",
+						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "59a3da44-7338-4498-8f26-a3fbaf79ce69",
+								"value": "64374364-deff-48f0-bc66-5233132c57a3",
 								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"id\": \"eb3f0791-eb43-4057-841d-d3eb80d18775\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
 						"url": {
-							"raw": "{{url}}/service",
+							"raw": "{{url}}/service/merchant",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
-								"service"
+								"service",
+								"merchant"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get one for Merchant",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "64374364-deff-48f0-bc66-5233132c57a3",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url}}/service/b787fd39-8520-4af7-b8f8-f40e973f37f6",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"service",
+								"b787fd39-8520-4af7-b8f8-f40e973f37f6"
 							]
 						}
 					},
@@ -941,67 +938,65 @@
 					"response": []
 				},
 				{
-					"name": "Get merchant services",
+					"name": "Delete service",
 					"request": {
-						"method": "GET",
+						"method": "DELETE",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "2445f880-0718-4038-bbc5-1249f56b41e1",
+								"value": "59a3da44-7338-4498-8f26-a3fbaf79ce69",
 								"type": "text"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"eb3f0791-eb43-4057-841d-d3eb80d18775\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
-							"raw": "{{url}}/service/merchant",
+							"raw": "{{url}}/service",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
-								"service",
-								"merchant"
+								"service"
 							]
 						}
 					},
 					"response": []
 				},
 				{
-					"name": "Get one for Merchant",
+					"name": "Get service with QR",
 					"request": {
-						"method": "GET",
+						"method": "POST",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "3462765c-05e6-42d1-b40b-3a86a5cf03d6",
+								"value": "0584e702-ef2b-4a83-afc8-9bce7c8472b2",
 								"type": "text"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"key\": \"WPp6b1Iydgzw2YBYOEKNaw==\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
-							"raw": "{{url}}/service/9176cf2d-6624-4fdb-b2f9-1b5b8e324710",
+							"raw": "{{url}}/service/qr",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"service",
-								"9176cf2d-6624-4fdb-b2f9-1b5b8e324710"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get one Public",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{url}}/service/public/cf5caa51-21e3-4dac-ba38-6eab357ce38e",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"service",
-								"public",
-								"cf5caa51-21e3-4dac-ba38-6eab357ce38e"
+								"qr"
 							]
 						}
 					},
@@ -1126,13 +1121,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "8dc534de-82fc-4926-bdc5-d1caf812a9e8",
+								"value": "b5fa7da3-5550-46b2-a9cf-1b72e2dd0417",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"fromDate\": \"15/10/2023\",\n    \"toDate\": \"16/10/2023\",\n    \"offset\": -5,\n    \"byServiceId\": \"c7913efe-ac13-4d4d-9321-a40a97b4fb9b\", // optional\n    \"byCardId\": \"ba263c61-36f4-4c78-8d15-07393d5d166e\" // optional\n}",
+							"raw": "{\n    \"fromDate\": \"10/10/2023\",\n    \"toDate\": \"17/10/2023\",\n    \"offset\": -5,\n    \"byServiceId\": \"cf5caa51-21e3-4dac-ba38-6eab357ce38e\", // optional\n    \"byCardId\": \"b7d56ec7-5e2e-403e-b134-122f1ba07e51\" // optional\n}",
 							"options": {
 								"raw": {
 									"language": "json"

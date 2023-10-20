@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const async = require('async');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
@@ -68,9 +69,20 @@ function createService(req, res, next) {
       },
       // create service
       (cb) => {
+        // generate public key for qr code
+        const publicKey = crypto.randomBytes(16).toString('base64');
+
         fetchDB(
           servicesQuery.create,
-          [merchantId, inputs.categoryId, inputs.name, inputs.price, newImage, inputs.isActive],
+          [
+            merchantId,
+            inputs.categoryId,
+            inputs.name,
+            inputs.price,
+            newImage,
+            inputs.isActive,
+            publicKey,
+          ],
           (err) => {
             if (err) return cb(err);
 
@@ -468,6 +480,48 @@ function getOnePublicById(req, res, next) {
   );
 }
 
+// @Public
+function getServiceByQr(req, res, next) {
+  let service;
+
+  async.waterfall(
+    [
+      // validate data
+      (cb) => {
+        const { key } = req.body;
+
+        console.log(key);
+        const validator = new LIVR.Validator({
+          key: ['trim', 'string', 'required'],
+        });
+
+        const validData = validator.validate({ key });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        cb(null, validData);
+      },
+      // get service
+      (inputs, cb) => {
+        fetchDB(servicesQuery.getIdWithQr, [inputs.key], (err, result) => {
+          if (err) return cb(err);
+          if (result.rows.length === 0) return cb(new CustomError('SERVICE_NOT_FOUND'));
+
+          service = result.rows[0];
+
+          if (!service.is_active) return cb(new CustomError('SERVICE_NOT_ACTIVE'));
+
+          cb(null);
+        });
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({ id: service.id });
+    }
+  );
+}
+
 module.exports = {
   getAllServices,
   createService,
@@ -476,4 +530,5 @@ module.exports = {
   getMechantServices,
   getOneById,
   getOnePublicById,
+  getServiceByQr,
 };

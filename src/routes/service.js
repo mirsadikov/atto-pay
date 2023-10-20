@@ -7,15 +7,17 @@ const {
   getMechantServices,
   getOneById,
   getOnePublicById,
+  getServiceByQr,
 } = require('../controllers/service');
 const router = express.Router();
 
 router.get('/', getAllServices);
-router.get('/merchant', getMechantServices);
-router.get('/:id', getOneById);
 router.post('/', createService);
 router.put('/', updateService);
 router.delete('/', deleteService);
+router.get('/merchant', getMechantServices);
 router.get('/public/:id', getOnePublicById);
+router.post('/qr', getServiceByQr);
+router.get('/:id', getOneById);
 
 module.exports = router;
