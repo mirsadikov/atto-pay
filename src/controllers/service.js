@@ -84,15 +84,16 @@ function createService(req, res, next) {
             inputs.isActive,
             publicKey,
           ],
-          (err) => {
+          (err, res) => {
             if (err) return cb(err);
 
-            cb(null);
+            const message = res.rows[0].message[acceptsLanguages(req)];
+            cb(null, message);
           }
         );
       },
     ],
-    (err) => {
+    (err, message) => {
       if (err) {
         // clear
         if (newImage) fileStorageS3.delete(newImage);
@@ -102,6 +103,7 @@ function createService(req, res, next) {
 
       res.status(201).json({
         success: true,
+        message,
       });
     }
   );
@@ -179,7 +181,7 @@ function getAllServices(req, res, next) {
 // @Private
 // @Merchant
 function updateService(req, res, next) {
-  let merchantId, inputs, service, oldImage, newImage;
+  let merchantId, inputs, service, oldImage, newImage, message;
 
   async.waterfall(
     [
@@ -261,15 +263,16 @@ function updateService(req, res, next) {
         const newName = name || service.name;
         const newPrice = price || service.price;
         const newCategoryId = categoryId || service.category_id;
-        const newIsActive = isActive === null ? service.is_active : isActive;
+        const newIsActive = typeof isActive === 'boolean' ? isActive : service.is_active;
         const newImageUrl = newImage || service.image_url;
 
         fetchDB(
           servicesQuery.update,
           [newName, newPrice, newCategoryId, newIsActive, newImageUrl, service.id, merchantId],
-          (err) => {
+          (err, res) => {
             if (err) return cb(err);
 
+            message = res.rows[0].message[acceptsLanguages(req)];
             cb(null, newImageUrl !== oldImage);
           }
         );
@@ -291,6 +294,7 @@ function updateService(req, res, next) {
 
       res.status(200).json({
         success: true,
+        message,
       });
     }
   );
@@ -329,15 +333,17 @@ function deleteService(req, res, next) {
           if (err) return cb(err);
           if (result.rows.length === 0) return cb(new CustomError('SERVICE_NOT_FOUND'));
 
-          cb(null);
+          const message = result.rows[0].message[acceptsLanguages(req)];
+          cb(null, message);
         });
       },
     ],
-    (err) => {
+    (err, message) => {
       if (err) return next(err);
 
       res.status(200).json({
         success: true,
+        message,
       });
     }
   );

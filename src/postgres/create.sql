@@ -31,7 +31,7 @@ create table if not exists customer_device(
   constraint unique_customer_device unique(customer_id, device_id)
 );
 
-create table if not exists error(
+create table if not exists message(
   id serial primary key,
   name varchar(64) not null unique,
   message jsonb not null,
@@ -128,7 +128,8 @@ create or replace procedure delete_card(
   _card_id uuid,
   _customer_id uuid,
   out error_code varchar(64),
-  out error_message text
+  out error_message text,
+  out success_message jsonb
 ) as $$
 begin
   begin
@@ -139,6 +140,8 @@ begin
       error_code := 'CARD_NOT_FOUND';
       return;
     end if;
+
+    select message from message where name = 'CARD_DELETED' into success_message;
   exception
     when others then
       rollback;
@@ -158,7 +161,8 @@ create or replace procedure pay_for_service(
   _service_id uuid,
   out payment_id uuid,
   out error_code varchar(64),
-  out error_message text
+  out error_message text,
+  out success_message jsonb
 )
 as $$
 declare
@@ -193,6 +197,8 @@ begin
 
     update customer_card set balance = balance - service_row.price where id = _card_id;
     update merchant set balance = balance + service_row.price where id = service_row.merchant_id;
+
+    select message from message where name = 'PAYMENT_SUCCESS' into success_message;
   exception
     when others then
       rollback;
@@ -213,7 +219,8 @@ create or replace procedure transfer_money(
   _amount int,
   out transfer_id uuid,
   out error_code varchar(64),
-  out error_message text
+  out error_message text,
+  out success_message jsonb
 ) as $$
 declare
   sender_card customer_card;
@@ -251,6 +258,8 @@ begin
 
     update customer_card set balance = balance - _amount where id = sender_card.id;
     update customer_card set balance = balance + _amount where id = receiver_card.id;
+
+    select message from message where name = 'TRANSFER_SUCCESS' into success_message;
   exception
     when others then
       rollback;
@@ -271,7 +280,8 @@ create or replace procedure transfer_money_to_self(
   _amount int,
   out transfer_id uuid,
   out error_code varchar(64),
-  out error_message text
+  out error_message text,
+  out success_message jsonb
 ) as $$
 declare
   sender_card customer_card;
@@ -304,6 +314,8 @@ begin
 
     update customer_card set balance = balance - _amount where id = sender_card.id;
     update customer_card set balance = balance + _amount where id = receiver_card.id;
+
+    select message from message where name = 'TRANSFER_SUCCESS' into success_message;
   exception
     when others then
       rollback;
@@ -376,7 +388,7 @@ $$ language plpgsql;
 
 -- ############################
 -- DATA INSERTION --
-insert into error(name, message, http_code) values
+insert into message(name, message, http_code) values
 ('VALIDATION_ERROR', '{"en": "Invalid input for {0}", "uz": "{0} uchun notog''ri kiritish", "ru": "Неверный ввод для {0}"}', 400),
 ('DATABASE_ERROR', '{"en": "Database error", "uz": "Ma''lumotlar bazasi xatosi", "ru": "Ошибка базы данных"}', 500),
 ('NUMBER_TAKEN', '{"en": "This phone number is already registered", "uz": "Bu telefon raqami allaqachon ro''yhatdan o''tgan", "ru": "Этот номер телефона уже зарегистрирован"}', 409),
@@ -407,7 +419,16 @@ insert into error(name, message, http_code) values
 ('INSUFFICIENT_FUNDS', '{"en": "Insufficient funds", "uz": "Mablag'' yetarli emas", "ru": "Недостаточно средств"}', 400),
 ('TRANSACTION_ERROR', '{"en": "Transaction error", "uz": "Tranzaksiyada xatolik", "ru": "Ошибка транзакции"}', 500),
 ('SAME_CARD', '{"en": "You cannot transfer money to the same card", "uz": "Bitta kartaga pul o''tkazib bo''lmaydi", "ru": "Нельзя перевести деньги на ту же карту"}', 400),
-('SERVICE_NOT_ACTIVE', '{"en": "Service not available", "uz": "Xizmat mavjud emas", "ru": "Услуга недоступна"}', 400)
+('SERVICE_NOT_ACTIVE', '{"en": "Service not available", "uz": "Xizmat mavjud emas", "ru": "Услуга недоступна"}', 400),
+('PROFILE_UPDATED', '{"en": "Profile updated successfully", "uz": "Profil muvaffaqiyatli yangilandi", "ru": "Профиль успешно обновлен"}', 200),
+('CARD_ADDED', '{"en": "Card added successfully", "uz": "Karta muvaffaqiyatli qo''shildi", "ru": "Карта успешно добавлена"}', 200),
+('CARD_UPDATED', '{"en": "Card updated successfully", "uz": "Karta muvaffaqiyatli yangilandi", "ru": "Карта успешно обновлена"}', 200),
+('CARD_DELETED', '{"en": "Card deleted successfully", "uz": "Karta muvaffaqiyatli o''chirildi", "ru": "Карта успешно удалена"}', 200),
+('SERVICE_CREATED', '{"en": "Service created successfully", "uz": "Xizmat muvaffaqiyatli yaratildi", "ru": "Услуга успешно создана"}', 200),
+('SERVICE_UPDATED', '{"en": "Service updated successfully", "uz": "Xizmat muvaffaqiyatli yangilandi", "ru": "Услуга успешно обновлена"}', 200),
+('SERVICE_DELETED', '{"en": "Service deleted successfully", "uz": "Xizmat muvaffaqiyatli o''chirildi", "ru": "Услуга успешно удалена"}', 200),
+('PAYMENT_SUCCESS', '{"en": "Payment successful", "uz": "To''lov muvaffaqiyatli amalga oshirildi", "ru": "Оплата прошла успешно"}', 200),
+('TRANSFER_SUCCESS', '{"en": "Money transferred successfully", "uz": "Pul muvaffaqiyatli o''tkazildi", "ru": "Деньги успешно переведены"}', 200)
 on conflict do nothing;
 
 insert into service_category(code, name) values

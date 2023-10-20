@@ -9,6 +9,7 @@ const { merchantsQuery } = require('../postgres/queries');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 const verifyToken = require('../middleware/verifyToken');
+const acceptsLanguages = require('../utils/acceptsLanguages');
 
 // @Public
 function registerMerchant(req, res, next) {
@@ -319,18 +320,20 @@ function updateMerchant(req, res, next) {
         const newName = name || merchant.name;
         const hashedPassword = password ? bcrypt.hashSync(password, 10) : merchant.hashed_password;
 
-        fetchDB(merchantsQuery.update, [newName, hashedPassword, merchant.id], (err) => {
+        fetchDB(merchantsQuery.update, [newName, hashedPassword, merchant.id], (err, res) => {
           if (err) return cb(err);
 
-          cb(null);
+          const message = res.rows[0].message[acceptsLanguages(req)];
+          cb(null, message);
         });
       },
     ],
-    (err) => {
+    (err, message) => {
       if (err) return next(err);
 
       res.status(200).json({
         success: true,
+        message,
       });
     }
   );

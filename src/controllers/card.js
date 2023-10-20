@@ -6,6 +6,7 @@ const { cardsQuery } = require('../postgres/queries');
 const fetchDB = require('../postgres');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
+const acceptsLanguages = require('../utils/acceptsLanguages');
 
 // @Private
 // @Customer
@@ -73,19 +74,21 @@ function createCard(req, res, next) {
             inputs.expiry_month,
             inputs.expiry_year,
           ],
-          (err) => {
+          (err, res) => {
             if (err) return cb(err);
 
-            cb(null);
+            const message = res.rows[0].message[acceptsLanguages(req)];
+            cb(null, message);
           }
         );
       },
     ],
-    (err) => {
+    (err, message) => {
       if (err) return next(err);
 
       res.status(201).json({
         success: true,
+        message,
       });
     }
   );
@@ -156,15 +159,17 @@ function updateCard(req, res, next) {
           if (err) return cb(err);
           if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 
-          cb(null);
+          const message = result.rows[0].message[acceptsLanguages(req)];
+          cb(null, message);
         });
       },
     ],
-    (err) => {
+    (err, message) => {
       if (err) return next(err);
 
       res.status(200).json({
         success: true,
+        message,
       });
     }
   );
@@ -204,19 +209,21 @@ function deleteCard(req, res, next) {
         fetchDB(cardsQuery.delete, [inputs.id, customerId], (err, result) => {
           if (err) return cb(err);
 
-          const { error_code, error_message } = result.rows[0];
+          const { error_code, error_message, success_message } = result.rows[0];
 
           if (error_code) return cb(new CustomError(error_code, error_message));
 
-          cb(null);
+          const message = success_message[acceptsLanguages(req)];
+          cb(null, message);
         });
       },
     ],
-    (err) => {
+    (err, message) => {
       if (err) return next(err);
 
       res.status(200).json({
         success: true,
+        message,
       });
     }
   );

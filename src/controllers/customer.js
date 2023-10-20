@@ -10,6 +10,7 @@ const LIVR = require('../utils/livr');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 const fileStorageS3 = require('../utils/fileStorageS3');
+const acceptsLanguages = require('../utils/acceptsLanguages');
 
 // @Private
 // @Customer
@@ -417,7 +418,7 @@ const loginCustomer = (req, res, next) =>
 // @Private
 // @Customer
 function updateCustomer(req, res, next) {
-  let customerId, customer, inputs, oldImage, newImage;
+  let customerId, customer, inputs, oldImage, newImage, message;
 
   async.waterfall(
     [
@@ -491,9 +492,10 @@ function updateCustomer(req, res, next) {
         fetchDB(
           customersQuery.update,
           [newName, hashedPassword, newImageUrl, newGender, newBirthDate, customer.id],
-          (err) => {
+          (err, res) => {
             if (err) return cb(err);
 
+            message = res.rows[0].message[acceptsLanguages(req)];
             cb(null, newImageUrl !== oldImage);
           }
         );
@@ -515,6 +517,7 @@ function updateCustomer(req, res, next) {
 
       res.status(200).json({
         success: true,
+        message,
       });
     }
   );

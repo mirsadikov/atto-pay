@@ -7,6 +7,7 @@ const fetchDB = require('../postgres');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 const { transactionsQuery } = require('../postgres/queries');
+const acceptsLanguages = require('../utils/acceptsLanguages');
 
 // @Private
 // @Customer
@@ -48,19 +49,20 @@ function payForService(req, res, next) {
           (err, result) => {
             if (err) return cb(err);
 
-            const { error_code, error_message, payment_id } = result.rows[0];
+            const { error_code, error_message, payment_id, success_message } = result.rows[0];
 
             if (error_code) return cb(new CustomError(error_code, error_message));
 
-            cb(null, payment_id);
+            const message = success_message[acceptsLanguages(req)];
+            cb(null, payment_id, message);
           }
         );
       },
     ],
-    (err, payment_id) => {
+    (err, payment_id, message) => {
       if (err) return next(err);
 
-      res.status(200).json({ success: true, payment_id });
+      res.status(200).json({ success: true, payment_id, message });
     }
   );
 }
@@ -106,19 +108,20 @@ function transferMoney(req, res, next) {
           (err, result) => {
             if (err) return cb(err);
 
-            const { error_code, error_message, transfer_id } = result.rows[0];
+            const { error_code, error_message, transfer_id, success_message } = result.rows[0];
 
             if (error_code) return cb(new CustomError(error_code, error_message));
 
-            cb(null, transfer_id);
+            const message = success_message[acceptsLanguages(req)];
+            cb(null, transfer_id, message);
           }
         );
       },
     ],
-    (err, transfer_id) => {
+    (err, transfer_id, message) => {
       if (err) return next(err);
 
-      res.status(200).json({ success: true, transfer_id });
+      res.status(200).json({ success: true, transfer_id, message });
     }
   );
 }
@@ -166,19 +169,20 @@ function transferMoneyToSelf(req, res, next) {
           (err, result) => {
             if (err) return cb(err);
 
-            const { error_code, error_message, transfer_id } = result.rows[0];
+            const { error_code, error_message, transfer_id, success_message } = result.rows[0];
 
             if (error_code) return cb(new CustomError(error_code, error_message));
 
-            cb(null, transfer_id);
+            const message = success_message[acceptsLanguages(req)];
+            cb(null, transfer_id, message);
           }
         );
       },
     ],
-    (err, transfer_id) => {
+    (err, transfer_id, message) => {
       if (err) return next(err);
 
-      res.status(200).json({ success: true, transfer_id });
+      res.status(200).json({ success: true, transfer_id, message });
     }
   );
 }

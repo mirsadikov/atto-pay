@@ -11,7 +11,8 @@ returning id`,
   update: `
 update customer 
 set name = $1, hashed_password = $2, image_url = $3, gender = $4, birth_date = $5
-where id = $6`,
+where id = $6
+returning (select message from message where name = 'PROFILE_UPDATED') as message`,
   updateLang: `
 update customer
 set lang = $1
@@ -36,7 +37,8 @@ returning id`,
   update: `
 update merchant 
 set name = $1, hashed_password = $2 
-where id = $3`,
+where id = $3
+returning (select message from message where name = 'PROFILE_UPDATED') as message`,
   updateLang: `
 update merchant
 set lang = $1
@@ -56,11 +58,13 @@ select *, mask_credit_card(pan) as pan
 from customer_card where customer_id = $1`,
   create: `
 insert into customer_card(customer_id, name, owner_name, pan, expiry_month, expiry_year) 
-values($1, $2, $3, $4, $5, $6)`,
+values($1, $2, $3, $4, $5, $6)
+returning (select message from message where name = 'CARD_ADDED') as message`,
   update: `
 update customer_card set name = $1 
-where id = $2 and customer_id = $3`,
-  delete: `call delete_card($1, $2, null, null)`,
+where id = $2 and customer_id = $3
+returning (select message from message where name = 'CARD_UPDATED') as message`,
+  delete: `call delete_card($1, $2, null, null, null)`,
 };
 
 const devicesQuery = {
@@ -73,7 +77,7 @@ where device_id = $1 and customer_id = (select id from customer where phone = $2
 };
 
 const errorsQuery = {
-  get: 'select message -> $2 as message, http_code from error where name = $1',
+  get: 'select message -> $2 as message, http_code from message where name = $1',
 };
 
 const categoriesQuery = {
@@ -102,16 +106,18 @@ JOIN service_category c on s.category_id = c.id
 where is_active = true and deleted = false`,
   create: `
 insert into service(merchant_id, category_id, name, price, image_url, is_active, public_key)
-select $1, $2, $3, $4, $5, $6, $7`,
+values ($1, $2, $3, $4, $5, $6, $7)
+returning (select message from message where name = 'SERVICE_CREATED') as message`,
   update: `
 update service
 set name = $1, price = $2, category_id = $3, is_active = $4, image_url = $5 
-where id = $6 and merchant_id = $7 and deleted = false`,
+where id = $6 and merchant_id = $7 and deleted = false
+returning (select message from message where name = 'SERVICE_UPDATED') as message`,
   delete: `
 update service
 set is_active = false, deleted = true
 where id = $1 and merchant_id = $2 and deleted = false
-returning id`,
+returning id, (select message from message where name = 'SERVICE_DELETED') as message`,
   getAllByMerchant: `
 select s.id, s.merchant_id, s.category_id, s.name, s.price, s.image_url, s.is_active,
   c.code as category_code, c.name -> $1 as category_name
@@ -132,9 +138,9 @@ where s.id = $1 and s.deleted = false and s.is_active = true`,
 };
 
 const transactionsQuery = {
-  payForService: `call pay_for_service($1, $2, $3, null, null, null)`,
-  transferMoney: `call transfer_money($1, $2, $3, $4, null, null, null)`,
-  transferMoneyToSelf: `call transfer_money_to_self($1, $2, $3, $4, null, null, null)`,
+  payForService: `call pay_for_service($1, $2, $3, null, null, null, null)`,
+  transferMoney: `call transfer_money($1, $2, $3, $4, null, null, null, null)`,
+  transferMoneyToSelf: `call transfer_money_to_self($1, $2, $3, $4, null, null, null, null)`,
   getTransactions: `
 select * 
 from get_transactions($1, $2, $3, $4, $5)
