@@ -865,7 +865,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "64374364-deff-48f0-bc66-5233132c57a3",
+								"value": "2416256c-04d7-40a1-9222-c1bb1774f789",
 								"type": "text"
 							}
 						],
@@ -972,7 +972,7 @@
 				{
 					"name": "Get service with QR",
 					"request": {
-						"method": "POST",
+						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
@@ -980,23 +980,15 @@
 								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"key\": \"WPp6b1Iydgzw2YBYOEKNaw==\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
 						"url": {
-							"raw": "{{url}}/service/qr",
+							"raw": "{{url}}/service/qr/hgj9b5iCur-IL5tNO9F2kg",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"service",
-								"qr"
+								"qr",
+								"hgj9b5iCur-IL5tNO9F2kg"
 							]
 						}
 					},

@@ -62,7 +62,7 @@ create table if not exists service (
   price numeric(12, 2) not null,
   image_url varchar(256),
   is_active boolean not null default false,
-  public_key varchar(64) not null,
+  public_key varchar(64) not null unique,
   deleted boolean not null default false
 );
 

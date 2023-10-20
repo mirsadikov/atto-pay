@@ -17,7 +17,7 @@ router.put('/', updateService);
 router.delete('/', deleteService);
 router.get('/merchant', getMechantServices);
 router.get('/public/:id', getOnePublicById);
-router.post('/qr', getServiceByQr);
+router.get('/qr/:key', getServiceByQr);
 router.get('/:id', getOneById);
 
 module.exports = router;

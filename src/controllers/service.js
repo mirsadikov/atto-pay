@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const async = require('async');
+const base64url = require('base64url');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
 const { servicesQuery } = require('../postgres/queries');
@@ -70,7 +71,7 @@ function createService(req, res, next) {
       // create service
       (cb) => {
         // generate public key for qr code
-        const publicKey = crypto.randomBytes(16).toString('base64');
+        const publicKey = base64url(crypto.randomBytes(16));
 
         fetchDB(
           servicesQuery.create,
@@ -488,9 +489,8 @@ function getServiceByQr(req, res, next) {
     [
       // validate data
       (cb) => {
-        const { key } = req.body;
+        const { key } = req.params;
 
-        console.log(key);
         const validator = new LIVR.Validator({
           key: ['trim', 'string', 'required'],
         });
