@@ -205,17 +205,35 @@ function getTransactions(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { offset, fromDate, toDate, byCardId = null, byServiceId = null } = req.body;
+        const {
+          offset,
+          fromDate,
+          toDate,
+          page,
+          limit,
+          byCardId = null,
+          byServiceId = null,
+        } = req.body;
 
         const validator = new LIVR.Validator({
           offset: ['trim', 'required', 'decimal', { number_between: [-12, 12] }],
           fromDate: ['trim', 'required', 'string', { past_date: offset }],
           toDate: ['trim', 'required', 'string', { past_date: offset }],
+          page: ['positive_integer'],
+          limit: ['positive_integer'],
           byCardId: ['trim', 'string'],
           byServiceId: ['trim', 'string'],
         });
 
-        const validData = validator.validate({ offset, fromDate, toDate, byCardId, byServiceId });
+        const validData = validator.validate({
+          offset,
+          fromDate,
+          toDate,
+          page: page || 1,
+          limit: limit || 20,
+          byCardId,
+          byServiceId,
+        });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
@@ -224,19 +242,20 @@ function getTransactions(req, res, next) {
       },
       // get transactions
       (cb) => {
-        const offset = inputs.offset;
-        inputs.fromDate = moment(inputs.fromDate, 'DD/MM/YYYY')
+        let { offset, fromDate, toDate, page, limit, byCardId, byServiceId } = inputs;
+
+        fromDate = moment(inputs.fromDate, 'DD/MM/YYYY')
           .startOf('day')
           .add(offset, 'hours')
           .toISOString();
-        inputs.toDate = moment(inputs.toDate, 'DD/MM/YYYY')
+        toDate = moment(inputs.toDate, 'DD/MM/YYYY')
           .endOf('day')
           .add(offset, 'hours')
           .toISOString();
 
         fetchDB(
           transactionsQuery.getTransactions,
-          [customerId, inputs.fromDate, inputs.toDate, inputs.byCardId, inputs.byServiceId],
+          [customerId, fromDate, toDate, page, limit, byCardId, byServiceId],
           (err, result) => {
             if (err) return cb(err);
 

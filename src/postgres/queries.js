@@ -143,7 +143,7 @@ const transactionsQuery = {
   transferMoneyToSelf: `call transfer_money_to_self($1, $2, $3, $4, null, null, null, null)`,
   getTransactions: `
 select * 
-from get_transactions($1, $2, $3, $4, $5)
+from get_transactions($1, $2, $3, $4, $5, $6, $7)
 order by created_at desc, (type = 'income') desc;`,
 };
 

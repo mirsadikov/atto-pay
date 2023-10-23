@@ -337,6 +337,8 @@ create or replace function get_transactions(
   _customer_id uuid,
   _from timestamp,
   _to timestamp,
+  _page int default 1,
+  _limit int default 20,
   _card_id uuid default null,
   _service_id uuid default null
 )
@@ -381,7 +383,9 @@ begin
       where t.owner_id = _customer_id and t.created_at between _from and _to
     ) as transactions
     where (_card_id is null or (transactions.sender->>'id')::uuid = _card_id or (transactions.receiver->>'id')::uuid = _card_id)
-    and (_service_id is null or (transactions.receiver->>'id')::uuid = _service_id);
+    and (_service_id is null or (transactions.receiver->>'id')::uuid = _service_id)
+    order by transactions.created_at desc, (transactions.type = 'income') desc
+    limit _limit offset (_page - 1) * _limit;
 end;
 $$ language plpgsql;
 
