@@ -1,18 +1,14 @@
 const LIVR = require('livr');
 const extraRules = require('livr-extra-rules');
 const moment = require('moment');
+const luhn = require('fast-luhn');
+
 LIVR.Validator.registerDefaultRules(extraRules);
 
 LIVR.Validator.registerAliasedDefaultRule({
   name: 'alphanumeric',
   rules: { like: '^(?=.*[a-zA-Z])(?=.*\\d)[a-zA-Z\\d\\S]+$' },
   error: 'NOT_ALPHANUMERIC',
-});
-
-LIVR.Validator.registerAliasedDefaultRule({
-  name: 'valid_pan',
-  rules: { like: '^\\d{16}$' },
-  error: 'PAN_NOT_VALID',
 });
 
 LIVR.Validator.registerAliasedDefaultRule({
@@ -32,6 +28,15 @@ LIVR.Validator.registerDefaultRules({
       date.add(offset, 'hours');
 
       if (!date.isBefore(moment())) return 'INVALID_DATE';
+      return;
+    };
+  },
+
+  valid_pan() {
+    return (value) => {
+      if (!value) return;
+
+      if (!luhn(value) || !value.match(/^\d{16}$/)) return 'PAN_NOT_VALID';
       return;
     };
   },
