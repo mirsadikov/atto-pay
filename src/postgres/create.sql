@@ -59,7 +59,7 @@ create table if not exists service (
   merchant_id uuid not null references merchant(id),
   category_id int not null references service_category(id),
   name varchar(64) not null,
-  price numeric(12, 2) not null,
+price numeric(12, 2) not null,
   image_url varchar(256),
   is_active boolean not null default false,
   public_key varchar(64) not null unique,
@@ -73,7 +73,6 @@ create table if not exists customer_saved_service(
   service_id uuid not null references service(id),
   constraint unique_customer_service unique(customer_id, service_id)
 );
-
 
 create table if not exists transactions (
   id uuid primary key default uuid_generate_v4(),
@@ -159,7 +158,7 @@ create or replace procedure pay_for_service(
   _customer_id uuid,
   _card_id uuid,
   _service_id uuid,
-  out payment_id uuid,
+    out payment_id uuid,
   out error_code varchar(64),
   out error_message text,
   out success_message jsonb
@@ -343,6 +342,7 @@ create or replace function get_transactions(
   _service_id uuid default null
 )
 returns table (
+  total_count int,
   id uuid,
   owner_id uuid,
   type varchar(16),
@@ -352,40 +352,49 @@ returns table (
   sender jsonb, 
   receiver jsonb
 ) as $$
+declare
+  total_count int := 0;
 begin
+  drop table if exists alltransactions;
+
+  create temp table alltransactions AS (
+    -- expense transfer
+    select t.id, t.owner_id, t.type, t.action, t.amount, t.created_at,
+    jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as sender, 
+    jsonb_build_object('name', receiver_customer.name, 'image_url', receiver_customer.image_url, 'pan', mask_credit_card(t.receiver->>'pan')) as receiver
+    from transactions t
+    join customer_card own_card on own_card.id = (t.sender->>'id')::uuid
+    join customer receiver_customer on receiver_customer.id = (t.receiver->>'customer_id')::uuid
+    where t.owner_id = _customer_id and t.created_at between _from and _to
+    union all
+    -- expense payment
+    select t.id, t.owner_id, t.type, t.action, t.amount, t.created_at,
+    jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as sender,
+    jsonb_build_object('id', s.id, 'name', s.name, 'image_url', s.image_url) as receiver
+    from transactions t
+    join customer_card own_card on own_card.id = (t.sender->>'id')::uuid
+    join service s on s.id = (t.receiver->>'id')::uuid
+    where t.owner_id = _customer_id and t.created_at between _from and _to
+    union all
+    -- income transfer
+    select t.id, t.owner_id, t.type, t.action, t.amount, t.created_at,
+    jsonb_build_object('name', sender_customer.name, 'image_url', sender_customer.image_url, 'pan', mask_credit_card(t.sender->>'pan')) as sender,
+    jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as receiver
+    from transactions t
+    join customer sender_customer on sender_customer.id = (t.sender->>'customer_id')::uuid
+    join customer_card own_card on own_card.id = (t.receiver->>'id')::uuid
+    where t.owner_id = _customer_id and t.created_at between _from and _to
+  );
+
+  select count(*) into total_count from alltransactions
+  where (_card_id is null or (alltransactions.sender->>'id')::uuid = _card_id or (alltransactions.receiver->>'id')::uuid = _card_id)
+  and (_service_id is null or (alltransactions.receiver->>'id')::uuid = _service_id);
+
   return query
-    select * from (
-      -- expense transfer
-      select t.id, t.owner_id, t.type, t.action, t.amount, t.created_at,
-      jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as sender, 
-      jsonb_build_object('name', receiver_customer.name, 'image_url', receiver_customer.image_url, 'pan', mask_credit_card(t.receiver->>'pan')) as receiver
-      from transactions t
-      join customer_card own_card on own_card.id = (t.sender->>'id')::uuid
-      join customer receiver_customer on receiver_customer.id = (t.receiver->>'customer_id')::uuid
-      where t.owner_id = _customer_id and t.created_at between _from and _to
-      union all
-      -- expense payment
-      select t.id, t.owner_id, t.type, t.action, t.amount, t.created_at,
-      jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as sender,
-      jsonb_build_object('id', s.id, 'name', s.name, 'image_url', s.image_url) as receiver
-      from transactions t
-      join customer_card own_card on own_card.id = (t.sender->>'id')::uuid
-      join service s on s.id = (t.receiver->>'id')::uuid
-      where t.owner_id = _customer_id and t.created_at between _from and _to
-      union all
-      -- income transfer
-      select t.id, t.owner_id, t.type, t.action, t.amount, t.created_at,
-      jsonb_build_object('name', sender_customer.name, 'image_url', sender_customer.image_url, 'pan', mask_credit_card(t.sender->>'pan')) as sender,
-      jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as receiver
-      from transactions t
-      join customer sender_customer on sender_customer.id = (t.sender->>'customer_id')::uuid
-      join customer_card own_card on own_card.id = (t.receiver->>'id')::uuid
-      where t.owner_id = _customer_id and t.created_at between _from and _to
-    ) as transactions
-    where (_card_id is null or (transactions.sender->>'id')::uuid = _card_id or (transactions.receiver->>'id')::uuid = _card_id)
-    and (_service_id is null or (transactions.receiver->>'id')::uuid = _service_id)
-    order by transactions.created_at desc, (transactions.type = 'income') desc
-    limit _limit offset (_page - 1) * _limit;
+  select total_count, alltransactions.*
+  from alltransactions 
+  order by alltransactions.created_at desc, (alltransactions.type = 'income') desc
+  limit _limit offset (_page - 1) * _limit;
 end;
 $$ language plpgsql;
 
@@ -401,6 +410,7 @@ insert into message(name, message, http_code) values
 ('MISSING_TOKEN', '{"en": "Missing token", "uz": "Token topilmadi", "ru": "Отсутствует токен"}', 401),
 ('INVALID_TOKEN', '{"en": "Invalid token", "uz": "Noto''g''ri token", "ru": "Неверный токен"}', 401),
 ('EXPIRED_TOKEN', '{"en": "Expired token", "uz": "Muddati o''tgan token", "ru": "Истекший токен"}', 401),
+('NOT_ALLOWED', '{"en": "Not allowed", "uz": "Ruxsat etilmagan", "ru": "Не разрешено"}', 401),
 ('INVALID_EXPIRY_DATE', '{"en": "Invalid expiration date", "uz": "Amal qilish muddati noto''g''ri", "ru": "Неверный срок действия"}', 400),
 ('CARD_EXPIRED', '{"en": "Card expired", "uz": "Karta muddati tugagan", "ru": "Срок действия карты истек"}', 400),
 ('CARD_ALREADY_ADDED', '{"en": "Card already added", "uz": "Karta allaqachon qo''shilgan", "ru": "Карта уже добавлена"}', 409),
@@ -417,7 +427,6 @@ insert into message(name, message, http_code) values
 ('WRONG_OTP', '{"en": "Wrong verification code", "uz": "Tekshirish kodi noto''g''ri", "ru": "Неверный код подтверждения"}', 400),
 ('EXPIRED_OTP', '{"en": "Verification code is expired", "uz": "Tasdiqlash kodi eskirgan", "ru": "Код подтверждения истек"}', 400),
 ('EMAIL_TAKEN', '{"en": "This email address is already registered", "uz": "Bu elektron pochta allaqachon ro''yxatdan o''tgan", "ru": "Этот адрес электронной почты уже зарегистрирован"}', 400),
-('NOT_ALLOWED', '{"en": "Not allowed", "uz": "Ruxsat etilmagan", "ru": "Не разрешено"}', 403),
 ('SERVICE_ALREADY_EXISTS', '{"en": "Adding multiple services in one category is not allowed", "uz": "Bitta kategoriyada bir nechta xizmat qo''shib bo''lmaydi", "ru": "Нельзя добавить несколько услуг в одну категорию"}', 409),
 ('SERVICE_NOT_FOUND', '{"en": "Service not found", "uz": "Xizmat topilmadi", "ru": "Услуга не найдена"}', 404),
 ('INSUFFICIENT_FUNDS', '{"en": "Insufficient funds", "uz": "Mablag'' yetarli emas", "ru": "Недостаточно средств"}', 400),

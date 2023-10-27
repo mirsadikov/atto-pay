@@ -190,7 +190,7 @@ function transferMoneyToSelf(req, res, next) {
 // @Private
 // @Customer
 function getTransactions(req, res, next) {
-  let customerId, inputs, transactions;
+  let customerId, inputs, transactions, total_count;
 
   async.waterfall(
     [
@@ -260,12 +260,15 @@ function getTransactions(req, res, next) {
             if (err) return cb(err);
 
             transactions = result.rows;
+            total_count = transactions[0].total_count || transactions.length;
             cb(null);
           }
         );
       },
       (cb) => {
         transactions.forEach((t) => {
+          delete t.total_count;
+
           if (t.sender.image_url) t.sender.image_url = fileStorage.getFileUrl(t.sender.image_url);
 
           if (t.receiver.image_url)
@@ -278,7 +281,7 @@ function getTransactions(req, res, next) {
     (err) => {
       if (err) return next(err);
 
-      res.status(200).json({ length: transactions.length, transactions });
+      res.status(200).json({ total_count, length: transactions.length, transactions });
     }
   );
 }
