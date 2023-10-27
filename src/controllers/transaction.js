@@ -32,7 +32,7 @@ function payForService(req, res, next) {
         const validator = new LIVR.Validator({
           serviceId: ['trim', 'required', 'string'],
           fromCardId: ['trim', 'required', 'string'],
-        });
+                  });
 
         const validData = validator.validate({ serviceId, fromCardId });
 
@@ -260,7 +260,7 @@ function getTransactions(req, res, next) {
             if (err) return cb(err);
 
             transactions = result.rows;
-            total_count = transactions[0].total_count || transactions.length;
+            total_count = transactions[0] ? transactions[0].total_count : transactions.length;
             cb(null);
           }
         );
