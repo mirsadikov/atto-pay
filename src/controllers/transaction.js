@@ -27,14 +27,21 @@ function payForService(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { serviceId, fromCardId } = req.body;
+        const { serviceId, fromCardId, amount, fields } = req.body;
 
         const validator = new LIVR.Validator({
           serviceId: ['trim', 'required', 'string'],
           fromCardId: ['trim', 'required', 'string'],
-                  });
+          amount: ['required', 'integer'],
+          fields: ['any_object'],
+        });
 
-        const validData = validator.validate({ serviceId, fromCardId });
+        const validData = validator.validate({
+          serviceId,
+          fromCardId,
+          amount: Math.abs(amount),
+          fields,
+        });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
@@ -45,7 +52,13 @@ function payForService(req, res, next) {
       (cb) => {
         fetchDB(
           transactionsQuery.payForService,
-          [customerId, inputs.fromCardId, inputs.serviceId],
+          [
+            customerId,
+            inputs.fromCardId,
+            inputs.serviceId,
+            inputs.amount,
+            JSON.stringify(inputs.fields),
+          ],
           (err, result) => {
             if (err) return cb(err);
 

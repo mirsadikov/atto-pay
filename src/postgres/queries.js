@@ -90,8 +90,11 @@ select *
 from service s 
 where id = $1 and merchant_id = $2 and deleted = false`,
   getOneByIdWithCategory: `
-select s.id, s.merchant_id, s.category_id, s.name, s.price, s.image_url, s.is_active, s.public_key,
-  c.code as category_code, c.name -> $3 as category_name
+select s.id, s.merchant_id, s.category_id, s.name, s.image_url, s.is_active, s.public_key,
+  c.code as category_code, c.name -> $3 as category_name,
+  (select json_agg(
+    json_build_object('id', f.id, 'name', f.name, 'type', f.type, 'required', f.required, 'order', f.order_num)
+  ) from service_field f where f.service_id = s.id) as fields
 from service s
 JOIN service_category c on s.category_id = c.id
 where s.id = $1 and s.merchant_id = $2 and s.deleted = false`,
@@ -99,27 +102,20 @@ where s.id = $1 and s.merchant_id = $2 and s.deleted = false`,
 select * from service 
 where merchant_id = $1 and category_id = $2 and deleted = false`,
   getAll: `
-select s.id, s.merchant_id, s.category_id, s.name, s.price, s.image_url, 
-  c.code as category_code, c.name -> $1 as category_name 
+select s.id, s.merchant_id, s.category_id, s.name, s.image_url, 
+  c.code as category_code, c.name -> $1 as category_name
 from service s 
 JOIN service_category c on s.category_id = c.id 
 where is_active = true and deleted = false`,
-  create: `
-insert into service(merchant_id, category_id, name, price, image_url, is_active, public_key)
-values ($1, $2, $3, $4, $5, $6, $7)
-returning (select message from message where name = 'SERVICE_CREATED') as message`,
-  update: `
-update service
-set name = $1, price = $2, category_id = $3, is_active = $4, image_url = $5 
-where id = $6 and merchant_id = $7 and deleted = false
-returning (select message from message where name = 'SERVICE_UPDATED') as message`,
+  create: `call create_service($1, $2, $3, $4, $5, $6, $7, null, null, null)`,
+  update: `call update_service($1, $2, $3, $4, $5, $6, $7, null, null, null)`,
   delete: `
 update service
 set is_active = false, deleted = true
 where id = $1 and merchant_id = $2 and deleted = false
 returning id, (select message from message where name = 'SERVICE_DELETED') as message`,
   getAllByMerchant: `
-select s.id, s.merchant_id, s.category_id, s.name, s.price, s.image_url, s.is_active,
+select s.id, s.merchant_id, s.category_id, s.name, s.image_url, s.is_active,
   c.code as category_code, c.name -> $1 as category_name
 from service s
 JOIN service_category c on s.category_id = c.id
@@ -129,8 +125,11 @@ select service_id as id
 from customer_saved_service
 where customer_id = $1`,
   getOnePublicByIdWithCategory: `
-select s.id, s.merchant_id, s.category_id, s.name, s.price, s.image_url,
-  c.code as category_code, c.name -> $2 as category_name
+select s.id, s.merchant_id, s.category_id, s.name, s.image_url,
+  c.code as category_code, c.name -> $2 as category_name,
+  (select json_agg(
+    json_build_object('id', f.id, 'name', f.name, 'type', f.type, 'required', f.required, 'order', f.order_num)
+  ) from service_field f where f.service_id = s.id) as fields
 from service s
 JOIN service_category c on s.category_id = c.id
 where s.id = $1 and s.deleted = false and s.is_active = true`,
@@ -138,13 +137,12 @@ where s.id = $1 and s.deleted = false and s.is_active = true`,
 };
 
 const transactionsQuery = {
-  payForService: `call pay_for_service($1, $2, $3, null, null, null, null)`,
+  payForService: `call pay_for_service($1, $2, $3, $4, $5, null, null, null, null)`,
   transferMoney: `call transfer_money($1, $2, $3, $4, null, null, null, null)`,
   transferMoneyToSelf: `call transfer_money_to_self($1, $2, $3, $4, null, null, null, null)`,
   getTransactions: `
 select * 
-from get_transactions($1, $2, $3, $4, $5, $6, $7)
-order by created_at desc, (type = 'income') desc;`,
+from get_transactions($1, $2, $3, $4, $5, $6, $7)`,
 };
 
 module.exports = {

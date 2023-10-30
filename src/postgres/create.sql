@@ -59,7 +59,6 @@ create table if not exists service (
   merchant_id uuid not null references merchant(id),
   category_id int not null references service_category(id),
   name varchar(64) not null,
-price numeric(12, 2) not null,
   image_url varchar(256),
   is_active boolean not null default false,
   public_key varchar(64) not null unique,
@@ -67,6 +66,16 @@ price numeric(12, 2) not null,
 );
 
 create unique index if not exists unique_merchant_category on service(merchant_id, category_id) where deleted = false;
+
+create table if not exists service_field (
+  id uuid primary key default uuid_generate_v4(),
+  service_id uuid not null references service(id),
+  name varchar(64) not null,
+  type varchar(16) not null,
+  order_num int not null default 0,
+  required boolean not null default true,
+  constraint unique_service_field unique(service_id, name)
+);
 
 create table if not exists customer_saved_service(
   customer_id uuid not null references customer(id),
@@ -82,7 +91,8 @@ create table if not exists transactions (
   amount int not null,
   created_at timestamp not null default now(),
   sender jsonb, 
-  receiver jsonb
+  receiver jsonb,
+  fields jsonb
 );
 
 -- ############################
@@ -92,6 +102,7 @@ create table if not exists transactions (
 create or replace function service_deleted_trigger()
 returns trigger as $$
 begin
+  delete from service_field where service_id = old.id;
   delete from customer_saved_service where service_id = old.id;
   delete from transactions where owner_id = old.merchant_id and (receiver->>'id')::uuid = old.id;
   return new;
@@ -121,6 +132,86 @@ end;
 $$ language plpgsql;
 
 -- MUTATION PROCEDURES --
+
+-- creates new service
+create or replace procedure create_service(
+  _merchant_id uuid,
+  _category_id int,
+  _name varchar(64),
+  _is_active boolean,
+  _image_url varchar(256),
+  _public_key varchar(64),
+  _fields jsonb,
+  out error_code varchar(64),
+  out error_message text,
+  out success_message jsonb
+) as $$
+declare
+  service_id uuid;
+begin
+  begin
+    insert into service (merchant_id, category_id, name, image_url, is_active, public_key)
+    values (_merchant_id, _category_id, _name, _image_url, _is_active, _public_key)
+    returning id into service_id;
+
+    for i in 0..jsonb_array_length(_fields) - 1 loop
+      insert into service_field (service_id, name, type, required, order_num)
+      values (service_id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'required')::boolean, (_fields->i->>'order')::int);
+    end loop;
+
+    select message from message where name = 'SERVICE_CREATED' into success_message;
+  exception
+    when others then
+      rollback;
+      error_code := 'DATABASE_ERROR';
+      error_message := sqlerrm;
+      return;
+  end;
+
+  commit;
+end;
+$$ language plpgsql;
+
+-- update service
+create or replace procedure update_service(
+  _merchant_id uuid,
+  _service_id uuid,
+  _category_id int,
+  _name varchar(64),
+  _is_active boolean,
+  _image_url varchar(256),
+  _fields jsonb,
+  out error_code varchar(64),
+  out error_message text,
+  out success_message jsonb
+) as $$
+declare
+  service_row service;
+begin
+  begin
+    select * into service_row from service where id = _service_id and merchant_id = _merchant_id and deleted = false;
+  
+    update service set category_id = _category_id, name = _name, image_url = _image_url, is_active = _is_active
+    where id = service_row.id;
+
+    delete from service_field where service_id = service_row.id;
+    for i in 0..jsonb_array_length(_fields) - 1 loop
+      insert into service_field (service_id, name, type, required, order_num)
+      values (service_row.id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'required')::boolean, (_fields->i->>'order')::int);
+    end loop;
+
+    select message from message where name = 'SERVICE_UPDATED' into success_message;
+  exception
+    when others then
+      rollback;
+      error_code := 'DATABASE_ERROR';
+      error_message := sqlerrm;
+      return;
+  end;
+
+  commit;
+end;
+$$ language plpgsql;
 
 -- deletes related data from all tables
 create or replace procedure delete_card(
@@ -158,7 +249,9 @@ create or replace procedure pay_for_service(
   _customer_id uuid,
   _card_id uuid,
   _service_id uuid,
-    out payment_id uuid,
+  _amount int,
+  _details jsonb,
+  out payment_id uuid,
   out error_code varchar(64),
   out error_message text,
   out success_message jsonb
@@ -168,11 +261,19 @@ declare
   service_row service;
   card_row customer_card;
   merchant_row merchant;
+  service_fields jsonb;
+  details jsonb := '{}';
+  key_exists boolean := false;
 begin
   begin
     select * into service_row from service where id = _service_id and deleted = false;
     if not found then 
       error_code := 'SERVICE_NOT_FOUND';
+      return;
+    end if;
+
+    if not service_row.is_active then 
+      error_code := 'SERVICE_NOT_ACTIVE';
       return;
     end if;
 
@@ -182,20 +283,40 @@ begin
       return;
     end if;
 
-    if card_row.balance < service_row.price then 
+    if card_row.balance < _amount then 
       error_code := 'INSUFFICIENT_FUNDS';
       return;
     end if;
+    
+    -- save service_field names
+    select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'required', required)) into service_fields from service_field where service_id = _service_id;
 
-    insert into transactions (owner_id, type, action, amount, sender, receiver)
-    values (_customer_id, 'expense', 'payment', service_row.price, jsonb_build_object('id', card_row.id), jsonb_build_object('id', _service_id))
+    -- loop service_fields and check if all required fields are provided, then add them to details
+    for i in 0..jsonb_array_length(service_fields) - 1 loop
+      -- key_exists variable
+      select exists(select 1 from jsonb_each(_details) where key = service_fields->i->>'id') into key_exists;
+    
+      if (service_fields->i->>'required')::boolean and not key_exists then
+        error_code := 'VALIDATION_ERROR';
+        error_message := service_fields->i->>'name';
+        return;
+      end if;
+
+    -- add service_fields to details
+    if key_exists then
+      details := details || jsonb_build_object(service_fields->i->>'id', _details->(service_fields->i->>'id'));
+    end if;
+    end loop;
+
+    insert into transactions (owner_id, type, action, amount, sender, receiver, fields)
+    values (_customer_id, 'expense', 'payment', _amount, jsonb_build_object('id', card_row.id), jsonb_build_object('id', _service_id), details)
     returning id into payment_id;
 
-    insert into transactions (owner_id, type, action, amount, sender, receiver)
-    values (service_row.merchant_id, 'income', 'payment', service_row.price, jsonb_build_object('id', _customer_id), jsonb_build_object('id', _service_id));
+    insert into transactions (owner_id, type, action, amount, sender, receiver, fields)
+    values (service_row.merchant_id, 'income', 'payment', _amount, jsonb_build_object('id', _customer_id), jsonb_build_object('id', _service_id), details);
 
-    update customer_card set balance = balance - service_row.price where id = _card_id;
-    update merchant set balance = balance + service_row.price where id = service_row.merchant_id;
+    update customer_card set balance = balance - _amount where id = _card_id;
+    update merchant set balance = balance + _amount where id = service_row.merchant_id;
 
     select message from message where name = 'PAYMENT_SUCCESS' into success_message;
   exception

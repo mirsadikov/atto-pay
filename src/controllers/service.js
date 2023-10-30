@@ -28,19 +28,29 @@ function createService(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { name, price, categoryId, isActive } = req.body;
+        const { name, categoryId, fields, isActive } = req.body;
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required', { min_length: 2 }, { max_length: 64 }],
-          price: ['trim', 'integer', 'required'],
           categoryId: ['trim', 'integer', 'required'],
+          fields: [
+            'required',
+            {
+              list_of_objects: {
+                name: ['trim', 'string', 'required'],
+                type: ['trim', 'string', 'required'],
+                required: ['trim', 'boolean', { default: true }],
+                order: ['trim', 'integer', { default: 0 }],
+              },
+            },
+          ],
           isActive: ['trim', 'boolean', { default: false }],
         });
 
         const validData = validator.validate({
           name,
-          price: Math.abs(price),
           categoryId: Math.abs(categoryId),
+          fields,
           isActive,
         });
 
@@ -79,15 +89,19 @@ function createService(req, res, next) {
             merchantId,
             inputs.categoryId,
             inputs.name,
-            inputs.price,
-            newImage,
             inputs.isActive,
+            newImage,
             publicKey,
+            JSON.stringify(inputs.fields),
           ],
           (err, res) => {
             if (err) return cb(err);
 
-            const message = res.rows[0].message[acceptsLanguages(req)];
+            const { error_code, error_message, success_message } = res.rows[0];
+
+            if (error_code) return cb(new CustomError(error_code, error_message));
+
+            const message = success_message[acceptsLanguages(req)];
             cb(null, message);
           }
         );
@@ -196,24 +210,34 @@ function updateService(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { id, name, price, categoryId, isActive, deleteImage } = req.body;
+        const { id, name, categoryId, isActive, deleteImage, fields } = req.body;
 
         const validator = new LIVR.Validator({
           id: ['trim', 'string', 'required'],
           name: ['trim', 'string', { min_length: 2 }, { max_length: 64 }],
-          price: ['trim', 'integer'],
           categoryId: ['trim', 'integer'],
           isActive: ['trim', 'boolean'],
           deleteImage: ['trim', 'boolean', { default: false }],
+          fields: [
+            {
+              list_of_objects: {
+                id: ['trim', 'string'],
+                name: ['trim', 'string', 'required'],
+                type: ['trim', 'string', 'required'],
+                required: ['trim', 'boolean', { default: true }],
+                order: ['trim', 'integer', { default: 0 }],
+              },
+            },
+          ],
         });
 
         const validData = validator.validate({
           id,
           name,
-          price: price ? Math.abs(price) : price,
           categoryId: categoryId ? Math.abs(categoryId) : categoryId,
           isActive,
           deleteImage,
+          fields,
         });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
@@ -258,21 +282,32 @@ function updateService(req, res, next) {
       },
       // update service
       (cb) => {
-        const { name, price, categoryId, isActive } = inputs;
+        const { name, categoryId, isActive, fields } = inputs;
 
         const newName = name || service.name;
-        const newPrice = price || service.price;
         const newCategoryId = categoryId || service.category_id;
         const newIsActive = typeof isActive === 'boolean' ? isActive : service.is_active;
         const newImageUrl = newImage || service.image_url;
 
         fetchDB(
           servicesQuery.update,
-          [newName, newPrice, newCategoryId, newIsActive, newImageUrl, service.id, merchantId],
+          [
+            merchantId,
+            service.id,
+            newCategoryId,
+            newName,
+            newIsActive,
+            newImageUrl,
+            JSON.stringify(fields),
+          ],
           (err, res) => {
             if (err) return cb(err);
 
-            message = res.rows[0].message[acceptsLanguages(req)];
+            const { error_code, error_message, success_message } = res.rows[0];
+
+            if (error_code) return cb(new CustomError(error_code, error_message));
+
+            message = success_message[acceptsLanguages(req)];
             cb(null, newImageUrl !== oldImage);
           }
         );
