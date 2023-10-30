@@ -93,7 +93,7 @@ where id = $1 and merchant_id = $2 and deleted = false`,
 select s.id, s.merchant_id, s.category_id, s.name, s.image_url, s.is_active, s.public_key,
   c.code as category_code, c.name -> $3 as category_name,
   (select json_agg(
-    json_build_object('id', f.id, 'name', f.name, 'type', f.type, 'required', f.required, 'order', f.order_num)
+    json_build_object('id', f.id, 'name', f.name, 'type', f.type, 'order', f.order_num)
   ) from service_field f where f.service_id = s.id) as fields
 from service s
 JOIN service_category c on s.category_id = c.id
@@ -128,7 +128,7 @@ where customer_id = $1`,
 select s.id, s.merchant_id, s.category_id, s.name, s.image_url,
   c.code as category_code, c.name -> $2 as category_name,
   (select json_agg(
-    json_build_object('id', f.id, 'name', f.name, 'type', f.type, 'required', f.required, 'order', f.order_num)
+    json_build_object('id', f.id, 'name', f.name, 'type', f.type, 'order', f.order_num)
   ) from service_field f where f.service_id = s.id) as fields
 from service s
 JOIN service_category c on s.category_id = c.id

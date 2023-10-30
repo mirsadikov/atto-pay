@@ -73,7 +73,6 @@ create table if not exists service_field (
   name varchar(64) not null,
   type varchar(16) not null,
   order_num int not null default 0,
-  required boolean not null default true,
   constraint unique_service_field unique(service_id, name)
 );
 
@@ -83,16 +82,27 @@ create table if not exists customer_saved_service(
   constraint unique_customer_service unique(customer_id, service_id)
 );
 
-create table if not exists transactions (
+create table if not exists payment (
   id uuid primary key default uuid_generate_v4(),
   owner_id uuid not null,
   type varchar(16) not null, 
-  action varchar(16) not null, 
   amount int not null,
   created_at timestamp not null default now(),
-  sender jsonb, 
-  receiver jsonb,
+  sender_id uuid not null, 
+  receiver_id uuid not null,
   fields jsonb
+);
+
+create table if not exists transfer (
+  id uuid primary key default uuid_generate_v4(),
+  owner_id uuid not null,
+  type varchar(16) not null, 
+  amount int not null,
+  created_at timestamp not null default now(),
+  sender_pan varchar(16),
+  sender_id uuid,
+  receiver_pan varchar(16),
+  receiver_id uuid
 );
 
 -- ############################
@@ -155,8 +165,8 @@ begin
     returning id into service_id;
 
     for i in 0..jsonb_array_length(_fields) - 1 loop
-      insert into service_field (service_id, name, type, required, order_num)
-      values (service_id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'required')::boolean, (_fields->i->>'order')::int);
+      insert into service_field (service_id, name, type, order_num)
+      values (service_id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'order')::int);
     end loop;
 
     select message from message where name = 'SERVICE_CREATED' into success_message;
@@ -194,10 +204,16 @@ begin
     update service set category_id = _category_id, name = _name, image_url = _image_url, is_active = _is_active
     where id = service_row.id;
 
-    delete from service_field where service_id = service_row.id;
     for i in 0..jsonb_array_length(_fields) - 1 loop
-      insert into service_field (service_id, name, type, required, order_num)
-      values (service_row.id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'required')::boolean, (_fields->i->>'order')::int);
+      -- if there is id, update, else insert
+      if (_fields->i->>'id')::uuid is not null then
+        update service_field set name = _fields->i->>'name', order_num = (_fields->i->>'order')::int
+        where id = (_fields->i->>'id')::uuid;
+      else
+        insert into service_field (service_id, name, type, order_num)
+        values (service_row.id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'order')::int);
+      end if;
+
     end loop;
 
     select message from message where name = 'SERVICE_UPDATED' into success_message;
@@ -289,14 +305,14 @@ begin
     end if;
     
     -- save service_field names
-    select jsonb_agg(jsonb_build_object('id', id, 'name', name, 'required', required)) into service_fields from service_field where service_id = _service_id;
+    select jsonb_agg(jsonb_build_object('id', id, 'name', name)) into service_fields from service_field where service_id = _service_id;
 
     -- loop service_fields and check if all required fields are provided, then add them to details
     for i in 0..jsonb_array_length(service_fields) - 1 loop
       -- key_exists variable
       select exists(select 1 from jsonb_each(_details) where key = service_fields->i->>'id') into key_exists;
-    
-      if (service_fields->i->>'required')::boolean and not key_exists then
+
+      if not key_exists then
         error_code := 'VALIDATION_ERROR';
         error_message := service_fields->i->>'name';
         return;
@@ -308,12 +324,12 @@ begin
     end if;
     end loop;
 
-    insert into transactions (owner_id, type, action, amount, sender, receiver, fields)
-    values (_customer_id, 'expense', 'payment', _amount, jsonb_build_object('id', card_row.id), jsonb_build_object('id', _service_id), details)
+    insert into payment (owner_id, type, amount, sender_id, receiver_id, fields)
+    values (_customer_id, 'expense', _amount, card_row.id, _service_id, details)
     returning id into payment_id;
 
-    insert into transactions (owner_id, type, action, amount, sender, receiver, fields)
-    values (service_row.merchant_id, 'income', 'payment', _amount, jsonb_build_object('id', _customer_id), jsonb_build_object('id', _service_id), details);
+    insert into payment (owner_id, type, amount, sender_id, receiver_id, fields)
+    values (service_row.merchant_id, 'income', _amount, _customer_id, _service_id, details);
 
     update customer_card set balance = balance - _amount where id = _card_id;
     update merchant set balance = balance + _amount where id = service_row.merchant_id;
@@ -369,12 +385,12 @@ begin
       return;
     end if;
 
-    insert into transactions (owner_id, type, action, amount, sender, receiver)
-    values (_customer_id, 'expense', 'transfer', _amount, jsonb_build_object('id', _from_card_id), jsonb_build_object('pan', receiver_card.pan, 'customer_id', receiver_card.customer_id))
+    insert into transfer (owner_id, type, amount, sender_id, receiver_pan, receiver_id)
+    values (_customer_id, 'expense', _amount, _from_card_id, receiver_card.pan, receiver_card.customer_id)
     returning id into transfer_id;
 
-    insert into transactions (owner_id, type, action, amount, sender, receiver)
-    values (receiver_card.customer_id, 'income', 'transfer', _amount, jsonb_build_object('pan', sender_card.pan, 'customer_id', sender_card.customer_id), jsonb_build_object('id', receiver_card.id));
+    insert into transfer (owner_id, type, amount, sender_pan, sender_id, receiver_id)
+    values (receiver_card.customer_id, 'income', _amount, sender_card.pan, sender_card.customer_id, receiver_card.id);
 
     update customer_card set balance = balance - _amount where id = sender_card.id;
     update customer_card set balance = balance + _amount where id = receiver_card.id;
@@ -425,12 +441,12 @@ begin
       return;
     end if;
 
-    insert into transactions (owner_id, type, action, amount, sender, receiver)
-    values (_customer_id, 'expense', 'transfer', _amount, jsonb_build_object('id', _from_card_id), jsonb_build_object('pan', receiver_card.pan, 'customer_id', receiver_card.customer_id))
+    insert into transactions (owner_id, type, action, amount, sender_id, receiver_pan, receiver_id)
+    values (_customer_id, 'expense', 'transfer', _amount, _from_card_id, receiver_card.pan, receiver_card.customer_id)
     returning id into transfer_id;
 
-    insert into transactions (owner_id, type, action, amount, sender, receiver)
-    values (_customer_id, 'income', 'transfer', _amount, jsonb_build_object('pan', sender_card.pan, 'customer_id', sender_card.customer_id), jsonb_build_object('id', _to_card_id));
+    insert into transactions (owner_id, type, action, amount, sender_pan, sender_id, receiver_id)
+    values (_customer_id, 'income', 'transfer', _amount, sender_card.pan, sender_card.customer_id, _to_card_id);
 
     update customer_card set balance = balance - _amount where id = sender_card.id;
     update customer_card set balance = balance + _amount where id = receiver_card.id;
@@ -467,7 +483,7 @@ returns table (
   id uuid,
   owner_id uuid,
   type varchar(16),
-  action varchar(16),
+  action text,
   amount int,
   created_at timestamp,
   sender jsonb, 
@@ -480,30 +496,30 @@ begin
 
   create temp table alltransactions AS (
     -- expense transfer
-    select t.id, t.owner_id, t.type, t.action, t.amount, t.created_at,
+    select t.id, t.owner_id, t.type, 'transfer' as action, t.amount, t.created_at,
     jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as sender, 
-    jsonb_build_object('name', receiver_customer.name, 'image_url', receiver_customer.image_url, 'pan', mask_credit_card(t.receiver->>'pan')) as receiver
-    from transactions t
-    join customer_card own_card on own_card.id = (t.sender->>'id')::uuid
-    join customer receiver_customer on receiver_customer.id = (t.receiver->>'customer_id')::uuid
+    jsonb_build_object('name', receiver_customer.name, 'image_url', receiver_customer.image_url, 'pan', mask_credit_card(t.receiver_pan)) as receiver
+    from transfer t
+    join customer_card own_card on own_card.id = t.sender_id
+    join customer receiver_customer on receiver_customer.id = t.receiver_id
     where t.owner_id = _customer_id and t.created_at between _from and _to
     union all
     -- expense payment
-    select t.id, t.owner_id, t.type, t.action, t.amount, t.created_at,
+    select p.id, p.owner_id, p.type, 'payment' as action, p.amount, p.created_at,
     jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as sender,
     jsonb_build_object('id', s.id, 'name', s.name, 'image_url', s.image_url) as receiver
-    from transactions t
-    join customer_card own_card on own_card.id = (t.sender->>'id')::uuid
-    join service s on s.id = (t.receiver->>'id')::uuid
-    where t.owner_id = _customer_id and t.created_at between _from and _to
+    from payment p
+    join customer_card own_card on own_card.id = p.sender_id
+    join service s on s.id = p.receiver_id
+    where p.owner_id = _customer_id and p.created_at between _from and _to
     union all
     -- income transfer
-    select t.id, t.owner_id, t.type, t.action, t.amount, t.created_at,
-    jsonb_build_object('name', sender_customer.name, 'image_url', sender_customer.image_url, 'pan', mask_credit_card(t.sender->>'pan')) as sender,
+    select t.id, t.owner_id, t.type, 'transfer' as action, t.amount, t.created_at,
+    jsonb_build_object('name', sender_customer.name, 'image_url', sender_customer.image_url, 'pan', mask_credit_card(t.sender_pan)) as sender,
     jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as receiver
-    from transactions t
-    join customer sender_customer on sender_customer.id = (t.sender->>'customer_id')::uuid
-    join customer_card own_card on own_card.id = (t.receiver->>'id')::uuid
+    from transfer t
+    join customer sender_customer on sender_customer.id = t.sender_id
+    join customer_card own_card on own_card.id = t.receiver_id
     where t.owner_id = _customer_id and t.created_at between _from and _to
   );
 

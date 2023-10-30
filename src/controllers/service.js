@@ -39,7 +39,6 @@ function createService(req, res, next) {
               list_of_objects: {
                 name: ['trim', 'string', 'required'],
                 type: ['trim', 'string', 'required'],
-                required: ['trim', 'boolean', { default: true }],
                 order: ['trim', 'integer', { default: 0 }],
               },
             },
@@ -224,7 +223,6 @@ function updateService(req, res, next) {
                 id: ['trim', 'string'],
                 name: ['trim', 'string', 'required'],
                 type: ['trim', 'string', 'required'],
-                required: ['trim', 'boolean', { default: true }],
                 order: ['trim', 'integer', { default: 0 }],
               },
             },
@@ -237,7 +235,7 @@ function updateService(req, res, next) {
           categoryId: categoryId ? Math.abs(categoryId) : categoryId,
           isActive,
           deleteImage,
-          fields: JSON.parse(fields),
+          fields: JSON.parse(fields) || [],
         });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
