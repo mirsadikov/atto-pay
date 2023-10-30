@@ -108,7 +108,7 @@ from service s
 JOIN service_category c on s.category_id = c.id 
 where is_active = true and deleted = false`,
   create: `call create_service($1, $2, $3, $4, $5, $6, $7, null, null, null)`,
-  update: `call update_service($1, $2, $3, $4, $5, $6, $7, null, null, null)`,
+  update: `call update_service($1, $2, $3, $4, $5, $6, $7, $8, null, null, null)`,
   delete: `
 update service
 set is_active = false, deleted = true

@@ -209,7 +209,7 @@ function updateService(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { id, name, categoryId, isActive, deleteImage, fields } = req.body;
+        const { id, name, categoryId, isActive, deleteImage, fields, deletedFields } = req.body;
 
         const validator = new LIVR.Validator({
           id: ['trim', 'string', 'required'],
@@ -217,6 +217,7 @@ function updateService(req, res, next) {
           categoryId: ['trim', 'integer'],
           isActive: ['trim', 'boolean'],
           deleteImage: ['trim', 'boolean', { default: false }],
+          deletedFields: [{ list_of: 'string' }],
           fields: [
             {
               list_of_objects: {
@@ -236,6 +237,7 @@ function updateService(req, res, next) {
           isActive,
           deleteImage,
           fields: JSON.parse(fields) || [],
+          deletedFields: JSON.parse(deletedFields) || [],
         });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
@@ -280,7 +282,7 @@ function updateService(req, res, next) {
       },
       // update service
       (cb) => {
-        const { name, categoryId, isActive, fields } = inputs;
+        const { name, categoryId, isActive, fields, deletedFields } = inputs;
 
         const newName = name || service.name;
         const newCategoryId = categoryId || service.category_id;
@@ -297,6 +299,7 @@ function updateService(req, res, next) {
             newIsActive,
             newImageUrl,
             JSON.stringify(fields),
+            JSON.stringify(deletedFields),
           ],
           (err, res) => {
             if (err) return cb(err);

@@ -114,7 +114,7 @@ returns trigger as $$
 begin
   delete from service_field where service_id = old.id;
   delete from customer_saved_service where service_id = old.id;
-  delete from transactions where owner_id = old.merchant_id and (receiver->>'id')::uuid = old.id;
+  delete from payment where owner_id = old.merchant_id and receiver_id = old.id;
   return new;
 end;
 $$ language plpgsql;
@@ -191,6 +191,7 @@ create or replace procedure update_service(
   _is_active boolean,
   _image_url varchar(256),
   _fields jsonb,
+  _deleted_fields jsonb,
   out error_code varchar(64),
   out error_message text,
   out success_message jsonb
@@ -213,7 +214,11 @@ begin
         insert into service_field (service_id, name, type, order_num)
         values (service_row.id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'order')::int);
       end if;
+    end loop;
 
+    -- delete fields
+    for i in 0..jsonb_array_length(_deleted_fields) - 1 loop
+      delete from service_field where id = (_deleted_fields->i)::uuid;
     end loop;
 
     select message from message where name = 'SERVICE_UPDATED' into success_message;
@@ -441,12 +446,12 @@ begin
       return;
     end if;
 
-    insert into transactions (owner_id, type, action, amount, sender_id, receiver_pan, receiver_id)
-    values (_customer_id, 'expense', 'transfer', _amount, _from_card_id, receiver_card.pan, receiver_card.customer_id)
+    insert into transfer (owner_id, type, amount, sender_id, receiver_pan, receiver_id)
+    values (_customer_id, 'expense', _amount, _from_card_id, receiver_card.pan, receiver_card.customer_id)
     returning id into transfer_id;
 
-    insert into transactions (owner_id, type, action, amount, sender_pan, sender_id, receiver_id)
-    values (_customer_id, 'income', 'transfer', _amount, sender_card.pan, sender_card.customer_id, _to_card_id);
+    insert into transfer (owner_id, type, amount, sender_pan, sender_id, receiver_id)
+    values (_customer_id, 'income', _amount, sender_card.pan, sender_card.customer_id, _to_card_id);
 
     update customer_card set balance = balance - _amount where id = sender_card.id;
     update customer_card set balance = balance + _amount where id = receiver_card.id;
