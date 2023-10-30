@@ -50,7 +50,7 @@ function createService(req, res, next) {
         const validData = validator.validate({
           name,
           categoryId: Math.abs(categoryId),
-          fields,
+          fields: JSON.parse(fields),
           isActive,
         });
 
@@ -237,7 +237,7 @@ function updateService(req, res, next) {
           categoryId: categoryId ? Math.abs(categoryId) : categoryId,
           isActive,
           deleteImage,
-          fields,
+          fields: JSON.parse(fields),
         });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
