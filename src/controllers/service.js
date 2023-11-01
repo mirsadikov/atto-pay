@@ -210,7 +210,7 @@ function updateService(req, res, next) {
       // validate data
       (cb) => {
         const { id, name, categoryId, isActive, deleteImage, fields, deletedFields } = req.body;
-
+        
         const validator = new LIVR.Validator({
           id: ['trim', 'string', 'required'],
           name: ['trim', 'string', { min_length: 2 }, { max_length: 64 }],
@@ -236,8 +236,8 @@ function updateService(req, res, next) {
           categoryId: categoryId ? Math.abs(categoryId) : categoryId,
           isActive,
           deleteImage,
-          fields: JSON.parse(fields) || [],
-          deletedFields: JSON.parse(deletedFields) || [],
+          fields: fields ? JSON.parse(fields) : [],
+          deletedFields: deletedFields ? JSON.parse(deletedFields) : [],
         });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));

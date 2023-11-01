@@ -143,7 +143,7 @@ $$ language plpgsql;
 
 -- MUTATION PROCEDURES --
 
--- creates new service
+-- creates new service with fields
 create or replace procedure create_service(
   _merchant_id uuid,
   _category_id int,
@@ -164,10 +164,17 @@ begin
     values (_merchant_id, _category_id, _name, _image_url, _is_active, _public_key)
     returning id into service_id;
 
-    for i in 0..jsonb_array_length(_fields) - 1 loop
-      insert into service_field (service_id, name, type, order_num)
-      values (service_id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'order')::int);
-    end loop;
+    begin
+      for i in 0..jsonb_array_length(_fields) - 1 loop
+        insert into service_field (service_id, name, type, order_num)
+        values (service_id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'order')::int);
+      end loop;
+    exception
+      when unique_violation then
+        rollback;
+        error_code := 'SAME_FIELD_NAME';
+        return;
+    end;
 
     select message from message where name = 'SERVICE_CREATED' into success_message;
   exception
@@ -182,7 +189,7 @@ begin
 end;
 $$ language plpgsql;
 
--- update service
+-- update service with fields
 create or replace procedure update_service(
   _merchant_id uuid,
   _service_id uuid,
@@ -198,6 +205,7 @@ create or replace procedure update_service(
 ) as $$
 declare
   service_row service;
+  i text;
 begin
   begin
     select * into service_row from service where id = _service_id and merchant_id = _merchant_id and deleted = false;
@@ -205,20 +213,27 @@ begin
     update service set category_id = _category_id, name = _name, image_url = _image_url, is_active = _is_active
     where id = service_row.id;
 
-    for i in 0..jsonb_array_length(_fields) - 1 loop
-      -- if there is id, update, else insert
-      if (_fields->i->>'id')::uuid is not null then
-        update service_field set name = _fields->i->>'name', order_num = (_fields->i->>'order')::int
-        where id = (_fields->i->>'id')::uuid;
-      else
-        insert into service_field (service_id, name, type, order_num)
-        values (service_row.id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'order')::int);
-      end if;
-    end loop;
+    begin
+      for i in 0..jsonb_array_length(_fields) - 1 loop
+        -- if there is id, update, else insert
+        if (_fields->i->>'id')::uuid is not null then
+          update service_field set name = _fields->i->>'name', order_num = (_fields->i->>'order')::int
+          where id = (_fields->i->>'id')::uuid;
+        else
+          insert into service_field (service_id, name, type, order_num)
+          values (service_row.id, _fields->i->>'name', _fields->i->>'type', (_fields->i->>'order')::int);
+        end if;
+      end loop;
+    exception
+      when unique_violation then
+        rollback;
+        error_code := 'SAME_FIELD_NAME';
+        return;
+    end;
 
     -- delete fields
     for i in 0..jsonb_array_length(_deleted_fields) - 1 loop
-      delete from service_field where id = (_deleted_fields->i)::uuid;
+      delete from service_field where id = (_deleted_fields->>i)::uuid;
     end loop;
 
     select message from message where name = 'SERVICE_UPDATED' into success_message;
@@ -244,8 +259,10 @@ create or replace procedure delete_card(
 ) as $$
 begin
   begin
-    delete from transactions where owner_id = _customer_id and (sender->>'id')::uuid = _card_id or (receiver->>'id')::uuid = _card_id;
-  
+    delete from payment where owner_id = _customer_id and sender_id = _card_id;
+    delete from transfer where owner_id = _customer_id and sender_id = _card_id;
+    delete from transfer where owner_id = _customer_id and receiver_id = _card_id;
+    
     delete from customer_card where id = _card_id and customer_id = _customer_id;
     if not found then 
       error_code := 'CARD_NOT_FOUND';
@@ -282,7 +299,7 @@ declare
   service_row service;
   card_row customer_card;
   merchant_row merchant;
-  service_fields jsonb;
+  service_fields jsonb := '[]';
   details jsonb := '{}';
   key_exists boolean := false;
 begin
@@ -313,21 +330,23 @@ begin
     select jsonb_agg(jsonb_build_object('id', id, 'name', name)) into service_fields from service_field where service_id = _service_id;
 
     -- loop service_fields and check if all required fields are provided, then add them to details
-    for i in 0..jsonb_array_length(service_fields) - 1 loop
-      -- key_exists variable
-      select exists(select 1 from jsonb_each(_details) where key = service_fields->i->>'id') into key_exists;
+    if jsonb_array_length(service_fields) > 0 then
+      for i in 0..jsonb_array_length(service_fields) - 1 loop
+        -- key_exists variable
+        select exists(select 1 from jsonb_each(_details) where key = service_fields->i->>'id') into key_exists;
 
-      if not key_exists then
-        error_code := 'VALIDATION_ERROR';
-        error_message := service_fields->i->>'name';
-        return;
-      end if;
+        if not key_exists then
+          error_code := 'VALIDATION_ERROR';
+          error_message := service_fields;
+          return;
+        end if;
 
-    -- add service_fields to details
-    if key_exists then
-      details := details || jsonb_build_object(service_fields->i->>'id', _details->(service_fields->i->>'id'));
+        -- add service_fields to details
+        if key_exists then
+          details := details || jsonb_build_object(service_fields->i->>'id', _details->(service_fields->i->>'id'));
+        end if;
+      end loop;
     end if;
-    end loop;
 
     insert into payment (owner_id, type, amount, sender_id, receiver_id, fields)
     values (_customer_id, 'expense', _amount, card_row.id, _service_id, details)
@@ -583,7 +602,9 @@ insert into message(name, message, http_code) values
 ('SERVICE_UPDATED', '{"en": "Service updated successfully", "uz": "Xizmat muvaffaqiyatli yangilandi", "ru": "Услуга успешно обновлена"}', 200),
 ('SERVICE_DELETED', '{"en": "Service deleted successfully", "uz": "Xizmat muvaffaqiyatli o''chirildi", "ru": "Услуга успешно удалена"}', 200),
 ('PAYMENT_SUCCESS', '{"en": "Payment successful", "uz": "To''lov muvaffaqiyatli amalga oshirildi", "ru": "Оплата прошла успешно"}', 200),
-('TRANSFER_SUCCESS', '{"en": "Money transferred successfully", "uz": "Pul muvaffaqiyatli o''tkazildi", "ru": "Деньги успешно переведены"}', 200)
+('TRANSFER_SUCCESS', '{"en": "Money transferred successfully", "uz": "Pul muvaffaqiyatli o''tkazildi", "ru": "Деньги успешно переведены"}', 200),
+('SAME_FIELD_NAME', '{"en": "Field name cannot be same", "uz": "Maydon nomi bir xil bo''lishi mumkin emas", "ru": "Название поля не может быть одинаковым"}', 409),
+('CODE_ALREADY_SENT', '{"en": "Verification code already sent", "uz": "Tasdiqlash kodi allaqachon yuborilgan", "ru": "Код подтверждения уже отправлен"}', 409)
 on conflict do nothing;
 
 insert into service_category(code, name) values
@@ -606,6 +627,5 @@ insert into service_category(code, name) values
 ('TOURISM', '{"en": "Tourism", "uz": "Turizm", "ru": "Туризм"}'),
 ('SPORT', '{"en": "Sport", "uz": "Sport", "ru": "Спорт"}'),
 ('E_COMMERCE', '{"en": "E-commerce", "uz": "Internet magazinlar", "ru": "Интернет магазины"}'),
-('OTHER', '{"en": "Other", "uz": "Boshqa", "ru": "Другое"}'),
-('USER_SAVED', '{"en": "Saved services", "uz": "Saqlangan xizmatlar", "ru": "Сохраненные услуги"}')
+('OTHER', '{"en": "Other", "uz": "Boshqa", "ru": "Другое"}')
 on conflict do nothing;

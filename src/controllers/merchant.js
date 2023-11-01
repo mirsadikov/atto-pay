@@ -10,6 +10,92 @@ const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 const verifyToken = require('../middleware/verifyToken');
 const acceptsLanguages = require('../utils/acceptsLanguages');
+const emailer = require('../utils/emailer');
+
+// @Public
+function sendCodeToEmail(req, res, next) {
+  let inputs, alreadySent;
+
+  async.waterfall(
+    [
+      // validate data
+      (cb) => {
+        const { email, resend } = req.body;
+
+        const validator = new LIVR.Validator({
+          email: ['trim', 'email', 'required'],
+          resend: ['trim', 'boolean'],
+        });
+
+        const validData = validator.validate({ email, resend });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        inputs = validData;
+        cb(null);
+      },
+      // check if merchant not already exists
+      (cb) => {
+        fetchDB(merchantsQuery.getOneByEmail, [inputs.email], (err, result) => {
+          if (err) return cb(err);
+          if (result.rows.length > 0) return cb(new CustomError('EMAIL_TAKEN'));
+
+          cb(null);
+        });
+      },
+      // check if code already sent
+      (cb) => {
+        redis.hGet('merchant_otp', inputs.email, (err, details) => {
+          if (err) return cb(err);
+          if (!details) return cb(null);
+
+          const detailsObject = JSON.parse(details);
+
+          if (inputs.resend) {
+            const timeLeft = moment(detailsObject.exp).diff(moment(), 'seconds');
+            if (timeLeft > 0) return cb(new CustomError('CODE_ALREADY_SENT', null, { timeLeft }));
+          }
+
+          alreadySent = true;
+
+          cb(null);
+        });
+      },
+      // send code to email
+      (cb) => {
+        if (alreadySent) return cb(null, null);
+
+        const code = Math.floor(100000 + Math.random() * 900000);
+
+        emailer.sendVerification(inputs.email, code, (err) => {
+          if (err) return cb(err);
+
+          cb(null, code);
+        });
+      },
+      // save code
+      (code, cb) => {
+        if (alreadySent) return cb(null);
+
+        const value = {
+          code,
+          exp: moment().add(5, 'minutes').valueOf(),
+        };
+
+        redis.hSet('merchant_otp', inputs.email, JSON.stringify(value), (err) => {
+          if (err) return cb(err);
+          cb(null);
+        });
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+      });
+    }
+  );
+}
 
 // @Public
 function registerMerchant(req, res, next) {
@@ -19,18 +105,20 @@ function registerMerchant(req, res, next) {
     [
       // validate data
       (cb) => {
-        const { name, email, password } = req.body;
+        const { name, email, password, otp } = req.body;
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required', { min_length: 2 }, { max_length: 30 }],
           email: ['trim', 'email', 'required'],
           password: ['trim', 'required', { min_length: 7 }, 'alphanumeric'],
+          otp: ['trim', 'required'],
         });
 
         const validData = validator.validate({
           name,
           email,
           password,
+          otp,
         });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
@@ -42,6 +130,22 @@ function registerMerchant(req, res, next) {
         fetchDB(merchantsQuery.getOneByEmail, [inputs.email], (err, result) => {
           if (err) return cb(err);
           if (result.rows.length > 0) return cb(new CustomError('EMAIL_TAKEN'));
+
+          cb(null);
+        });
+      },
+      // check if code is correct
+      (cb) => {
+        redis.hGet('merchant_otp', inputs.email, (err, details) => {
+          if (err) return cb(err);
+          if (!details) return cb(new CustomError('WRONG_OTP'));
+
+          const detailsObject = JSON.parse(details);
+          if (moment().isAfter(detailsObject.exp)) {
+            redis.hDel('merchant_otp', inputs.email);
+            return cb(new CustomError('EXPIRED_OTP'));
+          }
+          if (detailsObject.code !== parseInt(inputs.otp)) return cb(new CustomError('WRONG_OTP'));
 
           cb(null);
         });
@@ -393,4 +497,5 @@ module.exports = {
   updateMerchant,
   getMerchantProfile,
   updateMerchantLang,
+  sendCodeToEmail,
 };

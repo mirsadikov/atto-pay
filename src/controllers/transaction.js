@@ -32,7 +32,7 @@ function payForService(req, res, next) {
         const validator = new LIVR.Validator({
           serviceId: ['trim', 'required', 'string'],
           fromCardId: ['trim', 'required', 'string'],
-          amount: ['required', 'integer'],
+          amount: ['required', 'integer', { min_number: 1 }],
           fields: ['any_object'],
         });
 
@@ -57,7 +57,7 @@ function payForService(req, res, next) {
             inputs.fromCardId,
             inputs.serviceId,
             inputs.amount,
-            JSON.stringify(inputs.fields),
+            JSON.stringify(inputs.fields || {}),
           ],
           (err, result) => {
             if (err) return cb(err);
