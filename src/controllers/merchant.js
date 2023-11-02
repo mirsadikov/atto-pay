@@ -23,13 +23,19 @@ function sendCodeToEmail(req, res, next) {
       // validate data
       (cb) => {
         const { email, resend } = req.body;
+        const deviceId = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           email: ['trim', 'email', 'required'],
           resend: ['trim', 'boolean'],
+          deviceId: ['trim', 'string', 'required'],
         });
 
-        const validData = validator.validate({ email, resend });
+        const validData = validator.validate({
+          email: email.toLowerCase(),
+          resend,
+          deviceId,
+        });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         inputs = validData;
@@ -46,7 +52,7 @@ function sendCodeToEmail(req, res, next) {
       },
       // check if code already sent
       (cb) => {
-        redis.hGet('merchant_otp', inputs.email, (err, details) => {
+        redis.hGet('merchant_otp', inputs.deviceId, (err, details) => {
           if (err) return cb(err);
           if (!details) return cb(null);
 
@@ -56,7 +62,7 @@ function sendCodeToEmail(req, res, next) {
           // if 2 minutes passed, can resend
           if (canResendAfter <= 0) return cb(null);
 
-          if (inputs.resend && canResendAfter > 0)
+          if (inputs.resend)
             return cb(new CustomError('CODE_ALREADY_SENT', null, { timeLeft: canResendAfter }));
 
           alreadySent = true;
@@ -82,11 +88,12 @@ function sendCodeToEmail(req, res, next) {
 
         const value = {
           code,
+          email: inputs.email,
           exp: moment().add(5, 'minutes').valueOf(),
           iat: moment().valueOf(),
         };
 
-        redis.hSet('merchant_otp', inputs.email, JSON.stringify(value), (err) => {
+        redis.hSet('merchant_otp', inputs.deviceId, JSON.stringify(value), (err) => {
           if (err) return cb(err);
           cb(null);
         });
@@ -112,12 +119,14 @@ function registerMerchant(req, res, next) {
       // validate data
       (cb) => {
         const { name, email, password, otp } = req.body;
+        const deviceId = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           name: ['trim', 'string', 'required', { min_length: 2 }, { max_length: 30 }],
           email: ['trim', 'email', 'required'],
           password: ['trim', 'required', { min_length: 7 }, 'alphanumeric'],
           otp: ['trim', 'required'],
+          deviceId: ['trim', 'string', 'required'],
         });
 
         const validData = validator.validate({
@@ -125,6 +134,7 @@ function registerMerchant(req, res, next) {
           email: email.toLowerCase(),
           password,
           otp,
+          deviceId,
         });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
@@ -142,29 +152,30 @@ function registerMerchant(req, res, next) {
       },
       // check if code is correct
       (cb) => {
-        redis.hGet('merchant_otp', inputs.email, (err, details) => {
+        redis.hGet('merchant_otp', inputs.deviceId, (err, details) => {
           if (err) return cb(err);
           if (!details) return cb(new CustomError('WRONG_OTP'));
 
           const detailsObject = JSON.parse(details);
           if (moment().isAfter(detailsObject.exp)) {
-            redis.hDel('merchant_otp', inputs.email);
+            redis.hDel('merchant_otp', inputs.deviceId);
             return cb(new CustomError('EXPIRED_OTP'));
           }
 
-          if (detailsObject.code !== parseInt(inputs.otp)) {
+          if (detailsObject.code !== parseInt(inputs.otp) || detailsObject.email !== inputs.email) {
             detailsObject.tries = detailsObject.tries ? detailsObject.tries + 1 : 1;
 
             if (detailsObject.tries >= 3) {
-              redis.hDel('merchant_otp', inputs.email);
+              redis.hDel('merchant_otp', inputs.deviceId);
               return cb(new CustomError('EXPIRED_OTP'));
             }
 
-            redis.hSet('merchant_otp', inputs.email, JSON.stringify(detailsObject));
+            redis.hSet('merchant_otp', inputs.deviceId, JSON.stringify(detailsObject));
 
             return cb(new CustomError('WRONG_OTP'));
           }
 
+          redis.hDel('merchant_otp', inputs.deviceId);
           cb(null);
         });
       },
