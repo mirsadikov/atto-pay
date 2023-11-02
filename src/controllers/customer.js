@@ -257,16 +257,17 @@ const loginCustomer = (req, res, next) =>
         },
         // check if customer is not blocked
         (cb) => {
-          redis.hGet('customer_login', inputs.phone, (err, loginObject) => {
+          redis.hGet('customer_login', inputs.deviceId, (err, loginObject) => {
             if (err) return cb(err);
             if (!loginObject) return cb(null);
 
             customerStatus = JSON.parse(loginObject);
             if (customerStatus.is_blocked) {
-              const unblockTime = moment(customerStatus.last_login_attempt).add(1, 'minute');
+              const unblockTime = moment(customerStatus.last_login_attempt).add(2, 'minute');
+              const timeLeft = unblockTime.diff(moment(), 'seconds');
+
               // if block time is not over, return error
-              if (moment().isBefore(unblockTime)) {
-                const timeLeft = unblockTime.diff(moment(), 'seconds');
+              if (timeLeft > 0) {
                 return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
               }
 
@@ -335,7 +336,7 @@ const loginCustomer = (req, res, next) =>
                 )
               )
             ) {
-              // if 3 login attempts in one minute
+              // if 3 login attempts in 1 minute
               customerStatus.is_blocked = true;
               customerStatus.safe_login_after = 0;
             } else {
@@ -349,20 +350,20 @@ const loginCustomer = (req, res, next) =>
             // save status
             return redis.hSet(
               'customer_login',
-              customer.phone,
+              inputs.deviceId,
               JSON.stringify(customerStatus),
               (err) => {
                 if (err) return cb(err);
 
                 if (customerStatus.is_blocked)
-                  cb(new CustomError('USER_BLOCKED', null, { timeLeft: 60 }));
+                  cb(new CustomError('USER_BLOCKED', null, { timeLeft: 120 }));
                 else cb(new CustomError(loginType === 'password' ? 'WRONG_PASSWORD' : 'WRONG_OTP'));
               }
             );
           }
 
           // reset login attempts if password is correct
-          redis.hDel('customer_login', customer.phone);
+          redis.hDel('customer_login', inputs.deviceId);
 
           cb(null);
         },

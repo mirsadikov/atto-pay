@@ -28,11 +28,14 @@ services:
       POSTGRES_PASSWORD: 123456
     volumes:
       - ./src/postgres/create.sql:/docker-entrypoint-initdb.d/create.sql
+      - ./data/postgres:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
   redis:
     image: redis:alpine
     container_name: redis-dev
+    volumes:
+      - ./data/redis:/root/redis
     ports:
       - "6379:6379"

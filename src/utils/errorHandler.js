@@ -30,7 +30,7 @@ const errorHandler = (err, req, res, next) => {
       case 'USER_BLOCKED':
         if (errorObject) {
           info = { ...info, message: errorObject.message };
-          message = errorObject.message.replace('{0}', err.info.timeLeft || 60);
+          message = errorObject.message.replace('{0}', err.info.timeLeft || 120);
         }
 
         break;

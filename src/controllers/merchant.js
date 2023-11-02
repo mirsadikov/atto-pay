@@ -14,7 +14,9 @@ const emailer = require('../utils/emailer');
 
 // @Public
 function sendCodeToEmail(req, res, next) {
-  let inputs, alreadySent;
+  let inputs,
+    alreadySent,
+    canResendAfter = 120;
 
   async.waterfall(
     [
@@ -49,11 +51,13 @@ function sendCodeToEmail(req, res, next) {
           if (!details) return cb(null);
 
           const detailsObject = JSON.parse(details);
+          canResendAfter = moment(detailsObject.iat).add(2, 'minutes').diff(moment(), 'seconds');
 
-          if (inputs.resend) {
-            const timeLeft = moment(detailsObject.exp).diff(moment(), 'seconds');
-            if (timeLeft > 0) return cb(new CustomError('CODE_ALREADY_SENT', null, { timeLeft }));
-          }
+          // if 2 minutes passed, can resend
+          if (canResendAfter <= 0) return cb(null);
+
+          if (inputs.resend && canResendAfter > 0)
+            return cb(new CustomError('CODE_ALREADY_SENT', null, { timeLeft: canResendAfter }));
 
           alreadySent = true;
 
@@ -79,6 +83,7 @@ function sendCodeToEmail(req, res, next) {
         const value = {
           code,
           exp: moment().add(5, 'minutes').valueOf(),
+          iat: moment().valueOf(),
         };
 
         redis.hSet('merchant_otp', inputs.email, JSON.stringify(value), (err) => {
@@ -92,6 +97,7 @@ function sendCodeToEmail(req, res, next) {
 
       res.status(200).json({
         success: true,
+        timeLeft: canResendAfter > 0 ? canResendAfter : 120,
       });
     }
   );
@@ -116,7 +122,7 @@ function registerMerchant(req, res, next) {
 
         const validData = validator.validate({
           name,
-          email,
+          email: email.toLowerCase(),
           password,
           otp,
         });
@@ -145,7 +151,19 @@ function registerMerchant(req, res, next) {
             redis.hDel('merchant_otp', inputs.email);
             return cb(new CustomError('EXPIRED_OTP'));
           }
-          if (detailsObject.code !== parseInt(inputs.otp)) return cb(new CustomError('WRONG_OTP'));
+
+          if (detailsObject.code !== parseInt(inputs.otp)) {
+            detailsObject.tries = detailsObject.tries ? detailsObject.tries + 1 : 1;
+
+            if (detailsObject.tries >= 3) {
+              redis.hDel('merchant_otp', inputs.email);
+              return cb(new CustomError('EXPIRED_OTP'));
+            }
+
+            redis.hSet('merchant_otp', inputs.email, JSON.stringify(detailsObject));
+
+            return cb(new CustomError('WRONG_OTP'));
+          }
 
           cb(null);
         });
@@ -212,13 +230,19 @@ function loginMerchant(req, res, next) {
       // validate data
       (cb) => {
         const { email, password } = req.body;
+        const deviceId = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           email: ['trim', 'email', 'required'],
           password: ['trim', 'string'],
+          deviceId: ['trim', 'string', 'required'],
         });
 
-        const validData = validator.validate({ email, password });
+        const validData = validator.validate({
+          email: email.toLowerCase(),
+          password,
+          deviceId,
+        });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         inputs = validData;
@@ -234,18 +258,19 @@ function loginMerchant(req, res, next) {
           cb(null);
         });
       },
-      // check if merchant is not blocked
+      // check if device is not blocked
       (cb) => {
-        redis.hGet('merchant_login', inputs.email, (err, loginObject) => {
+        redis.hGet('merchant_login', inputs.deviceId, (err, loginObject) => {
           if (err) return cb(err);
           if (!loginObject) return cb(null);
 
           merchantStatus = JSON.parse(loginObject);
           if (merchantStatus.is_blocked) {
-            const unblockTime = moment(merchantStatus.last_login_attempt).add(1, 'minute');
+            const unblockTime = moment(merchantStatus.last_login_attempt).add(2, 'minute');
+            const timeLeft = unblockTime.diff(moment(), 'seconds');
+
             // if block time is not over, return error
-            if (moment().isBefore(unblockTime)) {
-              const timeLeft = unblockTime.diff(moment(), 'seconds');
+            if (timeLeft > 0) {
               return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
             }
 
@@ -259,7 +284,7 @@ function loginMerchant(req, res, next) {
       },
       // check password
       (cb) => {
-        const { password } = inputs;
+        const { password, deviceId } = inputs;
         const isPasswordCorrect = bcrypt.compareSync(password, merchant.hashed_password);
 
         // if password is wrong
@@ -273,34 +298,29 @@ function loginMerchant(req, res, next) {
               )
             )
           ) {
-            // if 3 login attempts in 2 minutes
+            // if 3 login attempts in 1 minute
             merchantStatus.is_blocked = true;
             merchantStatus.safe_login_after = 0;
           } else {
             // calculate time that merchant should wait before next login not to be blocked
             merchantStatus.safe_login_after = merchantStatus.last_login_attempt
-              ? Math.max(120 - moment().diff(merchantStatus.last_login_attempt, 'seconds'), 0)
+              ? Math.max(60 - moment().diff(merchantStatus.last_login_attempt, 'seconds'), 0)
               : 0;
           }
 
           merchantStatus.last_login_attempt = moment();
           // save status
-          return redis.hSet(
-            'merchant_login',
-            merchant.email,
-            JSON.stringify(merchantStatus),
-            (err) => {
-              if (err) return cb(err);
+          return redis.hSet('merchant_login', deviceId, JSON.stringify(merchantStatus), (err) => {
+            if (err) return cb(err);
 
-              if (merchantStatus.is_blocked)
-                cb(new CustomError('USER_BLOCKED', null, { timeLeft: 60 }));
-              else cb(new CustomError('WRONG_PASSWORD'));
-            }
-          );
+            if (merchantStatus.is_blocked)
+              cb(new CustomError('USER_BLOCKED', null, { timeLeft: 120 }));
+            else cb(new CustomError('WRONG_PASSWORD'));
+          });
         }
 
         // reset login attempts if password is correct
-        redis.hDel('merchant_login', inputs.email);
+        redis.hDel('merchant_login', deviceId);
 
         cb(null);
       },
