@@ -28,6 +28,7 @@ const errorHandler = (err, req, res, next) => {
         errorObject && (message = errorObject.message.replace('{0}', err.message));
         break;
       case 'USER_BLOCKED':
+      case 'TRY_AGAIN_AFTER':
         if (errorObject) {
           info = { ...info, message: errorObject.message };
           message = errorObject.message.replace('{0}', err.info.timeLeft || 120);

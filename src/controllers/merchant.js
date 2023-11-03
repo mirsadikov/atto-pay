@@ -11,29 +11,26 @@ const CustomError = require('../errors/CustomError');
 const verifyToken = require('../middleware/verifyToken');
 const acceptsLanguages = require('../utils/acceptsLanguages');
 const emailer = require('../utils/emailer');
+const withLimit = require('../utils/limiter');
 
 // @Public
 function sendCodeToEmail(req, res, next) {
-  let inputs,
-    alreadySent,
-    canResendAfter = 120;
+  let inputs;
 
   async.waterfall(
     [
       // validate data
       (cb) => {
-        const { email, resend } = req.body;
+        const { email } = req.body;
         const deviceId = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           email: ['trim', 'email', 'required'],
-          resend: ['trim', 'boolean'],
           deviceId: ['trim', 'string', 'required'],
         });
 
         const validData = validator.validate({
           email: email.toLowerCase(),
-          resend,
           deviceId,
         });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
@@ -50,47 +47,24 @@ function sendCodeToEmail(req, res, next) {
           cb(null);
         });
       },
-      // check if code already sent
-      (cb) => {
-        redis.hGet('merchant_otp', inputs.deviceId, (err, details) => {
-          if (err) return cb(err);
-          if (!details) return cb(null);
-
-          const detailsObject = JSON.parse(details);
-          canResendAfter = moment(detailsObject.iat).add(2, 'minutes').diff(moment(), 'seconds');
-
-          // if 2 minutes passed, can resend
-          if (canResendAfter <= 0) return cb(null);
-
-          if (inputs.resend)
-            return cb(new CustomError('CODE_ALREADY_SENT', null, { timeLeft: canResendAfter }));
-
-          alreadySent = true;
-
-          cb(null);
-        });
-      },
       // send code to email
       (cb) => {
-        if (alreadySent) return cb(null, null);
-
         const code = Math.floor(100000 + Math.random() * 900000);
-
-        emailer.sendVerification(inputs.email, code, (err) => {
+        const sendEmail = () => emailer.sendVerification(inputs.email, code);
+        const limiterCb = (err) => {
           if (err) return cb(err);
-
           cb(null, code);
-        });
+        };
+
+        withLimit('email_limiter', inputs.deviceId, sendEmail, limiterCb);
       },
       // save code
       (code, cb) => {
-        if (alreadySent) return cb(null);
-
         const value = {
           code,
           email: inputs.email,
           exp: moment().add(5, 'minutes').valueOf(),
-          iat: moment().valueOf(),
+          tries: 0,
         };
 
         redis.hSet('merchant_otp', inputs.deviceId, JSON.stringify(value), (err) => {
@@ -104,7 +78,7 @@ function sendCodeToEmail(req, res, next) {
 
       res.status(200).json({
         success: true,
-        timeLeft: canResendAfter > 0 ? canResendAfter : 120,
+        timeLeft: 120,
       });
     }
   );
@@ -154,24 +128,19 @@ function registerMerchant(req, res, next) {
       (cb) => {
         redis.hGet('merchant_otp', inputs.deviceId, (err, details) => {
           if (err) return cb(err);
-          if (!details) return cb(new CustomError('WRONG_OTP'));
+          const detailsObject = JSON.parse(details || '{}');
+          const expired = moment().isAfter(moment(detailsObject.exp));
+          const tooManyTries = detailsObject.tries >= 3;
+          const sameEmail = detailsObject.email === inputs.email;
+          const sameCode = detailsObject.code === parseInt(inputs.otp);
 
-          const detailsObject = JSON.parse(details);
-          if (moment().isAfter(detailsObject.exp)) {
-            redis.hDel('merchant_otp', inputs.deviceId);
-            return cb(new CustomError('EXPIRED_OTP'));
-          }
-
-          if (detailsObject.code !== parseInt(inputs.otp) || detailsObject.email !== inputs.email) {
-            detailsObject.tries = detailsObject.tries ? detailsObject.tries + 1 : 1;
-
-            if (detailsObject.tries >= 3) {
-              redis.hDel('merchant_otp', inputs.deviceId);
-              return cb(new CustomError('EXPIRED_OTP'));
-            }
-
+          if (!details || tooManyTries || !sameCode || !sameEmail || expired) {
+            detailsObject.tries += 1;
             redis.hSet('merchant_otp', inputs.deviceId, JSON.stringify(detailsObject));
 
+            if (tooManyTries || detailsObject.tries >= 3)
+              return cb(new CustomError('TOO_MANY_TRIES'));
+            if (expired) return cb(new CustomError('EXPIRED_OTP'));
             return cb(new CustomError('WRONG_OTP'));
           }
 

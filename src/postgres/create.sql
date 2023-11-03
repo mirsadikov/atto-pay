@@ -604,7 +604,8 @@ insert into message(name, message, http_code) values
 ('PAYMENT_SUCCESS', '{"en": "Payment successful", "uz": "To''lov muvaffaqiyatli amalga oshirildi", "ru": "Оплата прошла успешно"}', 200),
 ('TRANSFER_SUCCESS', '{"en": "Money transferred successfully", "uz": "Pul muvaffaqiyatli o''tkazildi", "ru": "Деньги успешно переведены"}', 200),
 ('SAME_FIELD_NAME', '{"en": "Field name cannot be same", "uz": "Maydon nomi bir xil bo''lishi mumkin emas", "ru": "Название поля не может быть одинаковым"}', 409),
-('CODE_ALREADY_SENT', '{"en": "Verification code already sent", "uz": "Tasdiqlash kodi allaqachon yuborilgan", "ru": "Код подтверждения уже отправлен"}', 409)
+('TOO_MANY_TRIES', '{"en": "Too many tries", "uz": "Juda ko''p urinishlar", "ru": "Слишком много попыток"}', 403),
+('TRY_AGAIN_AFTER', '{"en": "Try again after {0} seconds", "uz": "{0} sekunddan keyin urinib ko''ring", "ru": "Попробуйте снова через {0} секунд"}', 403)
 on conflict do nothing;
 
 insert into service_category(code, name) values
