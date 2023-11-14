@@ -71,12 +71,19 @@ const devicesQuery = {
   create: `
 insert into customer_device(customer_id, device_id, name)
 values($1, $2, $3) on conflict do nothing`,
+  getAllByCustomer: `
+select id, name, last_login from customer_device
+where customer_id = $1`,
   getOneByUid: `
 select * from customer_device 
 where device_id = $1 and customer_id = (select id from customer where phone = $2)`,
   remove: `
 delete from customer_device
 where id = $1 and customer_id = $2`,
+  updateLastLogin: `
+update customer_device
+set last_login = now()
+where device_id = $1 and customer_id = $2`,
 };
 
 const errorsQuery = {

@@ -353,7 +353,7 @@ function getCustomerLoginType(req, res, next) {
 // @Public
 const loginCustomer = (req, res, next) =>
   new Promise((resolve) => {
-    let inputs, customer, token, limiter;
+    let inputs, customer, token, limiter, isAlreadyTrusted;
 
     async.waterfall(
       [
@@ -412,6 +412,7 @@ const loginCustomer = (req, res, next) =>
           fetchDB(devicesQuery.getOneByUid, [deviceId, phone], (err, result) => {
             if (err) return cb(err);
 
+            isAlreadyTrusted = result.rows.length > 0;
             const loginType = result.rows.length > 0 ? 'otp' : 'password';
             const validator = new LIVR.Validator({
               password: loginType === 'password' ? 'required' : 'string',
@@ -468,7 +469,11 @@ const loginCustomer = (req, res, next) =>
         // trust device if needed
         (cb) => {
           redis.hDel('customer_otp', inputs.deviceId);
-          if (!inputs.trust) return cb(null);
+
+          if (isAlreadyTrusted)
+            fetchDB(devicesQuery.updateLastLogin, [inputs.deviceId, customer.id]);
+
+          if (isAlreadyTrusted || !inputs.trust) return cb(null);
 
           const info = getDeviceInfo(req);
           fetchDB(devicesQuery.create, [customer.id, inputs.deviceId, info], (err) => {
@@ -772,6 +777,44 @@ function removeServiceFromSaved(req, res, next) {
 
 // @Private
 // @Customer
+function getAllDevices(req, res, next) {
+  let customerId;
+
+  async.waterfall(
+    [
+      // verify customer
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // get all devices
+      (cb) => {
+        fetchDB(devicesQuery.getAllByCustomer, [customerId], (err, result) => {
+          if (err) return cb(err);
+
+          const devices = {
+            count: result.rowCount,
+            rows: result.rows,
+          };
+
+          cb(null, devices);
+        });
+      },
+    ],
+    (err, devices) => {
+      if (err) return next(err);
+
+      res.status(200).json(devices);
+    }
+  );
+}
+
+// @Private
+// @Customer
 function untrustDevice(req, res, next) {
   async.waterfall(
     [
@@ -841,4 +884,5 @@ module.exports = {
   removeServiceFromSaved,
   sendCodeToPhone,
   untrustDevice,
+  getAllDevices,
 };

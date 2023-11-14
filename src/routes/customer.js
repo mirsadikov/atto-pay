@@ -11,6 +11,7 @@ const {
   removeServiceFromSaved,
   sendCodeToPhone,
   untrustDevice,
+  getAllDevices,
 } = require('../controllers/customer');
 const router = express.Router();
 
@@ -24,6 +25,7 @@ router.put('/lang', updateCustomerLang);
 router.post('/services', addServiceToSaved);
 router.delete('/services', removeServiceFromSaved);
 router.delete('/device/:deviceId', untrustDevice);
+router.get('/device', getAllDevices);
 
 // FAKE OTP GETTER
 router.get('/otp/recievebysms', getOtpFromSMS);

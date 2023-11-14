@@ -29,6 +29,7 @@ create table if not exists customer_device(
   customer_id uuid not null references customer(id),
   device_id varchar(64) not null,
   name varchar(128) not null,
+  last_login timestamp not null default now(),
   constraint unique_customer_device unique(customer_id, device_id)
 );
 
