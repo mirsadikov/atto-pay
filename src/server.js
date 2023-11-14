@@ -9,6 +9,7 @@ const categoryRouter = require('./routes/category');
 const serviceRouter = require('./routes/service');
 const transactionRouter = require('./routes/transaction');
 const errorHandler = require('./utils/errorHandler');
+const useragent = require('express-useragent');
 
 const app = express();
 const port = 3000;
@@ -16,6 +17,7 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 app.use(fileUpload());
+app.use(useragent.express());
 
 app.use('/customer', customerRouter);
 app.use('/customer/card', cardRouter);

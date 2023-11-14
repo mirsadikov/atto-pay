@@ -239,14 +239,14 @@ const registerCustomer = (req, res, next) =>
         },
         // trust device if needed
         (cb) => {
-          if (inputs.trust)
-            return fetchDB(devicesQuery.create, [newCustomer.id, inputs.deviceId], (err) => {
-              if (err) return cb(err);
+          if (!inputs.trust) return cb(null);
 
-              cb(null);
-            });
+          const info = getDeviceInfo(req);
+          return fetchDB(devicesQuery.create, [newCustomer.id, inputs.deviceId, info], (err) => {
+            if (err) return cb(err);
 
-          cb(null);
+            cb(null);
+          });
         },
       ],
       (err) => {
@@ -333,7 +333,7 @@ function getCustomerLoginType(req, res, next) {
         });
       },
       // record attempt
-      (cb, res) => {
+      (res, cb) => {
         const limiterCb = ({ error }) => {
           if (error) return cb(error);
 
@@ -426,12 +426,12 @@ const loginCustomer = (req, res, next) =>
         },
         // check password or otp
         (loginType, cb) => {
-          const { password, otp } = inputs;
+          const { password, otp, deviceId } = inputs;
           if (loginType === 'password') {
             const isPasswordCorrect = bcrypt.compareSync(password, customer.hashed_password);
             cb(null, isPasswordCorrect, loginType);
           } else {
-            redis.hGet('customer_otp', customer.phone, (err, redisOtp) => {
+            redis.hGet('customer_otp', deviceId, (err, redisOtp) => {
               if (err) return cb(err);
               if (!redisOtp) return cb(null, false, loginType);
               const otpObject = JSON.parse(redisOtp);
@@ -467,16 +467,18 @@ const loginCustomer = (req, res, next) =>
         },
         // trust device if needed
         (cb) => {
+          redis.hDel('customer_otp', inputs.deviceId);
           if (!inputs.trust) return cb(null);
 
-          fetchDB(devicesQuery.create, [customer.id, inputs.deviceId], (err) => {
+          const info = getDeviceInfo(req);
+          fetchDB(devicesQuery.create, [customer.id, inputs.deviceId, info], (err) => {
             if (err) return cb(err);
             cb(null);
           });
         },
-        // delete old token
+        // delete old token of this device
         (cb) => {
-          redis.hGet('customers', customer.id, (err, oldToken) => {
+          redis.hGet('customers', inputs.deviceId, (err, oldToken) => {
             if (err) return cb(err);
             if (oldToken) redis.hDel('tokens', oldToken);
             cb(null);
@@ -485,7 +487,7 @@ const loginCustomer = (req, res, next) =>
         // save and return new token
         (cb) => {
           token = v4();
-          redis.hSet('customers', customer.id, token, (err) => {
+          redis.hSet('customers', inputs.deviceId, token, (err) => {
             if (err) return cb(err);
             cb(null);
           });
@@ -768,6 +770,49 @@ function removeServiceFromSaved(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
+function untrustDevice(req, res, next) {
+  async.waterfall(
+    [
+      // verify customer
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          cb(null, id);
+        });
+      },
+      // delete device
+      (customerId, cb) => {
+        const deviceId = req.params.deviceId;
+        fetchDB(devicesQuery.remove, [deviceId, customerId], (err) => {
+          if (err) return cb(err);
+
+          cb(null);
+        });
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+      });
+    }
+  );
+}
+
+// @Helper
+function getDeviceInfo(req) {
+  let { browser, version, os, platform } = req.useragent;
+
+  platform = platform === 'unknown' ? '' : platform;
+  os = os === 'unknown' ? '' : os;
+
+  return `${platform} ${os} ${browser} ${version}`.trim();
+}
+
 // FAKE OTP GETTER
 function getOtpFromSMS(req, res, next) {
   try {
@@ -795,4 +840,5 @@ module.exports = {
   addServiceToSaved,
   removeServiceFromSaved,
   sendCodeToPhone,
+  untrustDevice,
 };

@@ -69,11 +69,14 @@ returning (select message from message where name = 'CARD_UPDATED') as message`,
 
 const devicesQuery = {
   create: `
-insert into customer_device(customer_id, device_id) 
-values($1, $2) on conflict do nothing`,
+insert into customer_device(customer_id, device_id, name)
+values($1, $2, $3) on conflict do nothing`,
   getOneByUid: `
 select * from customer_device 
 where device_id = $1 and customer_id = (select id from customer where phone = $2)`,
+  remove: `
+delete from customer_device
+where id = $1 and customer_id = $2`,
 };
 
 const errorsQuery = {

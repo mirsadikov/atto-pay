@@ -20,6 +20,7 @@ const fetchDB = (QUERY, params, cb) => {
       return res;
     })
     .catch((err) => {
+      console.log(err);
       cb(new DatabaseError(err));
       return err;
     })
