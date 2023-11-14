@@ -1,60 +1,76 @@
 const moment = require('moment');
 const redis = require('../redis/index');
-const CustomError = require('../errors/CustomError');
 
-async function limiter(limitName, deviceId, action, cb) {
-  try {
-    let tries = await redis.hGet(limitName, deviceId);
+class Limiter {
+  #timeLeft;
+  #tries = {
+    last: null,
+    safe_try_after: 0,
+    blocked: false,
+  };
 
-    if (tries) {
-      tries = JSON.parse(tries);
-      console.log(tries);
+  constructor(limitName, deviceId) {
+    this.limitName = limitName;
+    this.deviceId = deviceId;
+  }
 
-      if (tries.blocked) {
-        const unblockAt = moment(tries.last).add(120, 'seconds');
-        const timeLeft = unblockAt.diff(moment(), 'seconds');
+  async getStatus(cb) {
+    try {
+      let tries = await redis.hGet(this.limitName, this.deviceId);
+      if (!tries) return cb(null, { isBlocked: false });
 
-        if (timeLeft > 0) {
-          throw new CustomError('TRY_AGAIN_AFTER', null, { timeLeft });
+      this.#tries = JSON.parse(tries);
+      if (this.#tries.blocked === false) return cb(null, { isBlocked: false });
+
+      const unblockAt = moment(this.#tries.last).add(120, 'seconds');
+      const timeLeft = unblockAt.diff(moment(), 'seconds');
+
+      if (timeLeft > 0) {
+        this.#timeLeft = timeLeft;
+        return cb(null, { isBlocked: true, timeLeft });
+      }
+
+      this.#tries.blocked = false;
+      this.#tries.last = null;
+      await redis.hSet(this.limitName, this.deviceId, JSON.stringify(this.#tries));
+
+      return cb(null, { isBlocked: false });
+    } catch (error) {
+      cb(error);
+    }
+  }
+
+  async record(increaseAttempt, cb) {
+    try {
+      if (increaseAttempt) {
+        const triedSafe = this.#tries.last
+          ? moment().isAfter(moment(this.#tries.last).add(this.#tries.safe_try_after, 'seconds'))
+          : true;
+
+        if (triedSafe) {
+          this.#tries.safe_try_after = this.#tries.last
+            ? Math.max(120 - moment().diff(this.#tries.last, 'seconds'), 0)
+            : 0;
+        } else {
+          this.#tries.blocked = true;
+          this.#tries.safe_try_after = 0;
         }
 
-        tries.blocked = false;
-        tries.last = null;
+        this.#tries.last = moment().valueOf();
+
+        await redis.hSet(this.limitName, this.deviceId, JSON.stringify(this.#tries));
+
+        const canTryAgain = !this.#tries.blocked;
+        const newTimeLeft = canTryAgain ? undefined : 120;
+        cb({ error: null, canTryAgain, timeLeft: newTimeLeft });
+      } else {
+        redis.hDel(this.limitName, this.deviceId);
+        cb({});
       }
-    } else {
-      tries = {
-        last: null,
-        safe_try_after: 0,
-        blocked: false,
-      };
+    } catch (error) {
+      cb({ error });
     }
-
-    const result = await action();
-
-    const triedSafe = tries.last
-      ? moment().isAfter(moment(tries.last).add(tries.safe_try_after, 'seconds'))
-      : true;
-
-    if (triedSafe) {
-      tries.safe_try_after = tries.last
-        ? Math.max(120 - moment().diff(tries.last, 'seconds'), 0)
-        : 0;
-    } else {
-      tries.blocked = true;
-      tries.safe_try_after = 0;
-    }
-
-    tries.last = moment().valueOf();
-
-    console.log(tries);
-
-    await redis.hSet(limitName, deviceId, JSON.stringify(tries));
-
-    const canTryAgain = !tries.blocked;
-    cb(null, canTryAgain, result);
-  } catch (error) {
-    cb(error);
   }
 }
 
-module.exports = limiter;
+module.exports = Limiter;

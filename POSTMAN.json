@@ -38,13 +38,13 @@
 							},
 							{
 								"key": "X-Device-ID",
-								"value": "zeyds-chrome-mac",
+								"value": "new-device",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"name\": \"Abror\",\n    \"phone\": \"998993669800\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false\n}",
+							"raw": "{\n    \"name\": \"Abror\",\n    \"phone\": \"998991231212\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false,\n    \"otp\": 324210\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -180,17 +180,22 @@
 					"name": "OTP from SMS",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "x-device-id",
+								"value": "new-device",
+								"type": "text"
+							}
+						],
 						"url": {
-							"raw": "{{url}}/customer/otp/recievebysms/998993669801",
+							"raw": "{{url}}/customer/otp/recievebysms",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
 								"otp",
-								"recievebysms",
-								"998993669801"
+								"recievebysms"
 							]
 						}
 					},
@@ -226,7 +231,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "45a81069-bf65-4873-95f0-162fa7ca2817"
+								"value": "132b59e3-7255-42b5-8128-220a0cbbe704"
 							}
 						],
 						"body": {
@@ -253,7 +258,8 @@
 								{
 									"key": "avatar",
 									"type": "file",
-									"src": "/Users/zeyds/Documents/20220105_105005.jpg"
+									"src": "/Users/zeyds/Documents/20220105_105005.jpg",
+									"disabled": true
 								},
 								{
 									"key": "gender",
@@ -353,6 +359,39 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Register Send code",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-device-id",
+								"value": "new-device",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phone\": \"998991231212\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/sendcode",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"sendcode"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -366,12 +405,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "b0794802-338f-4511-8129-6997a5e07a20"
+								"value": "d198e6c5-a21a-4f57-a9d5-dde8828b5a68"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"owner_name\": \"Mirabror Sodikov\",\n  \"pan\": \"8600000000000011\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"26\"\n}",
+							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"owner_name\": \"Mirabror Sodikov\",\n  \"pan\": \"4241578383834872\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"26\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -402,7 +441,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "8dc534de-82fc-4926-bdc5-d1caf812a9e8"
+								"value": "aeadd765-ff5c-4f15-9c76-4811d7893a35"
 							}
 						],
 						"body": {
@@ -490,12 +529,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "030f7cba-25e7-48ee-a8e2-98a925061ea6"
+								"value": "132b59e3-7255-42b5-8128-220a0cbbe704"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"id\": \"5d6a276e-ad50-48da-9905-31f9479278ee\",\n  \"name\": \"to delete\"\n}",
+							"raw": "{\n  \"id\": \"cc5a328d-4c41-4aec-8bf5-89cb803b6431\",\n  \"name\": \"to delete\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -522,12 +561,12 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "b62669b4-4177-4b21-950e-ba2f5eb8ef93"
+								"value": "12cc9bb5-73fe-4af2-bf68-ab90de862946"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"id\": \"9cc3fcf4-1efe-4fe2-8859-7e03699d3882\"\n}",
+							"raw": "{\n  \"id\": \"4d1429f3-4588-4c11-a04f-c34fc28589ab\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -576,13 +615,52 @@
 			"name": "Merchant",
 			"item": [
 				{
+					"name": "Ask email verification",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "X-Device-Id",
+								"value": "zeyds-mac-chrome",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"zeyd1107@gmail.com\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/merchant/sendcode",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"merchant",
+								"sendcode"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Register Merchant",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "X-Device-Id",
+								"value": "zeyds-mac-chrome",
+								"type": "text"
+							}
+						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"IT School\",\n  \"email\": \"itschool@gmail.com\",\n  \"password\": \"qwer1234\"\n}",
+							"raw": "{\n  \"name\": \"Mirabror School\",\n  \"email\": \"mirabror9545@gmail.com\",\n  \"password\": \"qwer1234\",\n  \"otp\": 915329\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -606,10 +684,16 @@
 					"name": "Login Merchant",
 					"request": {
 						"method": "POST",
-						"header": [],
+						"header": [
+							{
+								"key": "X-Device-Id",
+								"value": "zeyds-mac-chrome",
+								"type": "text"
+							}
+						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"email\": \"itschool@gmail.com\",\n  \"password\": \"qwer1234\"\n}",
+							"raw": "{\n  \"email\": \"mirabror.dev@gmail.com\",\n  \"password\": \"qwer1234\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -636,7 +720,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "b27e9afb-0244-46f8-8727-ba3f0e5b7ebd"
+								"value": "52b5321c-0af9-4f7e-8583-bb35fcabbf2c"
 							}
 						],
 						"url": {
@@ -659,7 +743,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "d2ad901d-e3da-4856-b3be-2302295853fc"
+								"value": "2ed8fd82-1684-4aab-ad98-264e01e90d78"
 							}
 						],
 						"body": {
@@ -667,7 +751,7 @@
 							"formdata": [
 								{
 									"key": "name",
-									"value": "IT School uz",
+									"value": "IT School",
 									"type": "default"
 								},
 								{
@@ -735,7 +819,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "64374364-deff-48f0-bc66-5233132c57a3",
+								"value": "ffac3ca3-98c8-4d7b-bc26-bd2028463d8c",
 								"type": "text"
 							}
 						],
@@ -744,17 +828,12 @@
 							"formdata": [
 								{
 									"key": "name",
-									"value": "Courses",
-									"type": "text"
-								},
-								{
-									"key": "price",
-									"value": "88000",
+									"value": "OLD",
 									"type": "text"
 								},
 								{
 									"key": "categoryId",
-									"value": "9",
+									"value": "10",
 									"type": "text"
 								},
 								{
@@ -763,10 +842,9 @@
 									"type": "text"
 								},
 								{
-									"key": "image",
-									"type": "file",
-									"src": [],
-									"disabled": true
+									"key": "fields",
+									"value": "[{\"name\":\"Student ID\",\"type\":\"text\",\"order\":\"1\"},{\"name\":\"Comments\",\"type\":\"text\",\"order\":\"2\"}]",
+									"type": "text"
 								}
 							]
 						},
@@ -841,7 +919,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "64374364-deff-48f0-bc66-5233132c57a3",
+								"value": "b66bc58c-c32b-4f2b-8265-06634cbe879a",
 								"type": "text"
 							}
 						],
@@ -865,18 +943,37 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "2416256c-04d7-40a1-9222-c1bb1774f789",
+								"value": "b66bc58c-c32b-4f2b-8265-06634cbe879a",
 								"type": "text"
 							}
 						],
 						"url": {
-							"raw": "{{url}}/service/b787fd39-8520-4af7-b8f8-f40e973f37f6",
+							"raw": "{{url}}/service/b6e5121e-1c3e-43f3-976d-1d3a16db167e",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"service",
-								"b787fd39-8520-4af7-b8f8-f40e973f37f6"
+								"b6e5121e-1c3e-43f3-976d-1d3a16db167e"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get one public",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{url}}/service/public/0db8e787-a23f-4185-a5c7-cc043b61ee4d",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"service",
+								"public",
+								"0db8e787-a23f-4185-a5c7-cc043b61ee4d"
 							]
 						}
 					},
@@ -889,7 +986,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "ded61f32-888f-4cad-b669-d34e52d8eb27",
+								"value": "f450c2ee-18b9-445d-85fe-640ded86976f",
 								"type": "text"
 							}
 						],
@@ -898,29 +995,12 @@
 							"formdata": [
 								{
 									"key": "id",
-									"value": "98fdcebe-e52e-477a-87de-ba71beaaa1ec",
+									"value": "0db8e787-a23f-4185-a5c7-cc043b61ee4d",
 									"type": "text"
 								},
 								{
-									"key": "categoryId",
-									"value": "5",
-									"type": "text",
-									"disabled": true
-								},
-								{
-									"key": "image",
-									"type": "file",
-									"src": "/Users/zeyds/Documents/IMG_20220329_111952_641.jpg.jpg",
-									"disabled": true
-								},
-								{
-									"key": "deleteImage",
-									"value": "true",
-									"type": "text"
-								},
-								{
-									"key": "name",
-									"value": "New Name",
+									"key": "deletedFields",
+									"value": "[\"16128050-1859-48c4-902c-d7f6675b4900\", \"0f948f54-c7a5-4053-aa23-be58a352efe0\"]",
 									"type": "text"
 								}
 							]
@@ -944,13 +1024,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "59a3da44-7338-4498-8f26-a3fbaf79ce69",
+								"value": "f6e5ae8d-fa9e-4f17-8284-c0b2786a6cd5",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"id\": \"eb3f0791-eb43-4057-841d-d3eb80d18775\"\n}",
+							"raw": "{\n    \"id\": \"9d1d6cfa-45ba-46a5-bec7-e522f2c8937a\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -977,7 +1057,8 @@
 							{
 								"key": "Authorization",
 								"value": "0584e702-ef2b-4a83-afc8-9bce7c8472b2",
-								"type": "text"
+								"type": "text",
+								"disabled": true
 							}
 						],
 						"url": {
@@ -1006,13 +1087,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "8dc534de-82fc-4926-bdc5-d1caf812a9e8",
+								"value": "55664a18-b41a-4699-ab9b-e81dd7212157",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"serviceId\": \"c7913efe-ac13-4d4d-9321-a40a97b4fb9b\",\n    \"fromCardId\": \"ba263c61-36f4-4c78-8d15-07393d5d166e\"\n}",
+							"raw": "{\n    \"serviceId\": \"0db8e787-a23f-4185-a5c7-cc043b61ee4d\",\n    \"fromCardId\": \"1eeea637-c57d-45fc-8c85-706446bae3d5\",\n    \"amount\": 1\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1039,13 +1120,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "521ff55d-a686-4901-b7fd-a8511a389f1c",
+								"value": "5827188f-d2fa-4939-97d8-8924949228a6",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"fromCardId\": \"b9b9af07-00df-49bd-8808-a7f60f884630\",\n    \"toCardPan\": \"8600552519887654\",\n    \"amount\": 77700\n}",
+							"raw": "{\n    \"fromCardId\": \"4d1429f3-4588-4c11-a04f-c34fc28589ab\",\n    \"toCardPan\": \"8600000000000011\",\n    \"amount\": 24000\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1079,13 +1160,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "8dc534de-82fc-4926-bdc5-d1caf812a9e8",
+								"value": "12cc9bb5-73fe-4af2-bf68-ab90de862946",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"fromCardId\": \"77dd9895-1576-4758-8c9b-c2eacc17ef8a\",\n    \"toCardId\": \"ba263c61-36f4-4c78-8d15-07393d5d166e\",\n    \"amount\": 66000\n}",
+							"raw": "{\n    \"fromCardId\": \"87e6d85a-b30c-4dea-bb0a-35e67b654d39\",\n    \"toCardId\": \"76bd051b-73c5-4230-ba02-8addcd1e535d\",\n    \"amount\": 500000\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1113,13 +1194,13 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "b5fa7da3-5550-46b2-a9cf-1b72e2dd0417",
+								"value": "aeadd765-ff5c-4f15-9c76-4811d7893a35",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"fromDate\": \"10/10/2023\",\n    \"toDate\": \"17/10/2023\",\n    \"offset\": -5,\n    \"byServiceId\": \"cf5caa51-21e3-4dac-ba38-6eab357ce38e\", // optional\n    \"byCardId\": \"b7d56ec7-5e2e-403e-b134-122f1ba07e51\" // optional\n}",
+							"raw": "{\n    \"fromDate\": \"10/10/2023\",\n    \"toDate\": \"30/10/2023\",\n    \"offset\": -5,\n    \"page\": 1,\n    \"limit\": 2\n    // \"byServiceId\": \"cf5caa51-21e3-4dac-ba38-6eab357ce38e\", // optional\n    // \"byCardId\": \"b7d56ec7-5e2e-403e-b134-122f1ba07e51\" // optional\n}",
 							"options": {
 								"raw": {
 									"language": "json"

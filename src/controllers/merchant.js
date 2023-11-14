@@ -11,11 +11,11 @@ const CustomError = require('../errors/CustomError');
 const verifyToken = require('../middleware/verifyToken');
 const acceptsLanguages = require('../utils/acceptsLanguages');
 const emailer = require('../utils/emailer');
-const withLimit = require('../utils/limiter');
+const Limiter = require('../utils/limiter');
 
 // @Public
 function sendCodeToEmail(req, res, next) {
-  let inputs;
+  let inputs, limiter;
 
   async.waterfall(
     [
@@ -47,16 +47,35 @@ function sendCodeToEmail(req, res, next) {
           cb(null);
         });
       },
-      // send code to email
+      // check if sending code is not blocked
+      (cb) => {
+        limiter = new Limiter('email_limiter', inputs.deviceId);
+        limiter.getStatus((err, status) => {
+          if (err) return cb(err);
+
+          const { isBlocked, timeLeft } = status;
+          if (isBlocked) return cb(new CustomError('TRY_AGAIN_AFTER', null, { timeLeft }));
+
+          cb(null);
+        });
+      },
+      // send email
       (cb) => {
         const code = Math.floor(100000 + Math.random() * 900000);
-        const sendEmail = () => emailer.sendVerification(inputs.email, code);
-        const limiterCb = (err) => {
-          if (err) return cb(err);
+        emailer
+          .sendVerification(inputs.email, code)
+          .then(() => cb(null, code))
+          .catch(cb);
+      },
+      // record attempt
+      (code, cb) => {
+        const limiterCb = ({ error }) => {
+          if (error) return cb(error);
+
           cb(null, code);
         };
 
-        withLimit('email_limiter', inputs.deviceId, sendEmail, limiterCb);
+        limiter.record(true, limiterCb);
       },
       // save code
       (code, cb) => {
@@ -200,10 +219,7 @@ function registerMerchant(req, res, next) {
 
 // @Public
 function loginMerchant(req, res, next) {
-  let inputs,
-    merchant,
-    token,
-    merchantStatus = {};
+  let inputs, merchant, token, limiter;
 
   async.waterfall(
     [
@@ -238,71 +254,36 @@ function loginMerchant(req, res, next) {
           cb(null);
         });
       },
-      // check if device is not blocked
+      // check if merchant is not blocked
       (cb) => {
-        redis.hGet('merchant_login', inputs.deviceId, (err, loginObject) => {
+        limiter = new Limiter('merchant_login_limiter', inputs.deviceId);
+
+        limiter.getStatus((err, status) => {
           if (err) return cb(err);
-          if (!loginObject) return cb(null);
 
-          merchantStatus = JSON.parse(loginObject);
-          if (merchantStatus.is_blocked) {
-            const unblockTime = moment(merchantStatus.last_login_attempt).add(2, 'minute');
-            const timeLeft = unblockTime.diff(moment(), 'seconds');
-
-            // if block time is not over, return error
-            if (timeLeft > 0) {
-              return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
-            }
-
-            // if block time is over, unblock merchant
-            merchantStatus.last_login_attempt = null;
-            merchantStatus.is_blocked = false;
-          }
+          const { isBlocked, timeLeft } = status;
+          if (isBlocked) return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
 
           cb(null);
         });
       },
-      // check password
+      // login with attempts limiter
       (cb) => {
-        const { password, deviceId } = inputs;
-        const isPasswordCorrect = bcrypt.compareSync(password, merchant.hashed_password);
+        const { password } = inputs;
+        const passwordIsCorrect = bcrypt.compareSync(password, merchant.hashed_password);
 
-        // if password is wrong
-        if (!isPasswordCorrect) {
-          if (
-            merchantStatus.last_login_attempt &&
-            moment().isBefore(
-              moment(merchantStatus.last_login_attempt).add(
-                merchantStatus.safe_login_after,
-                'seconds'
-              )
-            )
-          ) {
-            // if 3 login attempts in 1 minute
-            merchantStatus.is_blocked = true;
-            merchantStatus.safe_login_after = 0;
-          } else {
-            // calculate time that merchant should wait before next login not to be blocked
-            merchantStatus.safe_login_after = merchantStatus.last_login_attempt
-              ? Math.max(60 - moment().diff(merchantStatus.last_login_attempt, 'seconds'), 0)
-              : 0;
-          }
+        const increaseAttempt = passwordIsCorrect ? false : true;
 
-          merchantStatus.last_login_attempt = moment();
-          // save status
-          return redis.hSet('merchant_login', deviceId, JSON.stringify(merchantStatus), (err) => {
-            if (err) return cb(err);
+        const limiterCb = ({ error, canTryAgain, timeLeft }) => {
+          if (passwordIsCorrect) return cb(null);
 
-            if (merchantStatus.is_blocked)
-              cb(new CustomError('USER_BLOCKED', null, { timeLeft: 120 }));
-            else cb(new CustomError('WRONG_PASSWORD'));
-          });
-        }
+          if (error) return cb(error);
+          if (!canTryAgain) return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
 
-        // reset login attempts if password is correct
-        redis.hDel('merchant_login', deviceId);
+          cb(new CustomError('WRONG_PASSWORD'));
+        };
 
-        cb(null);
+        limiter.record(increaseAttempt, limiterCb);
       },
       // delete old token
       (cb) =>

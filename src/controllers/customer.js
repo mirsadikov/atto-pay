@@ -11,6 +11,7 @@ const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 const fileStorageS3 = require('../utils/fileStorageS3');
 const acceptsLanguages = require('../utils/acceptsLanguages');
+const Limiter = require('../utils/limiter');
 
 // @Private
 // @Customer
@@ -45,6 +46,97 @@ function getCustomerProfile(req, res, next) {
 }
 
 // @Public
+function sendCodeToPhone(req, res, next) {
+  let inputs, limiter;
+
+  async.waterfall(
+    [
+      // validate data
+      (cb) => {
+        const { phone } = req.body;
+        const deviceId = req.headers['x-device-id'];
+
+        const validator = new LIVR.Validator({
+          phone: ['trim', 'is_phone_number', 'required'],
+          deviceId: ['trim', 'string', 'required'],
+        });
+
+        const validData = validator.validate({
+          phone,
+          deviceId,
+        });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        inputs = validData;
+        cb(null);
+      },
+      // check if customer not already exists
+      (cb) => {
+        fetchDB(customersQuery.getOneByPhone, [inputs.phone], (err, result) => {
+          if (err) return cb(err);
+          if (result.rows.length > 0) return cb(new CustomError('NUMBER_TAKEN'));
+
+          cb(null);
+        });
+      },
+      // check if sending code is not blocked
+      (cb) => {
+        limiter = new Limiter('otp_limiter', inputs.deviceId);
+        limiter.getStatus((err, status) => {
+          if (err) return cb(err);
+
+          const { isBlocked, timeLeft } = status;
+          if (isBlocked) return cb(new CustomError('TRY_AGAIN_AFTER', null, { timeLeft }));
+
+          cb(null);
+        });
+      },
+      // send email
+      (cb) => {
+        const code = Math.floor(100000 + Math.random() * 900000);
+        // otpService
+        //   .sendVerification(inputs.phone, code)
+        //   .then(() => cb(null, code))
+        //   .catch(cb);
+        cb(null, code);
+      },
+      // record attempt
+      (code, cb) => {
+        const limiterCb = ({ error }) => {
+          if (error) return cb(error);
+
+          cb(null, code);
+        };
+
+        limiter.record(true, limiterCb);
+      },
+      // save code
+      (code, cb) => {
+        const value = {
+          code,
+          phone: inputs.phone,
+          exp: moment().add(5, 'minutes').valueOf(),
+          tries: 0,
+        };
+
+        redis.hSet('customer_otp', inputs.deviceId, JSON.stringify(value), (err) => {
+          if (err) return cb(err);
+          cb(null);
+        });
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+        timeLeft: 120,
+      });
+    }
+  );
+}
+
+// @Public
 const registerCustomer = (req, res, next) =>
   new Promise((resolve) => {
     let inputs, newCustomer, token;
@@ -53,7 +145,7 @@ const registerCustomer = (req, res, next) =>
       [
         // validate data
         (cb) => {
-          const { name, phone, password, trust } = req.body;
+          const { name, phone, password, trust, otp } = req.body;
           const deviceId = req.headers['x-device-id'];
 
           const validator = new LIVR.Validator({
@@ -62,6 +154,7 @@ const registerCustomer = (req, res, next) =>
             password: ['trim', 'required', { min_length: 6 }, 'alphanumeric'],
             trust: ['boolean', { default: false }],
             deviceId: ['trim', 'string', { required_if: { trust: true } }],
+            otp: ['trim', 'required', 'string'],
           });
 
           const validData = validator.validate({
@@ -70,6 +163,7 @@ const registerCustomer = (req, res, next) =>
             password,
             trust,
             deviceId,
+            otp,
           });
           if (!validData) return cb(new ValidationError(validator.getErrors()));
 
@@ -85,7 +179,31 @@ const registerCustomer = (req, res, next) =>
             cb(null);
           });
         },
-        // if new customer, create customer
+        // check if code is correct
+        (cb) => {
+          redis.hGet('customer_otp', inputs.deviceId, (err, details) => {
+            if (err) return cb(err);
+            const detailsObject = JSON.parse(details || '{}');
+            const expired = moment().isAfter(moment(detailsObject.exp));
+            const tooManyTries = detailsObject.tries >= 3;
+            const sameNumber = detailsObject.phone === inputs.phone;
+            const sameCode = detailsObject.code === parseInt(inputs.otp);
+
+            if (!details || tooManyTries || !sameCode || !sameNumber || expired) {
+              detailsObject.tries += 1;
+              redis.hSet('customer_otp', inputs.deviceId, JSON.stringify(detailsObject));
+
+              if (tooManyTries || detailsObject.tries >= 3)
+                return cb(new CustomError('TOO_MANY_TRIES'));
+              if (expired) return cb(new CustomError('EXPIRED_OTP'));
+              return cb(new CustomError('WRONG_OTP'));
+            }
+
+            redis.hDel('customer_otp', inputs.deviceId);
+            cb(null);
+          });
+        },
+        // create customer
         (cb) => {
           const { name, phone, password } = inputs;
           const hashedPassword = bcrypt.hashSync(password, 10);
@@ -150,7 +268,7 @@ const registerCustomer = (req, res, next) =>
 
 // @Public
 function getCustomerLoginType(req, res, next) {
-  let inputs;
+  let inputs, limiter;
 
   async.waterfall(
     [
@@ -179,6 +297,18 @@ function getCustomerLoginType(req, res, next) {
           cb(null);
         });
       },
+      // check if sending code is not blocked
+      (cb) => {
+        limiter = new Limiter('sms_limiter', inputs.deviceId);
+        limiter.getStatus((err, status) => {
+          if (err) return cb(err);
+
+          const { isBlocked, timeLeft } = status;
+          if (isBlocked) return cb(new CustomError('TRY_AGAIN_AFTER', null, { timeLeft }));
+
+          cb(null);
+        });
+      },
       (cb) => {
         if (!inputs.deviceId) {
           return cb(null, { password: true, otp: false });
@@ -194,13 +324,23 @@ function getCustomerLoginType(req, res, next) {
             expiresAt: moment().add(2, 'minutes').valueOf(),
           };
 
-          redis.hSet('otp', inputs.phone, JSON.stringify(otpObject), (err) => {
+          redis.hSet('customer_otp', inputs.deviceId, JSON.stringify(otpObject), (err) => {
             if (err) return cb(err);
 
             // TODO: send otp to customer
             cb(null, { password: false, otp: true });
           });
         });
+      },
+      // record attempt
+      (cb, res) => {
+        const limiterCb = ({ error }) => {
+          if (error) return cb(error);
+
+          cb(null, res);
+        };
+
+        limiter.record(true, limiterCb);
       },
     ],
     (err, response) => {
@@ -213,10 +353,7 @@ function getCustomerLoginType(req, res, next) {
 // @Public
 const loginCustomer = (req, res, next) =>
   new Promise((resolve) => {
-    let inputs,
-      customer,
-      token,
-      customerStatus = {};
+    let inputs, customer, token, limiter;
 
     async.waterfall(
       [
@@ -257,24 +394,13 @@ const loginCustomer = (req, res, next) =>
         },
         // check if customer is not blocked
         (cb) => {
-          redis.hGet('customer_login', inputs.deviceId, (err, loginObject) => {
+          limiter = new Limiter('customer_login_limiter', inputs.deviceId);
+
+          limiter.getStatus((err, status) => {
             if (err) return cb(err);
-            if (!loginObject) return cb(null);
 
-            customerStatus = JSON.parse(loginObject);
-            if (customerStatus.is_blocked) {
-              const unblockTime = moment(customerStatus.last_login_attempt).add(2, 'minute');
-              const timeLeft = unblockTime.diff(moment(), 'seconds');
-
-              // if block time is not over, return error
-              if (timeLeft > 0) {
-                return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
-              }
-
-              // if block time is over, unblock customer
-              customerStatus.last_login_attempt = null;
-              customerStatus.is_blocked = false;
-            }
+            const { isBlocked, timeLeft } = status;
+            if (isBlocked) return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
 
             cb(null);
           });
@@ -305,18 +431,18 @@ const loginCustomer = (req, res, next) =>
             const isPasswordCorrect = bcrypt.compareSync(password, customer.hashed_password);
             cb(null, isPasswordCorrect, loginType);
           } else {
-            redis.hGet('otp', customer.phone, (err, redisOtp) => {
+            redis.hGet('customer_otp', customer.phone, (err, redisOtp) => {
               if (err) return cb(err);
               if (!redisOtp) return cb(null, false, loginType);
               const otpObject = JSON.parse(redisOtp);
 
               if (moment().isAfter(otpObject.expiresAt)) {
-                redis.hDel('otp', customer.phone);
+                redis.hDel('customer_otp', customer.phone);
                 return cb(new CustomError('EXPIRED_OTP'));
               }
 
               if (otpObject.code === parseInt(otp) && moment().isBefore(otpObject.expiresAt)) {
-                redis.hDel('otp', customer.phone);
+                redis.hDel('customer_otp', customer.phone);
                 return cb(null, true, loginType);
               }
 
@@ -324,48 +450,20 @@ const loginCustomer = (req, res, next) =>
             });
           }
         },
-        // if password is wrong
+        // login with attempts limiter
         (isValidCreadentials, loginType, cb) => {
-          if (!isValidCreadentials) {
-            if (
-              customerStatus.last_login_attempt &&
-              moment().isBefore(
-                moment(customerStatus.last_login_attempt).add(
-                  customerStatus.safe_login_after,
-                  'seconds'
-                )
-              )
-            ) {
-              // if 3 login attempts in 1 minute
-              customerStatus.is_blocked = true;
-              customerStatus.safe_login_after = 0;
-            } else {
-              // calculate time that customer should wait before next login not to be blocked
-              customerStatus.safe_login_after = customerStatus.last_login_attempt
-                ? Math.max(60 - moment().diff(customerStatus.last_login_attempt, 'seconds'), 0)
-                : 0;
-            }
+          const increaseAttempt = isValidCreadentials ? false : true;
 
-            customerStatus.last_login_attempt = moment();
-            // save status
-            return redis.hSet(
-              'customer_login',
-              inputs.deviceId,
-              JSON.stringify(customerStatus),
-              (err) => {
-                if (err) return cb(err);
+          const limiterCb = ({ err, canTryAgain, timeLeft }) => {
+            if (isValidCreadentials) return cb(null);
 
-                if (customerStatus.is_blocked)
-                  cb(new CustomError('USER_BLOCKED', null, { timeLeft: 120 }));
-                else cb(new CustomError(loginType === 'password' ? 'WRONG_PASSWORD' : 'WRONG_OTP'));
-              }
-            );
-          }
+            if (err) return cb(err);
+            if (!canTryAgain) return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
 
-          // reset login attempts if password is correct
-          redis.hDel('customer_login', inputs.deviceId);
+            cb(new CustomError(loginType === 'password' ? 'WRONG_PASSWORD' : 'WRONG_OTP'));
+          };
 
-          cb(null);
+          limiter.record(increaseAttempt, limiterCb);
         },
         // trust device if needed
         (cb) => {
@@ -673,9 +771,9 @@ function removeServiceFromSaved(req, res, next) {
 // FAKE OTP GETTER
 function getOtpFromSMS(req, res, next) {
   try {
-    const { phone } = req.params;
+    const deviceId = req.headers['x-device-id'];
 
-    redis.hGet('otp', phone, (err, otp) => {
+    redis.hGet('customer_otp', deviceId, (err, otp) => {
       if (err) console.error(err);
       if (!otp) return res.send('');
 
@@ -696,4 +794,5 @@ module.exports = {
   updateCustomerLang,
   addServiceToSaved,
   removeServiceFromSaved,
+  sendCodeToPhone,
 };
