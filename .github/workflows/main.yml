@@ -25,7 +25,7 @@ jobs:
 
       - name: Pull Latest Changes
         run: |
-          cd /root/projects/atto_project
+          cd /usr/src/projects/atto_project
           git pull
 
       - name: Restart PM2 Service
