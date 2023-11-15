@@ -19,12 +19,14 @@ jobs:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          script: |
+            cd /usr/src/projects/atto_project
+            git pull origin main
+            npm install
+            pm2 restart atto-pay
+          
+          
+      
+      
 
-      - name: Pull Latest Changes
-        working-directory: /usr/src/projects/atto_project
-        run: |
-          git pull
-          npm install
-
-      - name: Restart PM2 Service
-        run: pm2 restart atto-pay
+      
