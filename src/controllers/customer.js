@@ -4,6 +4,7 @@ const moment = require('moment');
 const bcrypt = require('bcrypt');
 const fetchDB = require('../postgres');
 const redis = require('../redis');
+const io = require('../socket/socket');
 const { customersQuery, devicesQuery } = require('../postgres/queries');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
@@ -918,9 +919,13 @@ function allowLoginByQR(req, res, next) {
       },
     ],
     (err) => {
-      if (err) return next(err);
+      if (err) {
+        inputs.allowDeviceId && io.to(inputs.allowDeviceId).emit('qr_login_deny', { error: err });
+        return next(err);
+      }
 
-      res.status(200).json({ token });
+      res.status(200).json({ success: true });
+      io.to(inputs.allowDeviceId).emit('qr_login_allow', { token });
     }
   );
 }
