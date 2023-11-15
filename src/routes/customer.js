@@ -26,7 +26,7 @@ router.put('/profile', updateCustomer);
 router.put('/lang', updateCustomerLang);
 router.post('/services', addServiceToSaved);
 router.delete('/services', removeServiceFromSaved);
-router.delete('/device/:deviceId', untrustDevice);
+router.delete('/device', untrustDevice);
 router.get('/device', getAllDevices);
 
 // FAKE OTP GETTER
