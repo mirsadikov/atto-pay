@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+          
       - name: SSH into Digital Ocean Server
         uses: appleboy/ssh-action@master
         with:
