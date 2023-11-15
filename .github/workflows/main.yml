@@ -10,12 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Install Dependencies
-        run: npm install
-
       - name: SSH into Digital Ocean Server
         uses: appleboy/ssh-action@master
         with:
@@ -24,9 +18,10 @@ jobs:
           key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
 
       - name: Pull Latest Changes
+        working-directory: /usr/src/projects/atto_project
         run: |
-          cd /usr/src/projects/atto_project
           git pull
+          npm install
 
       - name: Restart PM2 Service
         run: pm2 restart atto-pay
