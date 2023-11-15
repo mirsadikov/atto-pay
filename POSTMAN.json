@@ -189,7 +189,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"key\": \"yAqUOOcbsB9hJODzxZyfqEAWkCtWyKgaXc89axW2Wl0\",\n    \"allowDeviceId\": \"zeyds-mac-chrome5\"\n}",
+							"raw": "{\n    \"key\": \"yAqUOOcbsB9hJODzxZyfqEAWkCtWyKgaXc89axW2Wl0\",\n    \"sockedId\": \"ljq234ljlfjalsd\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"

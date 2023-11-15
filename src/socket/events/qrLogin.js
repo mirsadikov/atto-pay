@@ -24,7 +24,7 @@ async function qrLoginRequest(socket) {
 
   await redis.hSet('qr_login', deviceId, JSON.stringify(body));
 
-  socket.emit('qr_login_response', { key });
+  socket.emit('qr_login_response', { key, socketId: socket.id });
 }
 
 module.exports = qrLoginRequest;

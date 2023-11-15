@@ -869,7 +869,7 @@ function allowLoginByQR(req, res, next) {
 
         const validator = new LIVR.Validator({
           key: ['trim', 'required', 'string'],
-          allowDeviceId: ['trim', 'required', 'string'],
+          socketId: ['trim', 'required', 'string'],
         });
 
         const validData = validator.validate({ key, allowDeviceId });
@@ -928,7 +928,7 @@ function allowLoginByQR(req, res, next) {
       }
 
       res.status(200).json({ success: true });
-      io.to(inputs.allowDeviceId).emit('qr_login_allow', { token });
+      io.to(inputs.socketId).emit('qr_login_allow', { token });
     }
   );
 }
