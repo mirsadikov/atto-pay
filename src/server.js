@@ -8,11 +8,10 @@ const merchantRouter = require('./routes/merchant');
 const categoryRouter = require('./routes/category');
 const serviceRouter = require('./routes/service');
 const transactionRouter = require('./routes/transaction');
-const errorHandler = require('./utils/errorHandler');
+const apiErrorHandler = require('./middleware/apiErrorHandler');
 const useragent = require('express-useragent');
 
 const app = express();
-const port = 3000;
 
 app.use(cors());
 app.use(express.json());
@@ -25,12 +24,10 @@ app.use('/merchant', merchantRouter);
 app.use('/category', categoryRouter);
 app.use('/service', serviceRouter);
 app.use('/transaction', transactionRouter);
-app.use(errorHandler);
+app.use(apiErrorHandler);
 
 app.get('/', (_, res) => {
   res.send('Server is up!');
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
-});
+module.exports = app;

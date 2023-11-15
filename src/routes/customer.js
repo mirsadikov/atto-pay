@@ -12,6 +12,7 @@ const {
   sendCodeToPhone,
   untrustDevice,
   getAllDevices,
+  allowLoginByQR,
 } = require('../controllers/customer');
 const router = express.Router();
 
@@ -20,6 +21,7 @@ router.post('/register', registerCustomer);
 router.post('/getlogin', getCustomerLoginType);
 router.post('/sendcode', sendCodeToPhone);
 router.post('/login', loginCustomer);
+router.post('/login/qr', allowLoginByQR);
 router.put('/profile', updateCustomer);
 router.put('/lang', updateCustomerLang);
 router.post('/services', addServiceToSaved);

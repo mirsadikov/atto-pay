@@ -11,6 +11,39 @@
 			"name": "Customer",
 			"item": [
 				{
+					"name": "Otp request at Register",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "x-device-id",
+								"value": "new-device",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"phone\": \"998991231212\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/sendcode",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"sendcode"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Register customer",
 					"event": [
 						{
@@ -76,7 +109,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"phone\": \"998993669801\"\n}",
+							"raw": "{\n  \"phone\": \"998993669800\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -123,7 +156,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"phone\": \"998993669800\",\n    \"password\": \"Hello1234.\",\n    \"trust\": false\n}",
+							"raw": "{\n    \"phone\": \"998993669800\",\n    \"password\": \"Hello1234.\",\n    // \"trust\": true,\n    \"otp\": 431724\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -138,6 +171,40 @@
 							"path": [
 								"customer",
 								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Approve QR Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "d02591f8-9d17-4bb2-9950-f3cf5d3d2e4d",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"key\": \"yAqUOOcbsB9hJODzxZyfqEAWkCtWyKgaXc89axW2Wl0\",\n    \"allowDeviceId\": \"zeyds-mac-chrome5\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/login/qr",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"login",
+								"qr"
 							]
 						}
 					},
@@ -183,7 +250,7 @@
 						"header": [
 							{
 								"key": "x-device-id",
-								"value": "new-device",
+								"value": "zeyds-mac-chrome",
 								"type": "text"
 							}
 						],
@@ -202,13 +269,43 @@
 					"response": []
 				},
 				{
+					"name": "Get all devices",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "8edc576f-af6a-49cc-9354-589a3469a9cc",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url}}/customer/device?",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"device"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": null
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Get customer profile",
 					"request": {
 						"method": "GET",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "1502408d-7455-424e-8603-bba1a7dce24c"
+								"value": "d02591f8-9d17-4bb2-9950-f3cf5d3d2e4d"
 							}
 						],
 						"url": {
@@ -361,33 +458,25 @@
 					"response": []
 				},
 				{
-					"name": "Register Send code",
+					"name": "Untrust device",
 					"request": {
-						"method": "POST",
+						"method": "DELETE",
 						"header": [
 							{
-								"key": "x-device-id",
-								"value": "new-device",
+								"key": "Authorization",
+								"value": "19fffccf-6f32-4280-a97e-eacb0153b563",
 								"type": "text"
 							}
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"phone\": \"998991231212\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
 						"url": {
-							"raw": "{{url}}/customer/sendcode",
+							"raw": "{{url}}/customer/device/12",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
-								"sendcode"
+								"device",
+								"12"
 							]
 						}
 					},

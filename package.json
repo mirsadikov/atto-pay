@@ -2,10 +2,10 @@
   "name": "atto-pet-project",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
     "test": "mocha test",
     "db:init": "node src/postgres/seeder.js --init",
     "db:drop": "node src/postgres/seeder.js --drop",
@@ -35,6 +35,7 @@
     "redis": "4.0.0",
     "sinon": "13.0.2",
     "sinon-chai": "^3.7.0",
+    "socket.io": "^4.7.2",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

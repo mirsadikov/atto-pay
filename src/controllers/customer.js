@@ -846,6 +846,85 @@ function untrustDevice(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
+function allowLoginByQR(req, res, next) {
+  let inputs, token, customerId;
+
+  async.waterfall(
+    [
+      // verify customer
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // allow login by qr
+      (cb) => {
+        const { key, allowDeviceId } = req.body;
+
+        const validator = new LIVR.Validator({
+          key: ['trim', 'required', 'string'],
+          allowDeviceId: ['trim', 'required', 'string'],
+        });
+
+        const validData = validator.validate({ key, allowDeviceId });
+
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        inputs = validData;
+        cb(null);
+      },
+      // get qr login data
+      (cb) => {
+        redis.hGet('qr_login', inputs.allowDeviceId, (err, qrLoginData) => {
+          if (err) return cb(err);
+          if (!qrLoginData) return cb(new CustomError('INVALID_REQUEST'));
+
+          const qrLoginObject = JSON.parse(qrLoginData);
+
+          if (qrLoginObject.key !== inputs.key) return cb(new CustomError('INVALID_REQUEST'));
+
+          cb(null);
+        });
+      },
+      // allow login
+      (cb) => {
+        token = v4();
+        redis.hDel('qr_login', inputs.allowDeviceId);
+        redis.hSet('customers', inputs.allowDeviceId, token, (err) => {
+          if (err) return cb(err);
+
+          cb(null);
+        });
+      },
+      (cb) => {
+        redis.hSet(
+          'tokens',
+          token,
+          JSON.stringify({
+            id: customerId,
+            role: 'customer',
+            expiresAt: moment().add(1, 'hour').valueOf(),
+          }),
+          (err) => {
+            if (err) return cb(err);
+            cb(null);
+          }
+        );
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json({ token });
+    }
+  );
+}
+
 // @Helper
 function getDeviceInfo(req) {
   let { browser, version, os, platform } = req.useragent;
@@ -885,4 +964,5 @@ module.exports = {
   sendCodeToPhone,
   untrustDevice,
   getAllDevices,
+  allowLoginByQR,
 };

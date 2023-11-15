@@ -1,14 +1,13 @@
 const fetchDB = require('../postgres/index');
 const { errorsQuery } = require('../postgres/queries');
-const acceptsLanguages = require('./acceptsLanguages');
 
-const errorHandler = (err, req, res, next) => {
+const defaultErrorHandler = (err, lang, cb) => {
   const isDevenv = process.env.NODE_ENV === 'development';
-  const lang = acceptsLanguages(req);
+  const errorName = err.name || 'ERROR';
 
-  fetchDB(errorsQuery.get, [err.name.toUpperCase(), lang], (dbError, result) => {
+  fetchDB(errorsQuery.get, [errorName.toUpperCase(), lang], (dbError, result) => {
     if (dbError)
-      return res.status(status).json({
+      return cb(500, {
         message: 'Internal Server Error',
         status: 500,
         details: isDevenv ? dbError.message : undefined,
@@ -40,7 +39,7 @@ const errorHandler = (err, req, res, next) => {
         break;
     }
 
-    return res.status(status).json({
+    cb(status, {
       message,
       status,
       info,
@@ -51,4 +50,4 @@ const errorHandler = (err, req, res, next) => {
   });
 };
 
-module.exports = errorHandler;
+module.exports = defaultErrorHandler;
