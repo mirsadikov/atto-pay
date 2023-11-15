@@ -829,7 +829,7 @@ function untrustDevice(req, res, next) {
       },
       // delete device
       (customerId, cb) => {
-        const deviceId = req.params.deviceId;
+        const deviceId = req.body.deviceId;
         fetchDB(devicesQuery.remove, [deviceId, customerId], (err) => {
           if (err) return cb(err);
 
