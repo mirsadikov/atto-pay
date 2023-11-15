@@ -889,6 +889,9 @@ function allowLoginByQR(req, res, next) {
 
           if (qrLoginObject.key !== inputs.key) return cb(new CustomError('INVALID_REQUEST'));
 
+          if (moment().isAfter(moment(qrLoginObject.expiresAt)))
+            return cb(new CustomError('EXPIRED_QR_LOGIN'));
+
           cb(null);
         });
       },
