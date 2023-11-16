@@ -884,7 +884,7 @@ function allowLoginByQR(req, res, next) {
       },
       // get qr login data
       (cb) => {
-        redis.hGet('qr_login', key, (err, qrLoginData) => {
+        redis.hGet('qr_login', inputs.key, (err, qrLoginData) => {
           if (err) return cb(err);
           if (!qrLoginData) return cb(new CustomError('INVALID_REQUEST'));
 
@@ -902,7 +902,7 @@ function allowLoginByQR(req, res, next) {
       // allow login
       (cb) => {
         token = v4();
-        redis.hDel('qr_login', key);
+        redis.hDel('qr_login', inputs.key);
         redis.hSet('customers', inputs.allowDeviceId, token, (err) => {
           if (err) return cb(err);
 
