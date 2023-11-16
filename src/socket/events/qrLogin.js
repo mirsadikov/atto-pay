@@ -18,7 +18,7 @@ async function qrLoginRequest(socket) {
   const key = base64url(crypto.randomBytes(32));
   const body = {
     key,
-    expiresAt: moment().add(2, 'minutes').toISOString(),
+    exp: moment().add(2, 'minutes').toISOString(),
     socketId: socket.id,
   };
 

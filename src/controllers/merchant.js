@@ -194,7 +194,7 @@ function registerMerchant(req, res, next) {
             JSON.stringify({
               id: newMerchant.id,
               role: 'merchant',
-              expiresAt: moment().add(1, 'hour').valueOf(),
+              exp: moment().add(1, 'hour').valueOf(),
             })
           )
           .then(() => cb(null));
@@ -308,7 +308,7 @@ function loginMerchant(req, res, next) {
             JSON.stringify({
               id: merchant.id,
               role: 'merchant',
-              expiresAt: moment().add(1, 'hour').valueOf(),
+              exp: moment().add(1, 'hour').valueOf(),
             })
           )
           .then(() => cb(null));

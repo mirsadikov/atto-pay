@@ -12,7 +12,7 @@ async function verifyToken(req, role, cb) {
   if (!details) return cb(new CustomError('INVALID_TOKEN'));
 
   // check if token is expired
-  if (details.expiresAt < moment().valueOf()) return cb(new CustomError('EXPIRED_TOKEN'));
+  if (details.exp < moment().valueOf()) return cb(new CustomError('EXPIRED_TOKEN'));
 
   // check if token role matches required role
   if (details.role !== role) return cb(new CustomError('NOT_ALLOWED'));

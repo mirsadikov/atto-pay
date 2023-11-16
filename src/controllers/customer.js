@@ -230,7 +230,7 @@ const registerCustomer = (req, res, next) =>
             JSON.stringify({
               id: newCustomer.id,
               role: 'customer',
-              expiresAt: moment().add(1, 'hour').valueOf(),
+              exp: moment().add(1, 'hour').valueOf(),
             }),
             (err) => {
               if (err) return cb(err);
@@ -322,7 +322,8 @@ function getCustomerLoginType(req, res, next) {
 
           const otpObject = {
             code: Math.floor(100000 + Math.random() * 900000),
-            expiresAt: moment().add(2, 'minutes').valueOf(),
+            exp: moment().add(2, 'minutes').valueOf(),
+            phone: inputs.phone,
           };
 
           redis.hSet('customer_otp', inputs.deviceId, JSON.stringify(otpObject), (err) => {
@@ -428,27 +429,29 @@ const loginCustomer = (req, res, next) =>
         },
         // check password or otp
         (loginType, cb) => {
-          const { password, otp, deviceId } = inputs;
+          const { phone, password, otp, deviceId } = inputs;
           if (loginType === 'password') {
             const isPasswordCorrect = bcrypt.compareSync(password, customer.hashed_password);
             cb(null, isPasswordCorrect, loginType);
           } else {
             redis.hGet('customer_otp', deviceId, (err, redisOtp) => {
               if (err) return cb(err);
-              if (!redisOtp) return cb(null, false, loginType);
-              const otpObject = JSON.parse(redisOtp);
+              const detailsObject = JSON.parse(redisOtp || '{}');
+              const expired = moment().isAfter(moment(detailsObject.exp));
+              const sameNumber = detailsObject.phone === phone;
+              const sameCode = detailsObject.code === parseInt(otp);
 
-              if (moment().isAfter(otpObject.expiresAt)) {
-                redis.hDel('customer_otp', customer.phone);
-                return cb(new CustomError('EXPIRED_OTP'));
+              if (!redisOtp || !sameCode || !sameNumber || expired) {
+                if (expired) {
+                  redis.hDel('customer_otp', deviceId);
+                  return cb(new CustomError('EXPIRED_OTP'));
+                }
+
+                return cb(null, false, loginType);
               }
 
-              if (otpObject.code === parseInt(otp) && moment().isBefore(otpObject.expiresAt)) {
-                redis.hDel('customer_otp', customer.phone);
-                return cb(null, true, loginType);
-              }
-
-              cb(null, false, loginType);
+              redis.hDel('customer_otp', inputs.deviceId);
+              cb(null, true, loginType);
             });
           }
         },
@@ -505,7 +508,7 @@ const loginCustomer = (req, res, next) =>
             JSON.stringify({
               id: customer.id,
               role: 'customer',
-              expiresAt: moment().add(1, 'hour').valueOf(),
+              exp: moment().add(1, 'hour').valueOf(),
             }),
             (err) => {
               if (err) return cb(err);
@@ -889,7 +892,7 @@ function allowLoginByQR(req, res, next) {
 
           if (qrLoginObject.key !== inputs.key) return cb(new CustomError('INVALID_REQUEST'));
 
-          if (moment().isAfter(moment(qrLoginObject.expiresAt)))
+          if (moment().isAfter(moment(qrLoginObject.exp)))
             return cb(new CustomError('EXPIRED_QR_LOGIN'));
 
           cb(null);
@@ -912,7 +915,7 @@ function allowLoginByQR(req, res, next) {
           JSON.stringify({
             id: customerId,
             role: 'customer',
-            expiresAt: moment().add(1, 'hour').valueOf(),
+            exp: moment().add(1, 'hour').valueOf(),
           }),
           (err) => {
             if (err) return cb(err);
