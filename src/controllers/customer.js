@@ -868,14 +868,15 @@ function allowLoginByQR(req, res, next) {
       },
       // allow login by qr
       (cb) => {
-        const { key, allowDeviceId } = req.body;
+        const { key, allowDeviceId, socketId } = req.body;
 
         const validator = new LIVR.Validator({
           key: ['trim', 'required', 'string'],
+          allowDeviceId: ['trim', 'required', 'string'],
           socketId: ['trim', 'required', 'string'],
         });
 
-        const validData = validator.validate({ key, allowDeviceId });
+        const validData = validator.validate({ key, allowDeviceId, socketId });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
