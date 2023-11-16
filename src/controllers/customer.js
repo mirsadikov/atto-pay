@@ -853,7 +853,7 @@ function untrustDevice(req, res, next) {
 // @Private
 // @Customer
 function allowLoginByQR(req, res, next) {
-  let inputs, token, customerId;
+  let inputs, token, customerId, qrLoginObject;
 
   async.waterfall(
     [
@@ -868,15 +868,14 @@ function allowLoginByQR(req, res, next) {
       },
       // allow login by qr
       (cb) => {
-        const { key, allowDeviceId, socketId } = req.body;
+        const { key, allowDeviceId } = req.body;
 
         const validator = new LIVR.Validator({
           key: ['trim', 'required', 'string'],
           allowDeviceId: ['trim', 'required', 'string'],
-          socketId: ['trim', 'required', 'string'],
         });
 
-        const validData = validator.validate({ key, allowDeviceId, socketId });
+        const validData = validator.validate({ key, allowDeviceId });
 
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
@@ -885,13 +884,14 @@ function allowLoginByQR(req, res, next) {
       },
       // get qr login data
       (cb) => {
-        redis.hGet('qr_login', inputs.allowDeviceId, (err, qrLoginData) => {
+        redis.hGet('qr_login', key, (err, qrLoginData) => {
           if (err) return cb(err);
           if (!qrLoginData) return cb(new CustomError('INVALID_REQUEST'));
 
-          const qrLoginObject = JSON.parse(qrLoginData);
+          qrLoginObject = JSON.parse(qrLoginData);
 
-          if (qrLoginObject.key !== inputs.key) return cb(new CustomError('INVALID_REQUEST'));
+          if (qrLoginObject.deviceId !== inputs.allowDeviceId)
+            return cb(new CustomError('INVALID_REQUEST'));
 
           if (moment().isAfter(moment(qrLoginObject.exp)))
             return cb(new CustomError('EXPIRED_QR_LOGIN'));
@@ -902,7 +902,7 @@ function allowLoginByQR(req, res, next) {
       // allow login
       (cb) => {
         token = v4();
-        redis.hDel('qr_login', inputs.allowDeviceId);
+        redis.hDel('qr_login', key);
         redis.hSet('customers', inputs.allowDeviceId, token, (err) => {
           if (err) return cb(err);
 
@@ -927,12 +927,12 @@ function allowLoginByQR(req, res, next) {
     ],
     (err) => {
       if (err) {
-        inputs.allowDeviceId && io.to(inputs.allowDeviceId).emit('qr_login_deny', { error: err });
+        inputs.allowDeviceId && io.to(qrLoginObject.socketId).emit('qr_login_deny', { error: err });
         return next(err);
       }
 
       res.status(200).json({ success: true });
-      io.to(inputs.socketId).emit('qr_login_allow', { token });
+      io.to(qrLoginObject.socketId).emit('qr_login_allow', { token });
     }
   );
 }
