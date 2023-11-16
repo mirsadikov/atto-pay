@@ -82,7 +82,7 @@ function sendCodeToPhone(req, res, next) {
       },
       // check if sending code is not blocked
       (cb) => {
-        limiter = new Limiter('otp_limiter', inputs.deviceId);
+        limiter = new Limiter('sms_limiter', inputs.deviceId);
         limiter.getStatus((err, status) => {
           if (err) return cb(err);
 
@@ -329,7 +329,7 @@ function getCustomerLoginType(req, res, next) {
             if (err) return cb(err);
 
             // TODO: send otp to customer
-            cb(null, { password: false, otp: true });
+            cb(null, { password: false, otp: true, timeLeft: 120 });
           });
         });
       },
