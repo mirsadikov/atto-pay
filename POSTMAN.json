@@ -189,7 +189,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"key\": \"yAqUOOcbsB9hJODzxZyfqEAWkCtWyKgaXc89axW2Wl0\",\n    \"sockedId\": \"ljq234ljlfjalsd\"\n}",
+							"raw": "{\n    \"key\": \"yAqUOOcbsB9hJODzxZyfqEAWkCtWyKgaXc89axW2Wl0\",\n    \"allowDeviceId\": \"ljq234ljlfjalsd\"\n    \n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -256,7 +256,7 @@
 						],
 						"url": {
 							"raw": "{{url}}/customer/otp/recievebysms",
-							"host": [
+														"host": [
 								"{{url}}"
 							],
 							"path": [
@@ -1303,6 +1303,56 @@
 							],
 							"path": [
 								"transaction"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get transfer details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "b865037a-3b59-4c46-a5a3-b8e9917c0fa0",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url}}/transaction/transfer/9dcfc421-90ec-4160-813f-6b77f0795deb",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"transaction",
+								"transfer",
+								"9dcfc421-90ec-4160-813f-6b77f0795deb"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get payment details",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "7822c3df-9ddd-4f30-bdb1-29b246fbe636",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url}}/transaction/payment/51e95d65-48d4-4989-9365-b73345f855b3",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"transaction",
+								"payment",
+								"51e95d65-48d4-4989-9365-b73345f855b3"
 							]
 						}
 					},

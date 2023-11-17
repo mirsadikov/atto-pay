@@ -104,7 +104,7 @@ select s.id, s.merchant_id, s.category_id, s.name, s.image_url, s.is_active, s.p
   c.code as category_code, c.name -> $3 as category_name,
   (select json_agg(
     json_build_object('id', f.id, 'name', f.name, 'type', f.type, 'order', f.order_num)
-  ) from service_field f where f.service_id = s.id) as fields
+  ) from service_field f where f.service_id = s.id and f.deleted = false) as fields
 from service s
 JOIN service_category c on s.category_id = c.id
 where s.id = $1 and s.merchant_id = $2 and s.deleted = false`,
@@ -139,7 +139,7 @@ select s.id, s.merchant_id, s.category_id, s.name, s.image_url,
   c.code as category_code, c.name -> $2 as category_name,
   (select json_agg(
     json_build_object('id', f.id, 'name', f.name, 'type', f.type, 'order', f.order_num)
-  ) from service_field f where f.service_id = s.id) as fields
+  ) from service_field f where f.service_id = s.id and f.deleted = false) as fields
 from service s
 JOIN service_category c on s.category_id = c.id
 where s.id = $1 and s.deleted = false and s.is_active = true`,
@@ -153,6 +153,7 @@ const transactionsQuery = {
   getTransactions: `
 select * 
 from get_transactions($1, $2, $3, $4, $5, $6, $7)`,
+  getOneById: `select * from get_transaction_by_id($1, $2, $3)`,
 };
 
 module.exports = {

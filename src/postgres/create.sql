@@ -75,6 +75,7 @@ create table if not exists service_field (
   name varchar(64) not null,
   type varchar(16) not null,
   order_num int not null default 0,
+  deleted boolean not null default false,
   constraint unique_service_field unique(service_id, name)
 );
 
@@ -114,7 +115,8 @@ create table if not exists transfer (
 create or replace function service_deleted_trigger()
 returns trigger as $$
 begin
-  delete from service_field where service_id = old.id;
+  -- soft delete
+  update service set deleted = true where id = old.id;
   delete from customer_saved_service where service_id = old.id;
   delete from payment where owner_id = old.merchant_id and receiver_id = old.id;
   return new;
@@ -235,7 +237,8 @@ begin
 
     -- delete fields
     for i in 0..jsonb_array_length(_deleted_fields) - 1 loop
-      delete from service_field where id = (_deleted_fields->>i)::uuid;
+      -- soft delete
+      update service_field set deleted = true where id = (_deleted_fields->>i)::uuid;
     end loop;
 
     select message from message where name = 'SERVICE_UPDATED' into success_message;
@@ -329,7 +332,7 @@ begin
     end if;
     
     -- save service_field names
-    select jsonb_agg(jsonb_build_object('id', id, 'name', name)) into service_fields from service_field where service_id = _service_id;
+    select jsonb_agg(jsonb_build_object('id', id, 'name', name)) into service_fields from service_field where service_id = _service_id and deleted = false;
 
     -- loop service_fields and check if all required fields are provided, then add them to details
     if jsonb_array_length(service_fields) > 0 then
@@ -562,6 +565,63 @@ end;
 $$ language plpgsql;
 
 
+-- get one transaction with details
+create or replace function get_transaction_by_id(
+  _customer_id uuid,
+  _transaction_id uuid,
+  _type varchar(16) -- payment or transfer
+)
+returns table (
+  id uuid,
+  owner_id uuid,
+  type varchar(16),
+  action text,
+  amount int,
+  created_at timestamp,
+  sender jsonb, 
+  receiver jsonb,
+  fields jsonb
+) as $$
+begin
+  if _type = 'payment' then
+    return query
+      select p.id, p.owner_id, p.type, 'payment' as action, p.amount, p.created_at,
+      jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as sender,
+      jsonb_build_object('id', s.id, 'name', s.name, 'image_url', s.image_url) as receiver,
+      (
+        SELECT
+        jsonb_agg(
+          jsonb_build_object(
+            'id', field_key::uuid,
+            'name', sf.name, 
+            'type', sf.type,
+            'value', p.fields->>field_key
+          )
+        )
+      FROM
+        jsonb_object_keys(p.fields) AS field_key
+      JOIN
+        service_field sf ON sf.id = field_key::uuid
+      ) as fields
+      from payment p
+      join customer_card own_card on own_card.id = p.sender_id
+      join service s on s.id = p.receiver_id
+      where p.owner_id = _customer_id and p.id = _transaction_id;
+  else
+    return query
+      select t.id, t.owner_id, t.type, 'transfer' as action, t.amount, t.created_at,
+      jsonb_build_object('name', sender_customer.name, 'image_url', sender_customer.image_url, 'pan', mask_credit_card(t.sender_pan)) as sender,
+      jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as receiver,
+      'null'::jsonb as fields
+      from transfer t
+      join customer sender_customer on sender_customer.id = t.sender_id
+      join customer_card own_card on own_card.id = t.receiver_id
+      where t.owner_id = _customer_id and t.id = _transaction_id;
+  end if;
+end;
+$$ language plpgsql;
+
+
 -- ############################
 -- DATA INSERTION --
 insert into message(name, message, http_code) values
@@ -609,7 +669,8 @@ insert into message(name, message, http_code) values
 ('TOO_MANY_TRIES', '{"en": "Too many tries", "uz": "Juda ko''p urinishlar", "ru": "Слишком много попыток"}', 403),
 ('TRY_AGAIN_AFTER', '{"en": "Try again after {0} seconds", "uz": "{0} sekunddan keyin urinib ko''ring", "ru": "Попробуйте снова через {0} секунд"}', 403),
 ('INVALID_REQUEST', '{"en": "Invalid request", "uz": "Noto''g''ri so''rov", "ru": "Неверный запрос"}', 400),
-('EXPIRED_QR_LOGIN', '{"en": "QR login expired", "uz": "QR login muddati tugagan", "ru": "QR логин истек"}', 400)
+('EXPIRED_QR_LOGIN', '{"en": "QR login expired", "uz": "QR login muddati tugagan", "ru": "QR логин истек"}', 400),
+('TRANSACTION_NOT_FOUND', '{"en": "Transaction not found", "uz": "Tranzaksiya topilmadi", "ru": "Транзакция не найдена"}', 404)
 on conflict do nothing;
 
 insert into service_category(code, name) values

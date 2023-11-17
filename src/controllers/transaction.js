@@ -299,9 +299,74 @@ function getTransactions(req, res, next) {
   );
 }
 
+// @Private
+// @Customer
+function getOneTransaction(req, res, next) {
+  let customerId, inputs, transaction;
+
+  async.waterfall(
+    [
+      // verify customer
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // validate data
+      (cb) => {
+        const { transactionId, type } = req.params;
+
+        const validator = new LIVR.Validator({
+          transactionId: ['trim', 'required', 'string'],
+          type: ['trim', 'required', 'string', { one_of: ['payment', 'transfer'] }],
+        });
+
+        const validData = validator.validate({ transactionId, type });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        inputs = validData;
+        cb(null);
+      },
+      // get transaction
+      (cb) => {
+        fetchDB(
+          transactionsQuery.getOneById,
+          [customerId, inputs.transactionId, inputs.type],
+          (err, result) => {
+            if (err) return cb(err);
+
+            if (!result.rows[0]) return cb(new CustomError('TRANSACTION_NOT_FOUND'));
+
+            transaction = result.rows[0];
+
+            if (transaction.sender.image_url)
+              transaction.sender.image_url = fileStorage.getFileUrl(transaction.sender.image_url);
+
+            if (transaction.receiver.image_url)
+              transaction.receiver.image_url = fileStorage.getFileUrl(
+                transaction.receiver.image_url
+              );
+
+            cb(null);
+          }
+        );
+      },
+    ],
+    (err) => {
+      if (err) return next(err);
+
+      res.status(200).json(transaction);
+    }
+  );
+}
+
 module.exports = {
   payForService,
   transferMoney,
   transferMoneyToSelf,
   getTransactions,
+  getOneTransaction,
 };
