@@ -903,6 +903,7 @@ function allowLoginByQR(req, res, next) {
       (cb) => {
         token = v4();
         redis.hDel('qr_login', inputs.key);
+        redis.hDel('qr_login', inputs.allowDeviceId);
         redis.hSet('customers', inputs.allowDeviceId, token, (err) => {
           if (err) return cb(err);
 

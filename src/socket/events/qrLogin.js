@@ -20,11 +20,14 @@ async function qrLoginRequest(socket) {
     deviceId: validData.deviceId,
     exp: moment().add(2, 'minutes').toISOString(),
     socketId: socket.id,
-  };
+  }; 
+
+  const oldKey = await redis.hDel('qr_login', deviceId);
+  if (oldKey) await redis.hDel('qr_login', oldKey);
 
   await redis.hSet('qr_login', key, JSON.stringify(body));
-
   socket.emit('qr_login_response', { key, timeLeft: 120 });
+  redis.hSet('qr_login', deviceId, key);
 }
 
 module.exports = qrLoginRequest;
