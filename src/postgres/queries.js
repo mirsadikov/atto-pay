@@ -72,21 +72,25 @@ const devicesQuery = {
 insert into customer_device(customer_id, device_id, name)
 values($1, $2, $3) on conflict do nothing`,
   getAllByCustomer: `
-select id, name, device_id, last_login from customer_device
+select id, name, last_login from customer_device
 where customer_id = $1`,
   getOneByUid: `
 select * from customer_device 
 where device_id = $1 and customer_id = (select id from customer where phone = $2)`,
+  getOnyByCustomer: `
+select * from customer_device
+where device_id = $1 and customer_id = $2`,
   remove: `
 delete from customer_device
-where id = $1 and customer_id = $2`,
+where id = $1 and customer_id = $2
+returning (select message from message where name = 'UNTRUST_SUCCESS') as message`,
   updateLastLogin: `
 update customer_device
 set last_login = now()
 where device_id = $1 and customer_id = $2`,
 };
 
-const errorsQuery = {
+const messagesQuery = {
   get: 'select message -> $2 as message, http_code from message where name = $1',
 };
 
@@ -159,7 +163,7 @@ from get_transactions($1, $2, $3, $4, $5, $6, $7)`,
 module.exports = {
   customersQuery,
   cardsQuery,
-  errorsQuery,
+  messagesQuery,
   devicesQuery,
   merchantsQuery,
   categoriesQuery,

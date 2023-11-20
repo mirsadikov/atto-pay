@@ -1,11 +1,11 @@
 const fetchDB = require('../postgres/index');
-const { errorsQuery } = require('../postgres/queries');
+const { messagesQuery } = require('../postgres/queries');
 
 const defaultErrorHandler = (err, lang, cb) => {
   const isDevenv = process.env.NODE_ENV === 'development';
   const errorName = err.name || 'ERROR';
 
-  fetchDB(errorsQuery.get, [errorName.toUpperCase(), lang], (dbError, result) => {
+  fetchDB(messagesQuery.get, [errorName.toUpperCase(), lang], (dbError, result) => {
     if (dbError)
       return cb(500, {
         message: 'Internal Server Error',

@@ -781,77 +781,6 @@ function removeServiceFromSaved(req, res, next) {
 
 // @Private
 // @Customer
-function getAllDevices(req, res, next) {
-  let customerId;
-
-  async.waterfall(
-    [
-      // verify customer
-      (cb) => {
-        verifyToken(req, 'customer', (err, id) => {
-          if (err) return cb(err);
-
-          customerId = id;
-          cb(null);
-        });
-      },
-      // get all devices
-      (cb) => {
-        fetchDB(devicesQuery.getAllByCustomer, [customerId], (err, result) => {
-          if (err) return cb(err);
-
-          const devices = {
-            count: result.rowCount,
-            rows: result.rows,
-          };
-
-          cb(null, devices);
-        });
-      },
-    ],
-    (err, devices) => {
-      if (err) return next(err);
-
-      res.status(200).json(devices);
-    }
-  );
-}
-
-// @Private
-// @Customer
-function untrustDevice(req, res, next) {
-  async.waterfall(
-    [
-      // verify customer
-      (cb) => {
-        verifyToken(req, 'customer', (err, id) => {
-          if (err) return cb(err);
-
-          cb(null, id);
-        });
-      },
-      // delete device
-      (customerId, cb) => {
-        const deviceId = req.body.deviceId;
-        fetchDB(devicesQuery.remove, [deviceId, customerId], (err) => {
-          if (err) return cb(err);
-
-          cb(null);
-        });
-      },
-    ],
-    (err) => {
-      if (err) return next(err);
-
-      res.status(200).json({
-        success: true,
-      });
-    }
-  );
-}
-
-// @Private
-// @Customer
 function allowLoginByQR(req, res, next) {
   let inputs, token, customerId, qrLoginObject;
 
@@ -975,7 +904,5 @@ module.exports = {
   addServiceToSaved,
   removeServiceFromSaved,
   sendCodeToPhone,
-  untrustDevice,
-  getAllDevices,
   allowLoginByQR,
 };

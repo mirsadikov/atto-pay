@@ -616,6 +616,15 @@ begin
       from transfer t
       join customer sender_customer on sender_customer.id = t.sender_id
       join customer_card own_card on own_card.id = t.receiver_id
+      where t.owner_id = _customer_id and t.id = _transaction_id
+      union all
+      select t.id, t.owner_id, t.type, 'transfer' as action, t.amount, t.created_at,
+      jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as sender,
+      jsonb_build_object('name', receiver_customer.name, 'image_url', receiver_customer.image_url, 'pan', mask_credit_card(t.receiver_pan)) as receiver,
+      'null'::jsonb as fields
+      from transfer t
+      join customer_card own_card on own_card.id = t.sender_id
+      join customer receiver_customer on receiver_customer.id = t.receiver_id
       where t.owner_id = _customer_id and t.id = _transaction_id;
   end if;
 end;
@@ -670,7 +679,10 @@ insert into message(name, message, http_code) values
 ('TRY_AGAIN_AFTER', '{"en": "Try again after {0} seconds", "uz": "{0} sekunddan keyin urinib ko''ring", "ru": "Попробуйте снова через {0} секунд"}', 403),
 ('INVALID_REQUEST', '{"en": "Invalid request", "uz": "Noto''g''ri so''rov", "ru": "Неверный запрос"}', 400),
 ('EXPIRED_QR_LOGIN', '{"en": "QR login expired", "uz": "QR login muddati tugagan", "ru": "QR логин истек"}', 400),
-('TRANSACTION_NOT_FOUND', '{"en": "Transaction not found", "uz": "Tranzaksiya topilmadi", "ru": "Транзакция не найдена"}', 404)
+('TRANSACTION_NOT_FOUND', '{"en": "Transaction not found", "uz": "Tranzaksiya topilmadi", "ru": "Транзакция не найдена"}', 404),
+('ALLOWED_FOR_TRUSTED', '{"en": "This action is allowed only for trusted devices", "uz": "Ushbu amal faqat ishonchli qurilmalar uchun ruxsat etilgan", "ru": "Это действие разрешено только для доверенных устройств"}', 403),
+('UNTRUST_SUCCESS', '{"en": "Removed from trusted devices", "uz": "Ishonchli qurilmalardan olib tashlandi", "ru": "Удалено из доверенных устройств"}', 200),
+('SESSIONS_ENDED', '{"en": "Terminated all other sessions", "uz": "Boshqa sessiyalarni tugatildi", "ru": "Завершены все другие сессии"}', 200)
 on conflict do nothing;
 
 insert into service_category(code, name) values

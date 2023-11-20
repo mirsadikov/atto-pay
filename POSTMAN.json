@@ -104,12 +104,12 @@
 						"header": [
 							{
 								"key": "X-Device-ID",
-								"value": "zeyds-mac-chrome"
+								"value": "lWJlxKCxbKrXCp2UW3kcrqMJZ8Fag5"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"phone\": \"998993669800\"\n}",
+							"raw": "{\n  \"phone\": \"998888888888\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -146,17 +146,18 @@
 						"method": "POST",
 						"header": [
 							{
-								"key": "X-Device-ID",
-								"value": "zeyds-mac-chrome"
-							},
-							{
 								"key": "Accept-Language",
 								"value": "uz"
+							},
+							{
+								"key": "x-device-id",
+								"value": "2sdg4234",
+								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"phone\": \"998993669800\",\n    \"password\": \"Hello1234.\",\n    // \"trust\": true,\n    \"otp\": 431724\n}",
+							"raw": "{\n    \"phone\": \"998888888888\",\n    \"password\": \"12345d\",\n    // \"trust\": true,\n    \"otp\": 469294\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -250,49 +251,22 @@
 						"header": [
 							{
 								"key": "x-device-id",
-								"value": "zeyds-mac-chrome",
+								"value": "lWJlxKCxbKrXCp2UW3kcrqMJZ8Fag5",
 								"type": "text"
 							}
 						],
 						"url": {
-							"raw": "{{url}}/customer/otp/recievebysms",
-														"host": [
-								"{{url}}"
+							"raw": "https://atto-pay-api.vercel.app/customer/otp/recievebysms",
+							"protocol": "https",
+							"host": [
+								"atto-pay-api",
+								"vercel",
+								"app"
 							],
 							"path": [
 								"customer",
 								"otp",
 								"recievebysms"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get all devices",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "8edc576f-af6a-49cc-9354-589a3469a9cc",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "{{url}}/customer/device?",
-							"host": [
-								"{{url}}"
-							],
-							"path": [
-								"customer",
-								"device"
-							],
-							"query": [
-								{
-									"key": "",
-									"value": null
-								}
 							]
 						}
 					},
@@ -305,7 +279,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "d02591f8-9d17-4bb2-9950-f3cf5d3d2e4d"
+								"value": "d952e6df-4490-420f-b1d9-98f6702efb52"
 							}
 						],
 						"url": {
@@ -456,7 +430,12 @@
 						}
 					},
 					"response": []
-				},
+				}
+			]
+		},
+		{
+			"name": "Devices",
+			"item": [
 				{
 					"name": "Untrust device",
 					"request": {
@@ -464,19 +443,91 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "19fffccf-6f32-4280-a97e-eacb0153b563",
+								"value": "dcc35c07-7025-4420-8bd6-8e60ff95c5ec",
+								"type": "text"
+							},
+							{
+								"key": "X-device-id",
+								"value": "lWJlxKCxbKrXCp2UW3kcrqMJZ8Fag1",
 								"type": "text"
 							}
 						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"deviceId\": 11\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
 						"url": {
-							"raw": "{{url}}/customer/device/12",
+							"raw": "{{url}}/customer/device",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
-								"device",
-								"12"
+								"device"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get all devices",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "f9fc7496-a5ec-4fd4-aa31-d9f554220866",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url}}/customer/device?",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"device"
+							],
+							"query": [
+								{
+									"key": "",
+									"value": null
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Terminate all other sessions",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "b87887a1-7910-4121-a580-73f4ea4e8733",
+								"type": "text"
+							},
+							{
+								"key": "x-device-id",
+								"value": "oQwm1nHFidm27qzQO9zn3dDIPaPh3H",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{url}}/customer/endsessions",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"endsessions"
 							]
 						}
 					},
@@ -1315,19 +1366,19 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "b865037a-3b59-4c46-a5a3-b8e9917c0fa0",
+								"value": "e5467d02-07ef-4e48-95b2-2dc17dd103e8",
 								"type": "text"
 							}
 						],
 						"url": {
-							"raw": "{{url}}/transaction/transfer/9dcfc421-90ec-4160-813f-6b77f0795deb",
+							"raw": "{{url}}/transaction/transfer/2312cbf8-d9a5-4bc6-942a-640557bdd57c",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"transaction",
 								"transfer",
-								"9dcfc421-90ec-4160-813f-6b77f0795deb"
+								"2312cbf8-d9a5-4bc6-942a-640557bdd57c"
 							]
 						}
 					},
@@ -1359,6 +1410,14 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "Devices",
+			"request": {
+				"method": "GET",
+				"header": []
+			},
+			"response": []
 		}
 	],
 	"event": [

@@ -10,10 +10,9 @@ const {
   addServiceToSaved,
   removeServiceFromSaved,
   sendCodeToPhone,
-  untrustDevice,
-  getAllDevices,
   allowLoginByQR,
 } = require('../controllers/customer');
+const { getAllDevices, untrustDevice, endOtherSessions } = require('../controllers/device');
 const router = express.Router();
 
 router.get('/profile', getCustomerProfile);
@@ -28,6 +27,7 @@ router.post('/services', addServiceToSaved);
 router.delete('/services', removeServiceFromSaved);
 router.delete('/device', untrustDevice);
 router.get('/device', getAllDevices);
+router.post('/endsessions', endOtherSessions);
 
 // FAKE OTP GETTER
 router.get('/otp/recievebysms', getOtpFromSMS);
