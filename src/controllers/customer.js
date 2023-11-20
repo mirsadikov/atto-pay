@@ -5,7 +5,7 @@ const bcrypt = require('bcrypt');
 const fetchDB = require('../postgres');
 const redis = require('../redis');
 const io = require('../socket/socket');
-const { customersQuery, devicesQuery } = require('../postgres/queries');
+const { customersQuery, devicesQuery, messagesQuery } = require('../postgres/queries');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
 const ValidationError = require('../errors/ValidationError');
@@ -854,14 +854,22 @@ function allowLoginByQR(req, res, next) {
           }
         );
       },
+      // get success message
+      (cb) => {
+        fetchDB(messagesQuery.get, ['QR_LOGIN_SUCCESS', acceptsLanguages(req)], (err, result) => {
+          if (err) return cb(err);
+
+          cb(null, result.rows[0]);
+        });
+      },
     ],
-    (err) => {
+    (err, message) => {
       if (err) {
         inputs.allowDeviceId && io.to(qrLoginObject.socketId).emit('qr_login_deny', { error: err });
         return next(err);
       }
 
-      res.status(200).json({ success: true });
+      res.status(message.http_code).json({ success: true, message: message.message });
       io.to(qrLoginObject.socketId).emit('qr_login_allow', { token });
     }
   );

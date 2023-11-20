@@ -682,7 +682,8 @@ insert into message(name, message, http_code) values
 ('TRANSACTION_NOT_FOUND', '{"en": "Transaction not found", "uz": "Tranzaksiya topilmadi", "ru": "Транзакция не найдена"}', 404),
 ('ALLOWED_FOR_TRUSTED', '{"en": "This action is allowed only for trusted devices", "uz": "Ushbu amal faqat ishonchli qurilmalar uchun ruxsat etilgan", "ru": "Это действие разрешено только для доверенных устройств"}', 403),
 ('UNTRUST_SUCCESS', '{"en": "Removed from trusted devices", "uz": "Ishonchli qurilmalardan olib tashlandi", "ru": "Удалено из доверенных устройств"}', 200),
-('SESSIONS_ENDED', '{"en": "Terminated all other sessions", "uz": "Boshqa sessiyalarni tugatildi", "ru": "Завершены все другие сессии"}', 200)
+('SESSIONS_ENDED', '{"en": "Terminated all other sessions", "uz": "Boshqa sessiyalarni tugatildi", "ru": "Завершены все другие сессии"}', 200),
+('QR_LOGIN_SUCCESS', '{"en": "QR login successful", "uz": "QR login muvaffaqiyatli amalga oshirildi", "ru": "QR логин прошел успешно"}', 200)
 on conflict do nothing;
 
 insert into service_category(code, name) values
