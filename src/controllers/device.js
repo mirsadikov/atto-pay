@@ -28,10 +28,13 @@ function getAllDevices(req, res, next) {
       (cb) => {
         fetchDB(devicesQuery.getAllByCustomer, [customerId], (err, result) => {
           if (err) return cb(err);
+          const deviceId = req.headers['x-device-id'];
 
           const devices = {
             count: result.rowCount,
-            rows: result.rows,
+            rows: result.rows.map((device) =>
+              device.device_id === deviceId ? { ...device, current: true } : device
+            ),
           };
 
           cb(null, devices);
