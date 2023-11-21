@@ -72,7 +72,8 @@ const devicesQuery = {
 insert into customer_device(customer_id, device_id, name)
 values($1, $2, $3) on conflict do nothing`,
   getAllByCustomer: `
-select id, name, last_login from customer_device
+select id, name, last_login, CASE WHEN device_id = $2 THEN true ELSE false END AS current
+from customer_device
 where customer_id = $1`,
   getOneByUid: `
 select * from customer_device 

@@ -26,9 +26,9 @@ function getAllDevices(req, res, next) {
       },
       // get all devices
       (cb) => {
-        fetchDB(devicesQuery.getAllByCustomer, [customerId], (err, result) => {
+        const deviceId = req.headers['x-device-id'];
+        fetchDB(devicesQuery.getAllByCustomer, [customerId, deviceId], (err, result) => {
           if (err) return cb(err);
-          const deviceId = req.headers['x-device-id'];
 
           const devices = {
             count: result.rowCount,
