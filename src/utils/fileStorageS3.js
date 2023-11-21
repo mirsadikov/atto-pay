@@ -1,17 +1,25 @@
 const v4 = require('uuid').v4;
 const { S3, PutObjectCommand } = require('@aws-sdk/client-s3');
 const CustomError = require('../errors/CustomError');
+const {
+  AWS_BUCKET_NAME,
+  AWS_BUCKET_REGION,
+  AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY,
+  AWS_BUCKET_ENDPOINT,
+  AWS_BUCKET_CDN_ENDPOINT,
+} = require('../config/secrets');
 
 class fileStorageS3 {
   constructor() {
-    this.bucketName = process.env.AWS_BUCKET_NAME;
+    this.bucketName = AWS_BUCKET_NAME;
     this.s3 = new S3({
-      region: process.env.AWS_BUCKET_REGION,
+      region: AWS_BUCKET_REGION,
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        accessKeyId: AWS_ACCESS_KEY_ID,
+        secretAccessKey: AWS_SECRET_ACCESS_KEY,
       },
-      endpoint: process.env.AWS_BUCKET_ENDPOINT,
+      endpoint: AWS_BUCKET_ENDPOINT,
     });
   }
 
@@ -62,7 +70,7 @@ class fileStorageS3 {
   getFileUrl(fileName) {
     if (!fileName) return null;
 
-    return `https://${this.bucketName}.${process.env.AWS_BUCKET_CDN_ENDPOINT}/${fileName}`;
+    return `https://${this.bucketName}.${AWS_BUCKET_CDN_ENDPOINT}/${fileName}`;
   }
 }
 

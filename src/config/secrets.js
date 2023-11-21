@@ -1,0 +1,44 @@
+require('dotenv').config();
+
+const PORT = process.env.PORT;
+const POSTGRES_URL = process.env.POSTGRES_URL;
+const POSTGRES_SSL = process.env.POSTGRES_SSL;
+const REDIS_URL = process.env.REDIS_URL;
+const REDIS_TLS = process.env.REDIS_TLS;
+const NODE_ENV = process.env.NODE_ENV;
+
+const AWS_BUCKET_NAME = process.env.AWS_BUCKET_NAME;
+const AWS_BUCKET_REGION = process.env.AWS_BUCKET_REGION;
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
+const AWS_BUCKET_ENDPOINT = process.env.AWS_BUCKET_ENDPOINT;
+const AWS_BUCKET_CDN_ENDPOINT = process.env.AWS_BUCKET_CDN_ENDPOINT;
+
+const GMAIL_CLIENT_ID = process.env.GMAIL_CLIENT_ID;
+const GMAIL_CLIENT_SECRET = process.env.GMAIL_CLIENT_SECRET;
+const GMAIL_REFRESH_TOKEN = process.env.GMAIL_REFRESH_TOKEN;
+const GMAIL_USER = process.env.GMAIL_USER;
+
+const CRM_API_URL = process.env.CRM_API_URL;
+const SMS_SERVICE_SECRET = process.env.SMS_SERVICE_SECRET;
+
+module.exports = {
+  PORT,
+  POSTGRES_URL,
+  POSTGRES_SSL,
+  REDIS_URL,
+  REDIS_TLS,
+  NODE_ENV,
+  AWS_BUCKET_NAME,
+  AWS_BUCKET_REGION,
+  AWS_ACCESS_KEY_ID,
+  AWS_SECRET_ACCESS_KEY,
+  AWS_BUCKET_ENDPOINT,
+  AWS_BUCKET_CDN_ENDPOINT,
+  GMAIL_CLIENT_ID,
+  GMAIL_CLIENT_SECRET,
+  GMAIL_REFRESH_TOKEN,
+  GMAIL_USER,
+  CRM_API_URL,
+  SMS_SERVICE_SECRET,
+};

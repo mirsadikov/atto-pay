@@ -1,9 +1,10 @@
 const { Pool } = require('pg');
 const DatabaseError = require('../errors/DatabaseError');
+const { POSTGRES_URL, POSTGRES_SSL } = require('../config/secrets');
 
 const pgClient = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: process.env.POSTGRES_SSL === 'true',
+  connectionString: POSTGRES_URL,
+  ssl: POSTGRES_SSL === 'true',
 });
 
 const fetchDB = (QUERY, params, cb) => {

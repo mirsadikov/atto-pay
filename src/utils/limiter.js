@@ -2,7 +2,6 @@ const moment = require('moment');
 const redis = require('../redis/index');
 
 class Limiter {
-  #timeLeft;
   #tries = {
     last: null,
     safe_try_after: 0,
@@ -25,10 +24,7 @@ class Limiter {
       const unblockAt = moment(this.#tries.last).add(120, 'seconds');
       const timeLeft = unblockAt.diff(moment(), 'seconds');
 
-      if (timeLeft > 0) {
-        this.#timeLeft = timeLeft;
-        return cb(null, { isBlocked: true, timeLeft });
-      }
+      if (timeLeft > 0) return cb(null, { isBlocked: true, timeLeft });
 
       this.#tries.blocked = false;
       this.#tries.last = null;

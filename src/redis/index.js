@@ -1,11 +1,12 @@
 const { createClient } = require('redis');
+const { REDIS_URL, REDIS_TLS } = require('../config/secrets');
 
 class RedisClient {
   constructor() {
     this.client = createClient({
-      url: process.env.REDIS_URL,
+      url: REDIS_URL,
       socket: {
-        tls: process.env.REDIS_TLS === 'true',
+        tls: REDIS_TLS === 'true',
       },
     });
 

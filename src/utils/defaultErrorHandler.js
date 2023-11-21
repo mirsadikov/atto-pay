@@ -1,8 +1,9 @@
+const { NODE_ENV } = require('../config/secrets');
 const fetchDB = require('../postgres/index');
 const { messagesQuery } = require('../postgres/queries');
 
 const defaultErrorHandler = (err, lang, cb) => {
-  const isDevenv = process.env.NODE_ENV === 'development';
+  const isDevenv = NODE_ENV === 'development';
   const errorName = err.name || 'ERROR';
 
   fetchDB(messagesQuery.get, [errorName.toUpperCase(), lang], (dbError, result) => {

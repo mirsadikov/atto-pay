@@ -13,6 +13,7 @@ const CustomError = require('../errors/CustomError');
 const fileStorageS3 = require('../utils/fileStorageS3');
 const acceptsLanguages = require('../utils/acceptsLanguages');
 const Limiter = require('../utils/limiter');
+const smsService = require('../utils/smsService');
 
 // @Private
 // @Customer
@@ -92,14 +93,13 @@ function sendCodeToPhone(req, res, next) {
           cb(null);
         });
       },
-      // send email
+      // send code
       (cb) => {
         const code = Math.floor(100000 + Math.random() * 900000);
-        // otpService
-        //   .sendVerification(inputs.phone, code)
-        //   .then(() => cb(null, code))
-        //   .catch(cb);
-        cb(null, code);
+        smsService
+          .sendVerification(inputs.phone, code)
+          .then(() => cb(null, code))
+          .catch(cb);
       },
       // record attempt
       (code, cb) => {
@@ -275,15 +275,16 @@ function getCustomerLoginType(req, res, next) {
     [
       // validate data
       (cb) => {
-        const { phone } = req.body;
+        const { phone, trust } = req.body;
         const deviceId = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
           phone: ['trim', 'is_phone_number', 'required'],
-          deviceId: ['trim', 'string'],
+          trust: ['boolean', { default: false }],
+          deviceId: ['trim', 'string', 'required'],
         });
 
-        const validData = validator.validate({ deviceId, phone: Math.abs(phone) });
+        const validData = validator.validate({ deviceId, trust, phone: Math.abs(phone) });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         inputs = validData;
@@ -298,44 +299,50 @@ function getCustomerLoginType(req, res, next) {
           cb(null);
         });
       },
-      // check if sending code is not blocked
+      // check if device is already trusted
       (cb) => {
-        limiter = new Limiter('sms_limiter', inputs.deviceId);
+        fetchDB(devicesQuery.getOneByUid, [inputs.deviceId, inputs.phone], (err, result) => {
+          if (err) return cb(err);
+          const alreadyTrusted = result.rows.length > 0;
+          cb(null, alreadyTrusted);
+        });
+      },
+      // if trusted or want to trust, send code
+      (alreadyTrusted, cb) => {
+        const { phone, deviceId, trust } = inputs;
+        if (!alreadyTrusted && !trust) return cb(null, { password: true, otp: false });
+
+        limiter = new Limiter('sms_limiter', deviceId);
         limiter.getStatus((err, status) => {
           if (err) return cb(err);
 
+          // check if sending code is not blocked
           const { isBlocked, timeLeft } = status;
           if (isBlocked) return cb(new CustomError('TRY_AGAIN_AFTER', null, { timeLeft }));
 
-          cb(null);
-        });
-      },
-      (cb) => {
-        if (!inputs.deviceId) {
-          return cb(null, { password: true, otp: false });
-        }
-
-        fetchDB(devicesQuery.getOneByUid, [inputs.deviceId, inputs.phone], (err, result) => {
-          if (err) return cb(err);
-
-          if (result.rows.length === 0) return cb(null, { password: true, otp: false });
-
+          const code = Math.floor(100000 + Math.random() * 900000);
           const otpObject = {
-            code: Math.floor(100000 + Math.random() * 900000),
+            code,
             exp: moment().add(2, 'minutes').valueOf(),
-            phone: inputs.phone,
+            phone: phone,
+            newDevice: !alreadyTrusted,
           };
 
-          redis.hSet('customer_otp', inputs.deviceId, JSON.stringify(otpObject), (err) => {
+          // save code
+          redis.hSet('customer_otp', deviceId, JSON.stringify(otpObject), (err) => {
             if (err) return cb(err);
 
-            // TODO: send otp to customer
-            cb(null, { password: false, otp: true, timeLeft: 120 });
+            smsService
+              .sendVerification(phone, code)
+              .then(() => cb(null, { password: !alreadyTrusted, otp: true, timeLeft: 120 }))
+              .catch(cb);
           });
         });
       },
-      // record attempt
+      // record attempt for sending code if code is sent
       (res, cb) => {
+        if (!res.otp) return cb(null, res);
+
         const limiterCb = ({ error }) => {
           if (error) return cb(error);
 
@@ -355,7 +362,7 @@ function getCustomerLoginType(req, res, next) {
 // @Public
 const loginCustomer = (req, res, next) =>
   new Promise((resolve) => {
-    let inputs, customer, token, limiter, isAlreadyTrusted;
+    let inputs, customer, token, limiter, isAlreadyTrusted, newDevice;
 
     async.waterfall(
       [
@@ -409,21 +416,13 @@ const loginCustomer = (req, res, next) =>
         },
         // determine login type
         (cb) => {
-          const { phone, deviceId, otp, password } = inputs;
+          const { phone, deviceId, trust } = inputs;
 
           fetchDB(devicesQuery.getOneByUid, [deviceId, phone], (err, result) => {
             if (err) return cb(err);
 
             isAlreadyTrusted = result.rows.length > 0;
-            const loginType = result.rows.length > 0 ? 'otp' : 'password';
-            const validator = new LIVR.Validator({
-              password: loginType === 'password' ? 'required' : 'string',
-              otp: loginType === 'otp' ? 'required' : 'string',
-            });
-
-            const validData = validator.validate({ password, otp });
-            if (!validData) return cb(new ValidationError(validator.getErrors()));
-
+            const loginType = isAlreadyTrusted || trust ? 'otp' : 'password';
             cb(null, loginType);
           });
         },
@@ -431,32 +430,54 @@ const loginCustomer = (req, res, next) =>
         (loginType, cb) => {
           const { phone, password, otp, deviceId } = inputs;
           if (loginType === 'password') {
-            const isPasswordCorrect = bcrypt.compareSync(password, customer.hashed_password);
+            const validator = new LIVR.Validator({ password: ['required', 'string'] });
+            const validData = validator.validate({ password });
+            if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+            const isPasswordCorrect = bcrypt.compareSync(
+              validData.password,
+              customer.hashed_password
+            );
+
             cb(null, isPasswordCorrect, loginType);
           } else {
             redis.hGet('customer_otp', deviceId, (err, redisOtp) => {
               if (err) return cb(err);
               const detailsObject = JSON.parse(redisOtp || '{}');
+
+              // validate required fields
+              newDevice = detailsObject.newDevice;
+              const passwordRequired = !isAlreadyTrusted && newDevice;
+              const validator = new LIVR.Validator({
+                otp: 'required',
+                password: passwordRequired ? 'required' : 'string',
+              });
+              const validData = validator.validate({ password, otp });
+              if (!validData) return cb(new ValidationError(validator.getErrors()));
+
               const expired = moment().isAfter(moment(detailsObject.exp));
               const sameNumber = detailsObject.phone === phone;
               const sameCode = detailsObject.code === parseInt(otp);
+              const samePassword = passwordRequired
+                ? bcrypt.compareSync(validData.password, customer.hashed_password)
+                : true;
 
-              if (!redisOtp || !sameCode || !sameNumber || expired) {
+              if (!redisOtp || !sameCode || !sameNumber || expired || !samePassword) {
                 if (expired) {
                   redis.hDel('customer_otp', deviceId);
                   return cb(new CustomError('EXPIRED_OTP'));
                 }
 
-                return cb(null, false, loginType);
+                return cb(null, false, !sameCode ? 'otp' : 'password');
               }
 
               redis.hDel('customer_otp', inputs.deviceId);
-              cb(null, true, loginType);
+              cb(null, true, null);
             });
           }
         },
         // login with attempts limiter
-        (isValidCreadentials, loginType, cb) => {
+        (isValidCreadentials, wrongFieldType, cb) => {
           const increaseAttempt = isValidCreadentials ? false : true;
 
           const limiterCb = ({ err, canTryAgain, timeLeft }) => {
@@ -465,7 +486,7 @@ const loginCustomer = (req, res, next) =>
             if (err) return cb(err);
             if (!canTryAgain) return cb(new CustomError('USER_BLOCKED', null, { timeLeft }));
 
-            cb(new CustomError(loginType === 'password' ? 'WRONG_PASSWORD' : 'WRONG_OTP'));
+            cb(new CustomError(wrongFieldType === 'password' ? 'WRONG_PASSWORD' : 'WRONG_OTP'));
           };
 
           limiter.record(increaseAttempt, limiterCb);
@@ -477,13 +498,17 @@ const loginCustomer = (req, res, next) =>
           if (isAlreadyTrusted)
             fetchDB(devicesQuery.updateLastLogin, [inputs.deviceId, customer.id]);
 
-          if (isAlreadyTrusted || !inputs.trust) return cb(null);
+          if (isAlreadyTrusted) return cb(null);
 
-          const info = getDeviceInfo(req);
-          fetchDB(devicesQuery.create, [customer.id, inputs.deviceId, info], (err) => {
-            if (err) return cb(err);
+          if (newDevice && inputs.trust) {
+            const info = getDeviceInfo(req);
+            fetchDB(devicesQuery.create, [customer.id, inputs.deviceId, info], (err) => {
+              if (err) return cb(err);
+              cb(null);
+            });
+          } else {
             cb(null);
-          });
+          }
         },
         // delete old token of this device
         (cb) => {

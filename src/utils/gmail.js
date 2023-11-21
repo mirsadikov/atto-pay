@@ -1,11 +1,17 @@
 const nodemailer = require('nodemailer');
+const {
+  GMAIL_CLIENT_ID,
+  GMAIL_CLIENT_SECRET,
+  GMAIL_REFRESH_TOKEN,
+  GMAIL_USER,
+} = require('../config/secrets');
 
 class Gmail {
   constructor() {
-    this.clientId = process.env.GMAIL_CLIENT_ID;
-    this.clientSecret = process.env.GMAIL_CLIENT_SECRET;
-    this.refreshToken = process.env.GMAIL_REFRESH_TOKEN;
-    this.user = process.env.GMAIL_USER;
+    this.clientId = GMAIL_CLIENT_ID;
+    this.clientSecret = GMAIL_CLIENT_SECRET;
+    this.refreshToken = GMAIL_REFRESH_TOKEN;
+    this.user = GMAIL_USER;
   }
 
   async sendEmail({ to, subject, text, html }) {
