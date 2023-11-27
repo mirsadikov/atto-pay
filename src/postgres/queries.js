@@ -1,7 +1,5 @@
 const customersQuery = {
-  getOneById: `
-select *, (select sum(balance) from customer_card where customer_id = $1) as balance 
-from customer where id = $1`,
+  getOneById: `select * from customer where id = $1`,
   getOneByPhone: 'select * from customer where phone = $1',
   delete: 'delete from customer where id = $1',
   create: `
@@ -49,15 +47,11 @@ const cardsQuery = {
   getOneById:
     'select *, mask_credit_card(pan) as pan from customer_card where id = $1 and customer_id = $2',
   checkIsUnique: 'select customer_id from customer_card where pan = $1',
-  getOwnerByPan: `
-select name from customer where id = (
-  select customer_id from customer_card where pan = $1
-)`,
   getAllByCustomer: `
-select *, mask_credit_card(pan) as pan
+select *
 from customer_card where customer_id = $1`,
-  create: `
-insert into customer_card(customer_id, name, owner_name, pan, expiry_month, expiry_year) 
+  save: `
+insert into customer_card(customer_id, name, pan, expiry_month, expiry_year, token)
 values($1, $2, $3, $4, $5, $6)
 returning (select message from message where name = 'CARD_ADDED') as message`,
   update: `

@@ -2,7 +2,6 @@ const express = require('express');
 const {
   getCustomerProfile,
   updateCustomer,
-  getOtpFromSMS,
   registerCustomer,
   getCustomerLoginType,
   loginCustomer,
@@ -28,8 +27,5 @@ router.delete('/services', removeServiceFromSaved);
 router.delete('/device', untrustDevice);
 router.get('/device', getAllDevices);
 router.post('/endsessions', endOtherSessions);
-
-// FAKE OTP GETTER
-router.get('/otp/recievebysms', getOtpFromSMS);
 
 module.exports = router;

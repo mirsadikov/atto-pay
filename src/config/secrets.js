@@ -21,6 +21,9 @@ const GMAIL_USER = process.env.GMAIL_USER;
 
 const CRM_API_URL = process.env.CRM_API_URL;
 const SMS_SERVICE_SECRET = process.env.SMS_SERVICE_SECRET;
+const SV_GATE_URL = process.env.SV_GATE_URL;
+const SV_GATE_USER = process.env.SV_GATE_USER;
+const SV_GATE_PASSWORD = process.env.SV_GATE_PASSWORD;
 
 module.exports = {
   PORT,
@@ -41,4 +44,7 @@ module.exports = {
   GMAIL_USER,
   CRM_API_URL,
   SMS_SERVICE_SECRET,
+  SV_GATE_URL,
+  SV_GATE_USER,
+  SV_GATE_PASSWORD,
 };

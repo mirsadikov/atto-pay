@@ -1,15 +1,17 @@
 var express = require('express');
 const {
-  createCard,
+  addCard,
   getCustomerCards,
   updateCard,
   deleteCard,
   getOneById,
   getOnwerByPan,
+  verifyCard,
 } = require('../controllers/card');
 const router = express.Router();
 
-router.post('/', createCard);
+router.post('/', addCard);
+router.post('/verify', verifyCard);
 router.get('/', getCustomerCards);
 router.put('/', updateCard);
 router.delete('/', deleteCard);

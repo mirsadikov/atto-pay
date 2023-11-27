@@ -2,15 +2,17 @@ const async = require('async');
 const moment = require('moment');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
-const { cardsQuery } = require('../postgres/queries');
+const { cardsQuery, customersQuery } = require('../postgres/queries');
 const fetchDB = require('../postgres');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 const acceptsLanguages = require('../utils/acceptsLanguages');
+const svgateRequest = require('../utils/SVGateClient');
+const redisClient = require('../redis');
 
 // @Private
 // @Customer
-function createCard(req, res, next) {
+function addCard(req, res, next) {
   let customerId, inputs;
 
   async.waterfall(
@@ -26,17 +28,18 @@ function createCard(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { name, owner_name, pan, expiry_month, expiry_year } = req.body;
+        const { pan, expiry_month, expiry_year, name } = req.body;
+        const deviceId = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
-          name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
-          owner_name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
+          deviceId: ['trim', 'string', 'required'],
           pan: ['required', 'valid_pan'],
           expiry_month: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
           expiry_year: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
+          name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
         });
 
-        const validData = validator.validate({ name, owner_name, pan, expiry_month, expiry_year });
+        const validData = validator.validate({ deviceId, pan, expiry_month, expiry_year, name });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         // check card expiry date is valid and not expired
@@ -45,6 +48,8 @@ function createCard(req, res, next) {
         if (expiryDate.isBefore(moment())) return cb(new CustomError('CARD_EXPIRED'));
 
         inputs = validData;
+        inputs.expiry_month = inputs.expiry_month.padStart(2, '0');
+        inputs.expiry_year = inputs.expiry_year.padStart(2, '0');
         cb(null);
       },
       // check card is not already added
@@ -62,22 +67,138 @@ function createCard(req, res, next) {
           cb(null);
         });
       },
-      // create card
+      // get customer phone
       (cb) => {
-        fetchDB(
-          cardsQuery.create,
-          [
-            customerId,
-            inputs.name,
-            inputs.owner_name,
-            inputs.pan,
-            inputs.expiry_month,
-            inputs.expiry_year,
-          ],
-          (err, res) => {
+        fetchDB(customersQuery.getOneById, [customerId], (err, result) => {
+          if (err) return cb(err);
+
+          const customer = result.rows[0];
+          if (!customer) return cb(new CustomError('CUSTOMER_NOT_FOUND'));
+
+          cb(null, customer.phone);
+        });
+      },
+      // send request to svgate
+      (phone, cb) => {
+        svgateRequest(
+          'cards.new.otp',
+          {
+            card: {
+              pan: inputs.pan,
+              expiry: `${inputs.expiry_year}${inputs.expiry_month}`,
+              requestorPhone: phone,
+            },
+          },
+          (err, result) => {
             if (err) return cb(err);
 
-            const message = res.rows[0].message[acceptsLanguages(req)];
+            cb(null, result.id, {
+              timeLeft: 120,
+              phoneMask: result.phoneMask,
+            });
+          }
+        );
+      },
+      // save request id
+      (requestId, info, cb) => {
+        redisClient.hSet(
+          'new_card_otp',
+          inputs.deviceId,
+          JSON.stringify({
+            requestId,
+            month: inputs.expiry_month,
+            year: inputs.expiry_year,
+            name: inputs.name,
+          }),
+          (err) => {
+            if (err) return cb(err);
+
+            cb(null, info);
+          }
+        );
+      },
+    ],
+    (err, info) => {
+      if (err) return next(err);
+
+      res.status(201).json({
+        success: true,
+        info,
+      });
+    }
+  );
+}
+
+// @Private
+// @Customer
+function verifyCard(req, res, next) {
+  let customerId, inputs;
+
+  async.waterfall(
+    [
+      // verify customer
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // validate data
+      (cb) => {
+        const { code } = req.body;
+        const deviceId = req.headers['x-device-id'];
+
+        const validator = new LIVR.Validator({
+          deviceId: ['trim', 'string', 'required'],
+          code: ['trim', 'string', 'required', { min_length: 6 }, { max_length: 6 }],
+        });
+
+        const validData = validator.validate({ code, deviceId });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        inputs = validData;
+        cb(null);
+      },
+      // get otp request id
+      (cb) => {
+        redisClient.hGet('new_card_otp', inputs.deviceId, (err, result) => {
+          if (err) return cb(err);
+
+          const otpRequest = JSON.parse(result);
+          if (!otpRequest) return cb(new CustomError('INVALID_REQUEST'));
+
+          cb(null, otpRequest);
+        });
+      },
+      // verify card
+      (otpRequest, cb) => {
+        svgateRequest(
+          'cards.new.verify',
+          {
+            otp: {
+              id: otpRequest.requestId,
+              code: inputs.code,
+            },
+          },
+          (err, result) => {
+            if (err) return cb(err);
+
+            cb(null, otpRequest, result);
+          }
+        );
+      },
+      // add card
+      (otpRequest, card, cb) => {
+        fetchDB(
+          cardsQuery.save,
+          [customerId, otpRequest.name, card.pan, otpRequest.month, otpRequest.year, card.id],
+          (err, result) => {
+            if (err) return cb(err);
+
+            redisClient.hDel('new_card_otp', inputs.deviceId);
+            const message = result.rows[0].message[acceptsLanguages(req)];
             cb(null, message);
           }
         );
@@ -86,7 +207,7 @@ function createCard(req, res, next) {
     (err, message) => {
       if (err) return next(err);
 
-      res.status(201).json({
+      res.status(200).json({
         success: true,
         message,
       });
@@ -111,8 +232,34 @@ function getCustomerCards(req, res, next) {
         fetchDB(cardsQuery.getAllByCustomer, [customerId], (err, result) => {
           if (err) return cb(err);
 
-          cb(null, result.rowCount, result.rows);
+          cb(null, result.rows, result.rowCount);
         });
+      },
+      // get details
+      (cards, count, cb) => {
+        if (count === 0) return cb(null, count, []);
+
+        svgateRequest(
+          'cards.get',
+          {
+            ids: cards.map((card) => card.token),
+          },
+          (err, result) => {
+            if (err) return cb(err);
+
+            const cardsWithBalance = cards.map((card) => {
+              const details = result.find((item) => item.id === card.token);
+              return {
+                ...card,
+                balance: (details.balance / 100).toFixed(2),
+                owner_name: details.fullName,
+                token: undefined,
+              };
+            });
+
+            cb(null, count, cardsWithBalance);
+          }
+        );
       },
     ],
     (err, count, cards) => {
@@ -267,6 +414,29 @@ function getOneById(req, res, next) {
           cb(null, result.rows[0]);
         });
       },
+      // get details
+      (card, cb) => {
+        svgateRequest(
+          'cards.get',
+          {
+            ids: [card.token],
+          },
+          (err, result) => {
+            if (err) return cb(err);
+            if (result.length === 0) return cb(new CustomError('CARD_NOT_FOUND'));
+
+            const details = result[0];
+            const cardWithBalance = {
+              ...card,
+              balance: (details.balance / 100).toFixed(2),
+              owner_name: details.fullName,
+              token: undefined,
+            };
+
+            cb(null, cardWithBalance);
+          }
+        );
+      },
     ],
     (err, card) => {
       if (err) return next(err);
@@ -292,14 +462,22 @@ function getOnwerByPan(req, res, next) {
 
         cb(null, validData);
       },
-      // get card
+      // get card details
       (inputs, cb) => {
-        fetchDB(cardsQuery.getOwnerByPan, [inputs.pan], (err, result) => {
-          if (err) return cb(err);
-          if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
+        svgateRequest(
+          'p2p.info',
+          {
+            hpan: inputs.pan,
+          },
+          (err, result) => {
+            if (err) return cb(err);
+            if (!result.EMBOS_NAME) return cb(new CustomError('CARD_NOT_FOUND'));
 
-          cb(null, result.rows[0]);
-        });
+            cb(null, {
+              name: result.EMBOS_NAME,
+            });
+          }
+        );
       },
     ],
     (err, owner) => {
@@ -311,7 +489,8 @@ function getOnwerByPan(req, res, next) {
 }
 
 module.exports = {
-  createCard,
+  addCard,
+  verifyCard,
   getCustomerCards,
   updateCard,
   deleteCard,

@@ -1,7 +1,7 @@
 {
 	"info": {
 		"_postman_id": "30f322a1-b1f5-4c3d-aefb-ecf7548a210a",
-		"name": "ATTO",
+		"name": "ATTO Pay",
 		"description": "Endpoint documentation for pet-project at ATTO internship.",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
 		"_exporter_id": "14215167"
@@ -109,7 +109,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"phone\": \"998888888888\"\n}",
+							"raw": "{\n  \"phone\": \"998993669806\"\n//   \"trust\": false\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -151,13 +151,13 @@
 							},
 							{
 								"key": "x-device-id",
-								"value": "2sdg4234",
+								"value": "asdf",
 								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"phone\": \"998888888888\",\n    \"password\": \"12345d\",\n    // \"trust\": true,\n    \"otp\": 469294\n}",
+							"raw": "{\n    // \"trust\": true,\n    \"phone\": \"998993669806\",\n    \"password\": \"qwer1234\"\n    // \"otp\": 594056\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -239,34 +239,6 @@
 							"path": [
 								"customer",
 								"services"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "OTP from SMS",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "x-device-id",
-								"value": "lWJlxKCxbKrXCp2UW3kcrqMJZ8Fag5",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "https://atto-pay-api.vercel.app/customer/otp/recievebysms",
-							"protocol": "https",
-							"host": [
-								"atto-pay-api",
-								"vercel",
-								"app"
-							],
-							"path": [
-								"customer",
-								"otp",
-								"recievebysms"
 							]
 						}
 					},
@@ -539,18 +511,23 @@
 			"name": "Card",
 			"item": [
 				{
-					"name": "Create",
+					"name": "Add card",
 					"request": {
 						"method": "POST",
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "d198e6c5-a21a-4f57-a9d5-dde8828b5a68"
+								"value": "1319797b-0455-4159-b5ef-fa727eb0cd6e"
+							},
+							{
+								"key": "X-Device-Id",
+								"value": "zeyd-mac",
+								"type": "text"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"owner_name\": \"Mirabror Sodikov\",\n  \"pan\": \"4241578383834872\",\n  \"expiry_month\": \"9\",\n  \"expiry_year\": \"26\"\n}",
+							"raw": "{\n  \"name\": \"My Uzcard\",\n  \"pan\": \"8600492953311913\",\n  \"expiry_month\": \"09\",\n  \"expiry_year\": \"24\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -572,6 +549,44 @@
 					"response": []
 				},
 				{
+					"name": "Verify add card",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "1319797b-0455-4159-b5ef-fa727eb0cd6e"
+							},
+							{
+								"key": "x-device-id",
+								"value": "zeyd-mac",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"code\": 697783\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{url}}/customer/card/verify",
+							"host": [
+								"{{url}}"
+							],
+							"path": [
+								"customer",
+								"card",
+								"verify"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "Get Customer Cards",
 					"protocolProfileBehavior": {
 						"disableBodyPruning": true
@@ -581,7 +596,7 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "aeadd765-ff5c-4f15-9c76-4811d7893a35"
+								"value": "59d9635b-b9c6-493b-9ffd-36bffa573274"
 							}
 						],
 						"body": {
@@ -613,19 +628,19 @@
 						"header": [
 							{
 								"key": "Authorization",
-								"value": "fafba36c-8f87-4fce-b35e-8c6d94cfc168",
+								"value": "59d9635b-b9c6-493b-9ffd-36bffa573274",
 								"type": "text"
 							}
 						],
 						"url": {
-							"raw": "{{url}}/customer/card/b9b9af07-00df-49bd-8808-a7f60f884630",
+							"raw": "{{url}}/customer/card/e8808fed-6be5-464a-93c2-e7b00119120f",
 							"host": [
 								"{{url}}"
 							],
 							"path": [
 								"customer",
 								"card",
-								"b9b9af07-00df-49bd-8808-a7f60f884630"
+								"e8808fed-6be5-464a-93c2-e7b00119120f"
 							]
 						}
 					},
@@ -633,15 +648,12 @@
 				},
 				{
 					"name": "Get card owner by pan",
-					"protocolProfileBehavior": {
-						"disableBodyPruning": true
-					},
 					"request": {
-						"method": "GET",
+						"method": "POST",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"pan\": \"4600552579883112\"\n}",
+							"raw": "{\n    \"pan\": \"8600492953311913\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1410,14 +1422,6 @@
 					"response": []
 				}
 			]
-		},
-		{
-			"name": "Devices",
-			"request": {
-				"method": "GET",
-				"header": []
-			},
-			"response": []
 		}
 	],
 	"event": [

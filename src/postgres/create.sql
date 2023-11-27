@@ -16,11 +16,10 @@ create table if not exists customer_card(
   id uuid primary key default uuid_generate_v4(),
   customer_id uuid not null references customer(id),
   name varchar(64) not null,
-  owner_name varchar(64) not null,
   pan varchar(16) not null unique,
   expiry_month varchar(2) not null,
   expiry_year varchar(2) not null,
-  balance numeric(12, 2) not null default 1000000,
+  token varchar(32) not null,
   constraint unique_customer_pan unique(customer_id, pan)
 );
 
@@ -683,7 +682,9 @@ insert into message(name, message, http_code) values
 ('ALLOWED_FOR_TRUSTED', '{"en": "This action is allowed only for trusted devices", "uz": "Ushbu amal faqat ishonchli qurilmalar uchun ruxsat etilgan", "ru": "Это действие разрешено только для доверенных устройств"}', 403),
 ('UNTRUST_SUCCESS', '{"en": "Removed from trusted devices", "uz": "Ishonchli qurilmalardan olib tashlandi", "ru": "Удалено из доверенных устройств"}', 200),
 ('SESSIONS_ENDED', '{"en": "Terminated all other sessions", "uz": "Boshqa sessiyalarni tugatildi", "ru": "Завершены все другие сессии"}', 200),
-('QR_LOGIN_SUCCESS', '{"en": "QR login successful", "uz": "QR login muvaffaqiyatli amalga oshirildi", "ru": "QR логин прошел успешно"}', 200)
+('QR_LOGIN_SUCCESS', '{"en": "QR login successful", "uz": "QR login muvaffaqiyatli amalga oshirildi", "ru": "QR логин прошел успешно"}', 200),
+('SVGATE_ERROR', '{"en": "Payment gateway error", "uz": "To''lov tizimi xatosi", "ru": "Ошибка платежного шлюза"}', 500),
+('CARD_BLOCKED', '{"en": "Card is blocked", "uz": "Karta bloklangan", "ru": "Карта заблокирована"}', 403)
 on conflict do nothing;
 
 insert into service_category(code, name) values

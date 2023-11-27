@@ -910,27 +910,10 @@ function getDeviceInfo(req) {
   return `${platform} ${os} ${browser} ${version}`.trim();
 }
 
-// FAKE OTP GETTER
-function getOtpFromSMS(req, res, next) {
-  try {
-    const deviceId = req.headers['x-device-id'];
-
-    redis.hGet('customer_otp', deviceId, (err, otp) => {
-      if (err) console.error(err);
-      if (!otp) return res.send('');
-
-      res.send(JSON.parse(otp).code.toString());
-    });
-  } catch (err) {
-    next(err);
-  }
-}
-
 module.exports = {
   getCustomerProfile,
   registerCustomer,
   getCustomerLoginType,
-  getOtpFromSMS,
   loginCustomer,
   updateCustomer,
   updateCustomerLang,
