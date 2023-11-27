@@ -3,7 +3,7 @@ name: Deploy to Digital Ocean
 on:
   push:
     branches:
-      - main
+      - realapi
 
 jobs:
   deploy:
@@ -21,7 +21,8 @@ jobs:
           key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
           script: |
             cd /usr/src/projects/atto_project
-            git pull origin main
+            git checkout realapi
+            git pull origin realapi
             npm install
             pm2 restart atto-pay
           
