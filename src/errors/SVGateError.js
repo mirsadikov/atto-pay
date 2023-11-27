@@ -15,6 +15,9 @@ class SVGateError extends Error {
       case -314:
         this.name = 'EXPIRED_OTP';
         break;
+      case -269:
+        this.name = 'WRONG_OTP';
+        break;
       case -320:
         this.name = 'CARD_BELONGS_TO_ANOTHER';
         break;
