@@ -13,6 +13,7 @@ class SVGateError extends Error {
         break;
       case -270:
       case -314:
+      case -317:
         this.name = 'EXPIRED_OTP';
         break;
       case -269:
