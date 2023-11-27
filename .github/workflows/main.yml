@@ -12,7 +12,7 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-          
+
       - name: SSH into Digital Ocean Server
         uses: appleboy/ssh-action@master
         with:
@@ -20,13 +20,7 @@ jobs:
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_PRIVATE_KEY }}
           script: |
-            cd /usr/src/projects/atto_project
+            cd /usr/src/projects/atto_project_fake
             git pull origin main
             npm install
-            pm2 restart atto-pay
-          
-          
-      
-      
-
-      
+            pm2 restart atto-pay-fake

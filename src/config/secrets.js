@@ -1,4 +1,4 @@
-require('dotenv').config({ path: 'fake.env' });
+require('dotenv').config();
 
 const PORT = process.env.PORT;
 const POSTGRES_URL = process.env.POSTGRES_URL;
