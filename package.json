@@ -28,6 +28,7 @@
     "express-fileupload": "^1.4.0",
     "express-useragent": "^1.0.15",
     "fast-luhn": "^2.0.2",
+    "googleapis": "^123.0.0",
     "livr": "2.1.0",
     "livr-extra-rules": "^1.3.2",
     "moment": "^2.29.4",

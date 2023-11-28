@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { google } = require('googleapis');
 const {
   GMAIL_CLIENT_ID,
   GMAIL_CLIENT_SECRET,
@@ -12,11 +13,18 @@ class Gmail {
     this.clientSecret = GMAIL_CLIENT_SECRET;
     this.refreshToken = GMAIL_REFRESH_TOKEN;
     this.user = GMAIL_USER;
+
+    this.oauth = new google.auth.OAuth2(GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET);
+
+    this.oauth.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN });
+    this.oauth.refreshHandler = (tokens) => {
+      this.oauth.setCredentials(tokens);
+    };
   }
 
   async sendEmail({ to, subject, text, html }) {
     try {
-      const transport = this.getTransport();
+      const transport = await this.getTransport();
       const mailOptions = {
         from: `"Atto Pay" <${this.user}>`,
         to,
@@ -32,7 +40,9 @@ class Gmail {
     }
   }
 
-  getTransport() {
+  async getTransport() {
+    const accessToken = await this.oauth.getAccessToken();
+
     return nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -41,6 +51,7 @@ class Gmail {
         clientId: this.clientId,
         clientSecret: this.clientSecret,
         refreshToken: this.refreshToken,
+        accessToken,
       },
     });
   }
