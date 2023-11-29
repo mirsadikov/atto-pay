@@ -6,13 +6,14 @@ const LIVR = require('../utils/livr');
 const fetchDB = require('../postgres');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
-const { transactionsQuery } = require('../postgres/queries');
+const { transactionsQuery, cardsQuery } = require('../postgres/queries');
 const acceptsLanguages = require('../utils/acceptsLanguages');
+const svgateRequest = require('../utils/SVGateClient');
 
 // @Private
 // @Customer
 function payForService(req, res, next) {
-  let customerId, inputs;
+  let customerId, inputs, fromCard;
 
   async.waterfall(
     [
@@ -48,8 +49,40 @@ function payForService(req, res, next) {
         inputs = validData;
         cb(null);
       },
-      // pay for service
+      // get card token by id
       (cb) => {
+        fetchDB(cardsQuery.getOneById, [inputs.fromCardId], (err, result) => {
+          if (err) return cb(err);
+
+          if (!result.rows[0]) return cb(new CustomError('CARD_NOT_FOUND'));
+
+          fromCard = result.rows[0].token;
+          cb(null);
+        });
+      },
+      // pay with svgate
+      (cb) => {
+        svgateRequest(
+          'trans.pay.purpose',
+          {
+            tran: {
+              purpose: 'payment',
+              cardId: fromCard.token,
+              amount: inputs.amount,
+              ext: `ATTOPAY_${base64url(crypto.randomBytes(32))}`,
+              merchantId: '90126913',
+              terminalId: '91500009',
+            },
+          },
+          (err, result) => {
+            if (err) return cb(err);
+
+            cb(null, result);
+          }
+        );
+      },
+      // pay for service
+      (result, cb) => {
         fetchDB(
           transactionsQuery.payForService,
           [
@@ -57,6 +90,7 @@ function payForService(req, res, next) {
             inputs.fromCardId,
             inputs.serviceId,
             inputs.amount,
+            result.ext,
             JSON.stringify(inputs.fields || {}),
           ],
           (err, result) => {

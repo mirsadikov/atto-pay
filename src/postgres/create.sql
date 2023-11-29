@@ -104,6 +104,7 @@ create table if not exists payment (
   created_at timestamp not null default now(),
   sender_id uuid not null, 
   receiver_id uuid not null,
+  ref_id varchar(64),
   fields jsonb
 );
 
@@ -318,6 +319,7 @@ create or replace procedure pay_for_service(
   _card_id uuid,
   _service_id uuid,
   _amount int,
+  _refId varchar(64),
   _details jsonb,
   out payment_id uuid,
   out error_code varchar(64),
@@ -378,14 +380,13 @@ begin
       end loop;
     end if;
 
-    insert into payment (owner_id, type, amount, sender_id, receiver_id, fields)
-    values (_customer_id, 'expense', _amount, card_row.id, _service_id, details)
+    insert into payment (owner_id, type, amount, sender_id, receiver_id, fields, ref_id)
+    values (_customer_id, 'expense', _amount, card_row.id, _service_id, details, _refId)
     returning id into payment_id;
 
     insert into payment (owner_id, type, amount, sender_id, receiver_id, fields)
     values (service_row.merchant_id, 'income', _amount, _customer_id, _service_id, details);
 
-    update bank_card set balance = balance - _amount where id = _card_id;
     update merchant set balance = balance + _amount where id = service_row.merchant_id;
 
     select message from message where name = 'PAYMENT_SUCCESS' into success_message;

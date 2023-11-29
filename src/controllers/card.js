@@ -28,7 +28,7 @@ function addCard(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { pan, expiry_month, expiry_year, name } = req.body;
+        const { pan, expiry_month, expiry_year, name, main } = req.body;
         const deviceId = req.headers['x-device-id'];
 
         const validator = new LIVR.Validator({
@@ -37,9 +37,17 @@ function addCard(req, res, next) {
           expiry_month: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
           expiry_year: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
           name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
+          main: ['boolean', { default: false }],
         });
 
-        const validData = validator.validate({ deviceId, pan, expiry_month, expiry_year, name });
+        const validData = validator.validate({
+          deviceId,
+          pan,
+          expiry_month,
+          expiry_year,
+          name,
+          main,
+        });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         // check card expiry date is valid and not expired
@@ -94,6 +102,7 @@ function addCard(req, res, next) {
             month: inputs.expiry_month,
             year: inputs.expiry_year,
             name: inputs.name,
+            main: inputs.main,
           }),
           (err) => {
             if (err) return cb(err);
@@ -191,9 +200,10 @@ function verifyCard(req, res, next) {
       },
       // add card
       (otpRequest, card, cb) => {
+        const { name, month, year, main } = otpRequest;
         fetchDB(
           cardsQuery.save,
-          [customerId, otpRequest.name, card.pan, otpRequest.month, otpRequest.year, card.id],
+          [customerId, name, card.pan, month, year, card.id, main],
           (err, result) => {
             if (err) return cb(err);
 

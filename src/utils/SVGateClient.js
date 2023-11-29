@@ -17,7 +17,7 @@ const svgateRequest = async (method, bodyParams, cb) => {
     const response = await svgateClient.post(`/`, {
       jsonrpc: '2.0',
       method,
-      id,
+      id: `ATTOPAY_${id}`,
       params: bodyParams,
     });
 

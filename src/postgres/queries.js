@@ -44,15 +44,14 @@ where id = $2`,
 };
 
 const cardsQuery = {
-  getOneById:
-    'select *, mask_credit_card(pan) as pan from bank_card where id = $1 and customer_id = $2',
+  getOneById: 'select * from bank_card where id = $1 and customer_id = $2',
   checkIsUnique: 'select customer_id from bank_card where pan = $1 and token = $2',
   getAllByCustomer: `
 select *
 from bank_card where customer_id = $1`,
   save: `
-insert into bank_card(customer_id, name, pan, expiry_month, expiry_year, token)
-values($1, $2, $3, $4, $5, $6)
+insert into bank_card(customer_id, name, pan, expiry_month, expiry_year, token, main)
+values($1, $2, $3, $4, $5, $6, $7)
 returning (select message from message where name = 'CARD_ADDED') as message`,
   update: `
 update bank_card set name = $1, main = $4
@@ -146,7 +145,7 @@ where s.id = $1 and s.deleted = false and s.is_active = true`,
 };
 
 const transactionsQuery = {
-  payForService: `call pay_for_service($1, $2, $3, $4, $5, null, null, null, null)`,
+  payForService: `call pay_for_service($1, $2, $3, $4, $5, $6, null, null, null, null)`,
   transferMoney: `call transfer_money($1, $2, $3, $4, null, null, null, null)`,
   transferMoneyToSelf: `call transfer_money_to_self($1, $2, $3, $4, null, null, null, null)`,
   getTransactions: `
