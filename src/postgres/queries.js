@@ -46,7 +46,7 @@ where id = $2`,
 const cardsQuery = {
   getOneById:
     'select *, mask_credit_card(pan) as pan from bank_card where id = $1 and customer_id = $2',
-  checkIsUnique: 'select customer_id from bank_card where pan = $1',
+  checkIsUnique: 'select customer_id from bank_card where pan = $1 and token = $2',
   getAllByCustomer: `
 select *
 from bank_card where customer_id = $1`,

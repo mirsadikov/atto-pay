@@ -52,21 +52,6 @@ function addCard(req, res, next) {
         inputs.expiry_year = inputs.expiry_year.padStart(2, '0');
         cb(null);
       },
-      // check card is not already added
-      (cb) => {
-        fetchDB(cardsQuery.checkIsUnique, [inputs.pan], (err, result) => {
-          if (err) return cb(err);
-          const existingCard = result.rows[0];
-
-          if (existingCard) {
-            if (existingCard.customer_id !== customerId)
-              return cb(new CustomError('CARD_BELONGS_TO_ANOTHER'));
-            return cb(new CustomError('CARD_ALREADY_ADDED'));
-          }
-
-          cb(null);
-        });
-      },
       // get customer phone
       (cb) => {
         fetchDB(customersQuery.getOneById, [customerId], (err, result) => {
@@ -188,6 +173,21 @@ function verifyCard(req, res, next) {
             cb(null, otpRequest, result);
           }
         );
+      },
+      // check card is not already added
+      (otpRequest, card, cb) => {
+        fetchDB(cardsQuery.checkIsUnique, [card.pan, card.id], (err, result) => {
+          if (err) return cb(err);
+          const existingCard = result.rows[0];
+
+          if (existingCard) {
+            if (existingCard.customer_id !== customerId)
+              return cb(new CustomError('CARD_BELONGS_TO_ANOTHER'));
+            return cb(new CustomError('CARD_ALREADY_ADDED'));
+          }
+
+          cb(null, otpRequest, card);
+        });
       },
       // add card
       (otpRequest, card, cb) => {
