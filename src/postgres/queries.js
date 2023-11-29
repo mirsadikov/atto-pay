@@ -45,17 +45,17 @@ where id = $2`,
 
 const cardsQuery = {
   getOneById:
-    'select *, mask_credit_card(pan) as pan from customer_card where id = $1 and customer_id = $2',
-  checkIsUnique: 'select customer_id from customer_card where pan = $1',
+    'select *, mask_credit_card(pan) as pan from bank_card where id = $1 and customer_id = $2',
+  checkIsUnique: 'select customer_id from bank_card where pan = $1',
   getAllByCustomer: `
 select *
-from customer_card where customer_id = $1`,
+from bank_card where customer_id = $1`,
   save: `
-insert into customer_card(customer_id, name, pan, expiry_month, expiry_year, token)
+insert into bank_card(customer_id, name, pan, expiry_month, expiry_year, token)
 values($1, $2, $3, $4, $5, $6)
 returning (select message from message where name = 'CARD_ADDED') as message`,
   update: `
-update customer_card set name = $1 
+update bank_card set name = $1 
 where id = $2 and customer_id = $3
 returning (select message from message where name = 'CARD_UPDATED') as message`,
   delete: `call delete_card($1, $2, null, null, null)`,

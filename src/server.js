@@ -3,6 +3,7 @@ const fileUpload = require('express-fileupload');
 const cors = require('cors');
 const customerRouter = require('./routes/customer');
 const cardRouter = require('./routes/card');
+const transportRouter = require('./routes/transport');
 const merchantRouter = require('./routes/merchant');
 const categoryRouter = require('./routes/category');
 const serviceRouter = require('./routes/service');
@@ -23,6 +24,7 @@ app.use('/merchant', merchantRouter);
 app.use('/category', categoryRouter);
 app.use('/service', serviceRouter);
 app.use('/transaction', transactionRouter);
+app.use('/transport', transportRouter);
 app.use(apiErrorHandler);
 
 app.get('/', (_, res) => {

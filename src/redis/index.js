@@ -37,6 +37,14 @@ class RedisClient {
     return this.execute(this.client.hGetAll(key), cb);
   }
 
+  get(key, cb) {
+    return this.execute(this.client.get(key), cb);
+  }
+
+  set(key, value, cb) {
+    return this.execute(this.client.set(key, value), cb);
+  }
+
   hDel(key, field, cb) {
     return this.execute(this.client.hDel(key, field), cb);
   }

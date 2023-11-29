@@ -12,7 +12,7 @@ create table if not exists customer(
   reg_date timestamp not null default now()
 );
 
-create table if not exists customer_card(
+create table if not exists bank_card(
   id uuid primary key default uuid_generate_v4(),
   customer_id uuid not null references customer(id),
   name varchar(64) not null,
@@ -20,7 +20,19 @@ create table if not exists customer_card(
   expiry_month varchar(2) not null,
   expiry_year varchar(2) not null,
   token varchar(32) not null,
+  main boolean not null default false,
   constraint unique_customer_pan unique(customer_id, pan)
+);
+
+create table if not exists transport_card(
+  id uuid primary key default uuid_generate_v4(),
+  customer_id uuid not null references customer(id),
+  name varchar(64) not null,
+  pan varchar(16) not null unique,
+  expiry_month varchar(2) not null,
+  expiry_year varchar(2) not null,
+  main boolean not null default false,
+  constraint unique_customer_tr_pan unique(customer_id, pan)
 );
 
 create table if not exists customer_device(
@@ -128,6 +140,21 @@ for each row
 when (old.deleted = false and new.deleted = true)
 execute procedure service_deleted_trigger();
 
+-- set card other card not main when new card is marked as main
+create or replace function set_bank_cards_not_main()
+returns trigger as $$
+begin
+  if new.main then
+    update bank_card set main = false where customer_id = new.customer_id and id != new.id;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create or replace trigger bank_card_added_trigger
+after insert on bank_card
+for each row
+execute procedure set_bank_cards_not_main();
 
 -- ############################
 -- UTILITY PROCEDURES --
@@ -267,7 +294,7 @@ begin
     delete from transfer where owner_id = _customer_id and sender_id = _card_id;
     delete from transfer where owner_id = _customer_id and receiver_id = _card_id;
     
-    delete from customer_card where id = _card_id and customer_id = _customer_id;
+    delete from bank_card where id = _card_id and customer_id = _customer_id;
     if not found then 
       error_code := 'CARD_NOT_FOUND';
       return;
@@ -301,7 +328,7 @@ create or replace procedure pay_for_service(
 as $$
 declare
   service_row service;
-  card_row customer_card;
+  card_row bank_card;
   merchant_row merchant;
   service_fields jsonb := '[]';
   details jsonb := '{}';
@@ -319,7 +346,7 @@ begin
       return;
     end if;
 
-    select * into card_row from customer_card where id = _card_id and customer_id = _customer_id;
+    select * into card_row from bank_card where id = _card_id and customer_id = _customer_id;
     if not found then 
       error_code := 'CARD_NOT_FOUND';
       return;
@@ -359,7 +386,7 @@ begin
     insert into payment (owner_id, type, amount, sender_id, receiver_id, fields)
     values (service_row.merchant_id, 'income', _amount, _customer_id, _service_id, details);
 
-    update customer_card set balance = balance - _amount where id = _card_id;
+    update bank_card set balance = balance - _amount where id = _card_id;
     update merchant set balance = balance + _amount where id = service_row.merchant_id;
 
     select message from message where name = 'PAYMENT_SUCCESS' into success_message;
@@ -387,17 +414,17 @@ create or replace procedure transfer_money(
   out success_message jsonb
 ) as $$
 declare
-  sender_card customer_card;
-  receiver_card customer_card;
+  sender_card bank_card;
+  receiver_card bank_card;
 begin
   begin
-    select * into sender_card from customer_card where id = _from_card_id and customer_id = _customer_id;
+    select * into sender_card from bank_card where id = _from_card_id and customer_id = _customer_id;
     if not found then 
       error_code := 'CARD_NOT_FOUND';
       return;
     end if;
 
-    select * into receiver_card from customer_card where pan = _to_pan;
+    select * into receiver_card from bank_card where pan = _to_pan;
     if not found then 
       error_code := 'CARD_NOT_FOUND';
       return;
@@ -420,8 +447,8 @@ begin
     insert into transfer (owner_id, type, amount, sender_pan, sender_id, receiver_id)
     values (receiver_card.customer_id, 'income', _amount, sender_card.pan, sender_card.customer_id, receiver_card.id);
 
-    update customer_card set balance = balance - _amount where id = sender_card.id;
-    update customer_card set balance = balance + _amount where id = receiver_card.id;
+    update bank_card set balance = balance - _amount where id = sender_card.id;
+    update bank_card set balance = balance + _amount where id = receiver_card.id;
 
     select message from message where name = 'TRANSFER_SUCCESS' into success_message;
   exception
@@ -448,17 +475,17 @@ create or replace procedure transfer_money_to_self(
   out success_message jsonb
 ) as $$
 declare
-  sender_card customer_card;
-  receiver_card customer_card;
+  sender_card bank_card;
+  receiver_card bank_card;
 begin
   begin
-    select * into sender_card from customer_card where id = _from_card_id and customer_id = _customer_id;
+    select * into sender_card from bank_card where id = _from_card_id and customer_id = _customer_id;
     if not found then 
       error_code := 'CARD_NOT_FOUND';
       return;
     end if;
 
-    select * into receiver_card from customer_card where id = _to_card_id and customer_id = _customer_id;
+    select * into receiver_card from bank_card where id = _to_card_id and customer_id = _customer_id;
     if not found then 
       error_code := 'CARD_NOT_FOUND';
       return;
@@ -476,8 +503,8 @@ begin
     insert into transfer (owner_id, type, amount, sender_pan, sender_id, receiver_id)
     values (_customer_id, 'income', _amount, sender_card.pan, sender_card.customer_id, _to_card_id);
 
-    update customer_card set balance = balance - _amount where id = sender_card.id;
-    update customer_card set balance = balance + _amount where id = receiver_card.id;
+    update bank_card set balance = balance - _amount where id = sender_card.id;
+    update bank_card set balance = balance + _amount where id = receiver_card.id;
 
     select message from message where name = 'TRANSFER_SUCCESS' into success_message;
   exception
@@ -528,7 +555,7 @@ begin
     jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as sender, 
     jsonb_build_object('name', receiver_customer.name, 'image_url', receiver_customer.image_url, 'pan', mask_credit_card(t.receiver_pan)) as receiver
     from transfer t
-    join customer_card own_card on own_card.id = t.sender_id
+    join bank_card own_card on own_card.id = t.sender_id
     join customer receiver_customer on receiver_customer.id = t.receiver_id
     where t.owner_id = _customer_id and t.created_at between _from and _to
     union all
@@ -537,7 +564,7 @@ begin
     jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as sender,
     jsonb_build_object('id', s.id, 'name', s.name, 'image_url', s.image_url) as receiver
     from payment p
-    join customer_card own_card on own_card.id = p.sender_id
+    join bank_card own_card on own_card.id = p.sender_id
     join service s on s.id = p.receiver_id
     where p.owner_id = _customer_id and p.created_at between _from and _to
     union all
@@ -547,7 +574,7 @@ begin
     jsonb_build_object('id', own_card.id, 'name', own_card.name, 'pan', mask_credit_card(own_card.pan)) as receiver
     from transfer t
     join customer sender_customer on sender_customer.id = t.sender_id
-    join customer_card own_card on own_card.id = t.receiver_id
+    join bank_card own_card on own_card.id = t.receiver_id
     where t.owner_id = _customer_id and t.created_at between _from and _to
   );
 
@@ -603,7 +630,7 @@ begin
         service_field sf ON sf.id = field_key::uuid
       ) as fields
       from payment p
-      join customer_card own_card on own_card.id = p.sender_id
+      join bank_card own_card on own_card.id = p.sender_id
       join service s on s.id = p.receiver_id
       where p.owner_id = _customer_id and p.id = _transaction_id;
   else
@@ -614,7 +641,7 @@ begin
       'null'::jsonb as fields
       from transfer t
       join customer sender_customer on sender_customer.id = t.sender_id
-      join customer_card own_card on own_card.id = t.receiver_id
+      join bank_card own_card on own_card.id = t.receiver_id
       where t.owner_id = _customer_id and t.id = _transaction_id
       union all
       select t.id, t.owner_id, t.type, 'transfer' as action, t.amount, t.created_at,
@@ -622,7 +649,7 @@ begin
       jsonb_build_object('name', receiver_customer.name, 'image_url', receiver_customer.image_url, 'pan', mask_credit_card(t.receiver_pan)) as receiver,
       'null'::jsonb as fields
       from transfer t
-      join customer_card own_card on own_card.id = t.sender_id
+      join bank_card own_card on own_card.id = t.sender_id
       join customer receiver_customer on receiver_customer.id = t.receiver_id
       where t.owner_id = _customer_id and t.id = _transaction_id;
   end if;
@@ -684,7 +711,8 @@ insert into message(name, message, http_code) values
 ('SESSIONS_ENDED', '{"en": "Terminated all other sessions", "uz": "Boshqa sessiyalarni tugatildi", "ru": "Завершены все другие сессии"}', 200),
 ('QR_LOGIN_SUCCESS', '{"en": "QR login successful", "uz": "QR login muvaffaqiyatli amalga oshirildi", "ru": "QR логин прошел успешно"}', 200),
 ('SVGATE_ERROR', '{"en": "Payment gateway error", "uz": "To''lov tizimi xatosi", "ru": "Ошибка платежного шлюза"}', 500),
-('CARD_BLOCKED', '{"en": "Card is blocked", "uz": "Karta bloklangan", "ru": "Карта заблокирована"}', 403)
+('CARD_BLOCKED', '{"en": "Card is blocked", "uz": "Karta bloklangan", "ru": "Карта заблокирована"}', 403),
+('CRM_ERROR', '{"en": "External service error", "uz": "Tashqi xizmat xatosi", "ru": "Ошибка внешнего сервиса"}', 500)
 on conflict do nothing;
 
 insert into service_category(code, name) values
