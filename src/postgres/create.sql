@@ -140,20 +140,19 @@ for each row
 when (old.deleted = false and new.deleted = true)
 execute procedure service_deleted_trigger();
 
--- set card other card not main when new card is marked as main
+-- set card other card not main when inserted or updated card is marked as main
 create or replace function set_bank_cards_not_main()
 returns trigger as $$
 begin
-  if new.main then
-    update bank_card set main = false where customer_id = new.customer_id and id != new.id;
-  end if;
+  update bank_card set main = false where customer_id = new.customer_id and id != new.id;
   return new;
 end;
 $$ language plpgsql;
 
 create or replace trigger bank_card_added_trigger
-after insert on bank_card
+after insert or update on bank_card
 for each row
+when (new.main = true)
 execute procedure set_bank_cards_not_main();
 
 -- ############################
