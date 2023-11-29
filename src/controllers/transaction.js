@@ -58,7 +58,7 @@ function payForService(req, res, next) {
 
           if (!result.rows[0]) return cb(new CustomError('CARD_NOT_FOUND'));
 
-          fromCard = result.rows[0].token;
+          fromCard = result.rows[0];
           cb(null);
         });
       },
