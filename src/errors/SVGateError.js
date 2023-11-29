@@ -8,6 +8,9 @@ class SVGateError extends Error {
       case -200:
         this.name = 'CARD_NOT_FOUND';
         break;
+      case -240:
+        this.name = 'INSUFFICIENT_FUNDS';
+        break;
       case -261:
         this.name = 'CARD_BLOCKED';
         break;

@@ -22,6 +22,7 @@ jobs:
           script: |
             cd /usr/src/projects/atto_project
             git checkout realapi
+            git reset --hard
             git pull origin realapi
             npm install
             pm2 restart atto-pay

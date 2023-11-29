@@ -353,11 +353,6 @@ begin
       return;
     end if;
 
-    if card_row.balance < _amount then 
-      error_code := 'INSUFFICIENT_FUNDS';
-      return;
-    end if;
-    
     -- save service_field names
     select jsonb_agg(jsonb_build_object('id', id, 'name', name)) into service_fields from service_field where service_id = _service_id and deleted = false;
 

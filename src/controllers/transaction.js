@@ -1,3 +1,4 @@
+const crypto = require('crypto');
 const async = require('async');
 const moment = require('moment');
 const fileStorage = require('../utils/fileStorageS3');
@@ -9,6 +10,7 @@ const CustomError = require('../errors/CustomError');
 const { transactionsQuery, cardsQuery } = require('../postgres/queries');
 const acceptsLanguages = require('../utils/acceptsLanguages');
 const svgateRequest = require('../utils/SVGateClient');
+const { default: base64url } = require('base64url');
 
 // @Private
 // @Customer
@@ -40,7 +42,7 @@ function payForService(req, res, next) {
         const validData = validator.validate({
           serviceId,
           fromCardId,
-          amount: Math.abs(amount),
+          amount: Math.abs(amount) * 100, // converts to tiyns
           fields,
         });
 
@@ -51,7 +53,7 @@ function payForService(req, res, next) {
       },
       // get card token by id
       (cb) => {
-        fetchDB(cardsQuery.getOneById, [inputs.fromCardId], (err, result) => {
+        fetchDB(cardsQuery.getOneById, [inputs.fromCardId, customerId], (err, result) => {
           if (err) return cb(err);
 
           if (!result.rows[0]) return cb(new CustomError('CARD_NOT_FOUND'));
