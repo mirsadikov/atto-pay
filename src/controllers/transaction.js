@@ -42,7 +42,7 @@ function payForService(req, res, next) {
         const validData = validator.validate({
           serviceId,
           fromCardId,
-          amount: Math.abs(amount) * 100, // converts to tiyns
+          amount: Math.abs(amount),
           fields,
         });
 
@@ -70,7 +70,7 @@ function payForService(req, res, next) {
             tran: {
               purpose: 'payment',
               cardId: fromCard.token,
-              amount: inputs.amount,
+              amount: inputs.amount * 100, // convert to tiyn
               ext: `ATTOPAY_${base64url(crypto.randomBytes(32))}`,
               merchantId: '90126913',
               terminalId: '91500009',
