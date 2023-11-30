@@ -1,4 +1,5 @@
 const axios = require('axios');
+const moment = require('moment');
 const {
   CRM_API_URL,
   CRM_AGGREGATOR_NAME,
@@ -21,11 +22,11 @@ const getCredentials = async () => {
     });
 
     access_token = {
-      token: res.data.result.token,
-      expires_at: res.data.result.expiresIn + moment().unix(),
+      token: res.data.data.token,
+      expires_at: res.data.data.expiresIn + moment().unix(),
     };
 
-    return res.data.result.token;
+    return res.data.data.token;
   } catch (error) {
     console.log(error);
   }
@@ -33,13 +34,14 @@ const getCredentials = async () => {
 
 const crmClient = axios.create({
   baseURL: CRM_API_URL,
-  headers: { aggregator_name: CRM_AGGREGATOR_NAME, secret: CRM_AGGREGATOR_SECRET, access_token },
+  headers: { aggregator_name: CRM_AGGREGATOR_NAME, secret: CRM_AGGREGATOR_SECRET },
 });
 
 // interceptors
 crmClient.interceptors.request.use(
   async (config) => {
     config.headers['access_token'] = await getCredentials();
+    console.log(config.headers);
     return config;
   },
   (error) => {

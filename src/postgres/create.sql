@@ -707,7 +707,8 @@ insert into message(name, message, http_code) values
 ('QR_LOGIN_SUCCESS', '{"en": "QR login successful", "uz": "QR login muvaffaqiyatli amalga oshirildi", "ru": "QR логин прошел успешно"}', 200),
 ('SVGATE_ERROR', '{"en": "Payment gateway error", "uz": "To''lov tizimi xatosi", "ru": "Ошибка платежного шлюза"}', 500),
 ('CARD_BLOCKED', '{"en": "Card is blocked", "uz": "Karta bloklangan", "ru": "Карта заблокирована"}', 403),
-('CRM_ERROR', '{"en": "External service error", "uz": "Tashqi xizmat xatosi", "ru": "Ошибка внешнего сервиса"}', 500)
+('CRM_ERROR', '{"en": "External service error", "uz": "Tashqi xizmat xatosi", "ru": "Ошибка внешнего сервиса"}', 500),
+('UNSUPPORTED_CARD', '{"en": "Unsupported card", "uz": "Karta qo''llab-quvvatlanmaydi", "ru": "Карта не поддерживается"}', 400)
 on conflict do nothing;
 
 insert into service_category(code, name) values

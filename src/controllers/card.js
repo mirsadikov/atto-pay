@@ -2,13 +2,14 @@ const async = require('async');
 const moment = require('moment');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
-const { cardsQuery, customersQuery } = require('../postgres/queries');
+const { cardsQuery, customersQuery, attoCardQuery } = require('../postgres/queries');
 const fetchDB = require('../postgres');
 const ValidationError = require('../errors/ValidationError');
 const CustomError = require('../errors/CustomError');
 const acceptsLanguages = require('../utils/acceptsLanguages');
 const svgateRequest = require('../utils/SVGateClient');
 const redisClient = require('../redis');
+const crmClient = require('../utils/crmClient');
 
 // @Private
 // @Customer
@@ -30,6 +31,11 @@ function addCard(req, res, next) {
       (cb) => {
         const { pan, expiry_month, expiry_year, name, main } = req.body;
         const deviceId = req.headers['x-device-id'];
+        let type;
+
+        if (pan.startsWith('8600') || pan.startsWith('5614')) type = 'uzcard';
+        else if (pan.startsWith('9987')) type = 'atto';
+        else return cb(new CustomError('UNSUPPORTED_CARD'));
 
         const validator = new LIVR.Validator({
           deviceId: ['trim', 'string', 'required'],
@@ -38,6 +44,7 @@ function addCard(req, res, next) {
           expiry_year: ['positive_integer', 'required', { min_length: 1 }, { max_length: 2 }],
           name: ['trim', 'string', 'required', { min_length: 3 }, { max_length: 64 }],
           main: ['boolean', { default: false }],
+          type: ['required'],
         });
 
         const validData = validator.validate({
@@ -47,6 +54,7 @@ function addCard(req, res, next) {
           expiry_year,
           name,
           main,
+          type,
         });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
@@ -60,71 +68,38 @@ function addCard(req, res, next) {
         inputs.expiry_year = inputs.expiry_year.padStart(2, '0');
         cb(null);
       },
-      // get customer phone
+      // save card based on type
       (cb) => {
-        fetchDB(customersQuery.getOneById, [customerId], (err, result) => {
+        let cardAddFunction;
+        switch (inputs.type) {
+          case 'uzcard':
+            cardAddFunction = saveUzcardCard;
+            break;
+          case 'atto':
+            cardAddFunction = saveAttoCard;
+            break;
+          default:
+            cb(new CustomError('UNSUPPORTED_CARD'));
+        }
+
+        cardAddFunction(req, customerId, inputs, (err, returnRes) => {
           if (err) return cb(err);
 
-          const customer = result.rows[0];
-          if (!customer) return cb(new CustomError('CUSTOMER_NOT_FOUND'));
-
-          cb(null, customer.phone);
+          cb(null, returnRes);
         });
       },
-      // send request to svgate
-      (phone, cb) => {
-        svgateRequest(
-          'cards.new.otp',
-          {
-            card: {
-              pan: inputs.pan,
-              expiry: `${inputs.expiry_year}${inputs.expiry_month}`,
-              requestorPhone: phone,
-            },
-          },
-          (err, result) => {
-            if (err) return cb(err);
-
-            cb(null, result.id, {
-              timeLeft: 120,
-              phoneMask: result.phoneMask,
-            });
-          }
-        );
-      },
-      // save request id
-      (requestId, info, cb) => {
-        redisClient.hSet(
-          'new_card_otp',
-          inputs.deviceId,
-          JSON.stringify({
-            requestId,
-            month: inputs.expiry_month,
-            year: inputs.expiry_year,
-            name: inputs.name,
-            main: inputs.main,
-          }),
-          (err) => {
-            if (err) return cb(err);
-
-            cb(null, info);
-          }
-        );
-      },
     ],
-    (err, info) => {
+    (err, returnRes) => {
       if (err) return next(err);
 
-      res.status(201).json({
-        success: true,
-        info,
-      });
+      res.status(201).json(returnRes);
     }
   );
 }
 
 // @Private
 // @Customer
+// @Comment: To verify card with otp before adding
 function verifyCard(req, res, next) {
   let customerId, inputs;
 
@@ -239,43 +214,37 @@ function getCustomerCards(req, res, next) {
       },
       // get cards
       (customerId, cb) => {
-        fetchDB(cardsQuery.getAllByCustomer, [customerId], (err, result) => {
-          if (err) return cb(err);
+        const cardsPromises = Promise.allSettled([
+          fetchDB(cardsQuery.getAllByCustomer, [customerId]),
+          fetchDB(attoCardQuery.getAllByCustomer, [customerId]),
+        ]);
 
-          cb(null, result.rows, result.rowCount);
-        });
-      },
-      // get details
-      (cards, count, cb) => {
-        if (count === 0) return cb(null, count, []);
-
-        svgateRequest(
-          'cards.get',
-          {
-            ids: cards.map((card) => card.token),
-          },
-          (err, result) => {
-            if (err) return cb(err);
-
-            const cardsWithBalance = cards.map((card) => {
-              const details = result.find((item) => item.id === card.token);
-              return {
-                ...card,
-                balance: (details.balance / 100).toFixed(2),
-                owner_name: details.fullName,
-                token: undefined,
-              };
-            });
-
-            cb(null, count, cardsWithBalance);
-          }
+        cardsPromises.then((results) =>
+          cb(null, {
+            uzcard: results[0].status === 'fulfilled' ? results[0].value.rows : [],
+            atto: results[1].status === 'fulfilled' ? results[1].value.rows : [],
+          })
         );
       },
+      // get details
+      (cards, cb) => {
+        const cardDetailsPromises = Promise.all([
+          cards.uzcard.length > 0 ? getUzcardCardsBalance(cards.uzcard) : [],
+          cards.atto.length > 0 ? getTransportCardsBalance(cards.atto) : [],
+        ]);
+
+        cardDetailsPromises.then((results) => {
+          cb(null, {
+            uzcard: results[0],
+            atto: results[1],
+          });
+        });
+      },
     ],
-    (err, count, cards) => {
+    (err, cards) => {
       if (err) return next(err);
 
-      res.status(200).json({ count, cards });
+      res.status(200).json({ cards });
     }
   );
 }
@@ -502,6 +471,190 @@ function getOnwerByPan(req, res, next) {
     }
   );
 }
+
+// @Function
+const saveUzcardCard = (_, customerId, inputs, parentCb) => {
+  async.waterfall(
+    [
+      // get customer phone
+      (cb) => {
+        fetchDB(customersQuery.getOneById, [customerId], (err, result) => {
+          if (err) return cb(err);
+
+          const customer = result.rows[0];
+          if (!customer) return cb(new CustomError('CUSTOMER_NOT_FOUND'));
+
+          cb(null, customer.phone);
+        });
+      },
+      // send request to svgate
+      (phone, cb) => {
+        svgateRequest(
+          'cards.new.otp',
+          {
+            card: {
+              pan: inputs.pan,
+              expiry: `${inputs.expiry_year}${inputs.expiry_month}`,
+              requestorPhone: phone,
+            },
+          },
+          (err, result) => {
+            if (err) return cb(err);
+
+            cb(null, result.id, {
+              timeLeft: 120,
+              phoneMask: result.phoneMask,
+              type: 'uzcard',
+            });
+          }
+        );
+      },
+      // save request id
+      (requestId, info, cb) => {
+        redisClient.hSet(
+          'new_card_otp',
+          inputs.deviceId,
+          JSON.stringify({
+            requestId,
+            month: inputs.expiry_month,
+            year: inputs.expiry_year,
+            name: inputs.name,
+            main: inputs.main,
+          }),
+          (err) => {
+            if (err) return cb(err);
+
+            cb(null, info);
+          }
+        );
+      },
+    ],
+    (err, info) => {
+      if (err) return parentCb(err);
+
+      parentCb(null, {
+        success: true,
+        info,
+      });
+    }
+  );
+};
+
+// @Function
+const saveAttoCard = (req, customerId, inputs, parentCb) => {
+  async.waterfall(
+    [
+      // check card is not already added
+      (cb) => {
+        fetchDB(attoCardQuery.checkIsUnique, [inputs.pan], (err, result) => {
+          if (err) return cb(err);
+          const existingCard = result.rows[0];
+
+          if (existingCard) {
+            if (existingCard.customer_id !== customerId)
+              return cb(new CustomError('CARD_BELONGS_TO_ANOTHER'));
+            return cb(new CustomError('CARD_ALREADY_ADDED'));
+          }
+
+          cb(null);
+        });
+      },
+      // send request to crm
+      (cb) => {
+        crmClient
+          .get('/top-up/check', {
+            params: {
+              cardNumber: inputs.pan,
+            },
+          })
+          .then(() => cb(null))
+          .catch((err) => cb(err));
+      },
+      // save card
+      (cb) => {
+        fetchDB(
+          attoCardQuery.save,
+          [
+            customerId,
+            inputs.name,
+            inputs.pan,
+            inputs.expiry_month,
+            inputs.expiry_year,
+            inputs.main,
+          ],
+          (err, result) => {
+            if (err) return cb(err);
+
+            const message = result.rows[0].message[acceptsLanguages(req)];
+            cb(null, message);
+          }
+        );
+      },
+    ],
+    (err, message) => {
+      if (err) return parentCb(err);
+
+      parentCb(null, {
+        success: true,
+        message,
+        info: {
+          type: 'atto',
+        },
+      });
+    }
+  );
+};
+
+// @Function
+const getTransportCardsBalance = async (cards) => {
+  const transportCardsPromises = Promise.all([
+    ...cards.map((card) => {
+      return new Promise((resolve) => {
+        crmClient
+          .get('/top-up/check', {
+            params: {
+              cardNumber: card.pan,
+            },
+          })
+          .then((res) =>
+            resolve({
+              ...card,
+              balance: (res.data.data.balance / 100).toFixed(2),
+              token: undefined,
+            })
+          )
+          .catch(() => resolve({ ...card, balance: null, token: undefined }));
+      });
+    }),
+  ]);
+
+  const transportCards = await transportCardsPromises;
+  return transportCards;
+};
+
+// @Function
+const getUzcardCardsBalance = async (cards) => {
+  try {
+    const { result, error } = await svgateRequest('cards.get', {
+      ids: cards.map((card) => card.token),
+    });
+
+    if (error) throw new Error(error);
+
+    return cards.map((card) => {
+      const details = result.find((item) => item.id === card.token);
+      return {
+        ...card,
+        balance: (details.balance / 100).toFixed(2),
+        owner_name: details.fullName,
+        token: undefined,
+      };
+    });
+  } catch (error) {
+    console.log(error);
+    return cards.map((card) => ({ ...card, balance: null, owner_name: null }));
+  }
+};
 
 module.exports = {
   addCard,

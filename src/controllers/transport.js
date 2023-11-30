@@ -26,8 +26,8 @@ function getStations(req, res, next) {
         crmClient
           .get('/station/list')
           .then((response) => {
-            const stations = response.data.result;
-            redisClient.set('metro_stations', JSON.stringify(stations));
+            const stations = response.data.data;
+            redisClient.set('metro_stations', JSON.stringify(stations), 60 * 60);
             cb(null, stations);
           })
           .catch((err) => {

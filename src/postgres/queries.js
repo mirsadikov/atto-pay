@@ -44,10 +44,10 @@ where id = $2`,
 };
 
 const cardsQuery = {
-  getOneById: 'select * from bank_card where id = $1 and customer_id = $2',
+  getOneById: `select *, 'uzcard' as type from bank_card where id = $1 and customer_id = $2`,
   checkIsUnique: 'select customer_id from bank_card where pan = $1 and token = $2',
   getAllByCustomer: `
-select *
+select *, 'uzcard' as type
 from bank_card where customer_id = $1`,
   save: `
 insert into bank_card(customer_id, name, pan, expiry_month, expiry_year, token, main)
@@ -55,6 +55,23 @@ values($1, $2, $3, $4, $5, $6, $7)
 returning (select message from message where name = 'CARD_ADDED') as message`,
   update: `
 update bank_card set name = $1, main = $4
+where id = $2 and customer_id = $3
+returning (select message from message where name = 'CARD_UPDATED') as message`,
+  delete: `call delete_card($1, $2, null, null, null)`,
+};
+
+const attoCardQuery = {
+  checkIsUnique: 'select customer_id from transport_card where pan = $1',
+  getOneById: `select *, 'atto' as type from transport_card where id = $1 and customer_id = $2`,
+  getAllByCustomer: `
+select *, 'atto' as type, null as token
+from transport_card where customer_id = $1`,
+  save: `
+insert into transport_card(customer_id, name, pan, expiry_month, expiry_year, main)
+values($1, $2, $3, $4, $5, $6)
+returning (select message from message where name = 'CARD_ADDED') as message`,
+  update: `
+update transport_card set name = $1, main = $4
 where id = $2 and customer_id = $3
 returning (select message from message where name = 'CARD_UPDATED') as message`,
   delete: `call delete_card($1, $2, null, null, null)`,
@@ -163,4 +180,5 @@ module.exports = {
   categoriesQuery,
   servicesQuery,
   transactionsQuery,
+  attoCardQuery,
 };

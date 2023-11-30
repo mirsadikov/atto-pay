@@ -41,8 +41,17 @@ class RedisClient {
     return this.execute(this.client.get(key), cb);
   }
 
-  set(key, value, cb) {
-    return this.execute(this.client.set(key, value), cb);
+  set(key, value, expire, cb) {
+    if (typeof expire === 'function') {
+      cb = expire;
+      expire = null;
+    }
+
+    const promise = expire
+      ? this.client.set(key, value, 'EX', expire)
+      : this.client.set(key, value);
+
+    return this.execute(promise, cb);
   }
 
   hDel(key, field, cb) {

@@ -13,6 +13,7 @@ const svgateClient = axios.create({
 
 const svgateRequest = async (method, bodyParams, cb) => {
   try {
+    cb = cb || function () {};
     const id = `ATTOPAY_${base64url(crypto.randomBytes(32))}`;
     const response = await svgateClient.post(`/`, {
       jsonrpc: '2.0',
@@ -27,8 +28,10 @@ const svgateRequest = async (method, bodyParams, cb) => {
     if (id !== resId) return cb(new Error('SVGATE_ERROR'));
 
     cb(null, result);
+    return { result };
   } catch (error) {
     cb(error);
+    return { error };
   }
 };
 
