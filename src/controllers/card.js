@@ -244,7 +244,10 @@ function getCustomerCards(req, res, next) {
     (err, cards) => {
       if (err) return next(err);
 
-      res.status(200).json({ cards });
+      res.status(200).json({
+        count: Object.values(cards).flat().length,
+        cards,
+      });
     }
   );
 }
@@ -643,12 +646,14 @@ const getUzcardCardsBalance = async (cards) => {
 
     return cards.map((card) => {
       const details = result.find((item) => item.id === card.token);
-      return {
-        ...card,
-        balance: (details.balance / 100).toFixed(2),
-        owner_name: details.fullName,
-        token: undefined,
-      };
+      return details
+        ? {
+            ...card,
+            balance: (details.balance / 100).toFixed(2),
+            owner_name: details.fullName,
+            token: undefined,
+          }
+        : { ...card, balance: null, owner_name: null };
     });
   } catch (error) {
     console.log(error);

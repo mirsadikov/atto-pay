@@ -41,7 +41,6 @@ const crmClient = axios.create({
 crmClient.interceptors.request.use(
   async (config) => {
     config.headers['access_token'] = await getCredentials();
-    console.log(config.headers);
     return config;
   },
   (error) => {
