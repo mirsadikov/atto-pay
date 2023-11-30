@@ -366,7 +366,7 @@ function deleteCard(req, res, next) {
 // @Private
 // @Customer
 function getOneById(req, res, next) {
-  let customerId;
+  let customerId, queryType, cardDetailsPromise;
 
   async.waterfall(
     [
@@ -382,19 +382,34 @@ function getOneById(req, res, next) {
       // validate data
       (cb) => {
         const { id } = req.params;
+        const { type } = req.query;
 
         const validator = new LIVR.Validator({
           id: ['trim', 'string', 'required'],
+          type: ['trim', 'string', 'required'],
         });
 
-        const validData = validator.validate({ id });
+        const validData = validator.validate({ id, type });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, validData);
       },
       // get card
       (inputs, cb) => {
-        fetchDB(cardsQuery.getOneById, [inputs.id, customerId], (err, result) => {
+        switch (inputs.type) {
+          case 'uzcard':
+            queryType = cardsQuery.getOneById;
+            cardDetailsPromise = getUzcardCardsBalance;
+            break;
+          case 'atto':
+            queryType = attoCardQuery.getOneById;
+            cardDetailsPromise = getTransportCardsBalance;
+            break;
+          default:
+            return cb(new CustomError('UNSUPPORTED_CARD'));
+        }
+
+        fetchDB(queryType, [inputs.id, customerId], (err, result) => {
           if (err) return cb(err);
           if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
 
@@ -403,26 +418,7 @@ function getOneById(req, res, next) {
       },
       // get details
       (card, cb) => {
-        svgateRequest(
-          'cards.get',
-          {
-            ids: [card.token],
-          },
-          (err, result) => {
-            if (err) return cb(err);
-            if (result.length === 0) return cb(new CustomError('CARD_NOT_FOUND'));
-
-            const details = result[0];
-            const cardWithBalance = {
-              ...card,
-              balance: (details.balance / 100).toFixed(2),
-              owner_name: details.fullName,
-              token: undefined,
-            };
-
-            cb(null, cardWithBalance);
-          }
-        );
+        cardDetailsPromise([card]).then((cards) => cb(null, cards[0]));
       },
     ],
     (err, card) => {
@@ -609,26 +605,29 @@ const saveAttoCard = (req, customerId, inputs, parentCb) => {
 };
 
 // @Function
+const getSingleTransportCardBalance = async (card) => {
+  return new Promise((resolve) => {
+    crmClient
+      .get('/top-up/check', {
+        params: {
+          cardNumber: card.pan,
+        },
+      })
+      .then((res) =>
+        resolve({
+          ...card,
+          balance: (res.data.data.balance / 100).toFixed(2),
+          token: undefined,
+        })
+      )
+      .catch(() => resolve({ ...card, balance: null, token: undefined }));
+  });
+};
+
+// @Function
 const getTransportCardsBalance = async (cards) => {
   const transportCardsPromises = Promise.all([
-    ...cards.map((card) => {
-      return new Promise((resolve) => {
-        crmClient
-          .get('/top-up/check', {
-            params: {
-              cardNumber: card.pan,
-            },
-          })
-          .then((res) =>
-            resolve({
-              ...card,
-              balance: (res.data.data.balance / 100).toFixed(2),
-              token: undefined,
-            })
-          )
-          .catch(() => resolve({ ...card, balance: null, token: undefined }));
-      });
-    }),
+    ...cards.map((card) => getSingleTransportCardBalance(card)),
   ]);
 
   const transportCards = await transportCardsPromises;
