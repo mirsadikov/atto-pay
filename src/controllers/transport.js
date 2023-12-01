@@ -10,6 +10,7 @@ const svgateRequest = require('../utils/SVGateClient');
 const { default: base64url } = require('base64url');
 const redisClient = require('../redis');
 const crmClient = require('../utils/crmClient');
+const acceptsLanguages = require('../utils/acceptsLanguages');
 
 function getStations(req, res, next) {
   async.waterfall(
@@ -135,13 +136,12 @@ function topUpCard(req, res, next) {
             cardNumber: toCard.pan,
             extOrderNumber: id,
             amount: inputs.amount,
-            amount: 76000,
             type: 1,
             cardMask: svgateResponse.pan,
             utrnno: svgateResponse.refNum,
           })
           .then((response) => {
-            if (response.success) cb(null, svgateResponse, id);
+            if (response.data.success) cb(null, svgateResponse, id);
             else cb(new CustomError('CRM_ERROR'), true);
           })
           .catch((err) => {
@@ -168,7 +168,7 @@ function topUpCard(req, res, next) {
         );
       },
     ],
-    (err, reverse, svgateResponse, transfer_id, message) => {
+    (err, reverse, svgateResponse, message, transfer_id) => {
       if (err) {
         if (reverse) {
           return svgateRequest('trans.reverse', {
