@@ -35,7 +35,7 @@ function getStations(req, res, next) {
         }
 
         crmClient
-          .get('/station/list')
+          .get('/terminal/station/list')
           .then((response) => {
             const stations = response.data.data;
             redisClient.set('metro_stations', JSON.stringify(stations), 60 * 60);
@@ -133,7 +133,7 @@ function topUpCard(req, res, next) {
       (svgateResponse, cb) => {
         const id = `ATTOPAY_${base64url(crypto.randomBytes(32))}`;
         crmClient
-          .post('/top-up/aggregator', {
+          .post('/terminal/top-up/aggregator', {
             cardNumber: toCard.pan,
             extOrderNumber: id,
             amount: inputs.amount,
@@ -252,7 +252,7 @@ function generateQrCode(req, res, next) {
       (pan, cb) => {
         const id = `ATTOPAY_${base64url(crypto.randomBytes(32))}`;
         crmClient
-          .post('/qr/aggregator/generate', {
+          .post('/terminal/qr/aggregator/generate', {
             transactionNumber: id,
             cardNumber: pan,
             stationId: inputs.stationId,

@@ -586,7 +586,7 @@ const saveAttoCard = (req, customerId, inputs, parentCb) => {
       // send request to crm
       (cb) => {
         crmClient
-          .get('/top-up/check', {
+          .get('/terminal/top-up/check', {
             params: {
               cardNumber: inputs.pan,
             },
@@ -633,7 +633,7 @@ const saveAttoCard = (req, customerId, inputs, parentCb) => {
 const getSingleTransportCardBalance = async (card) => {
   return new Promise((resolve) => {
     crmClient
-      .get('/top-up/check', {
+      .get('/terminal/top-up/check', {
         params: {
           cardNumber: card.pan,
         },
