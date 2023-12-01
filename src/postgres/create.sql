@@ -142,10 +142,14 @@ when (old.deleted = false and new.deleted = true)
 execute procedure service_deleted_trigger();
 
 -- set card other card not main when inserted or updated card is marked as main
-create or replace function set_bank_cards_not_main()
+create or replace function set_cards_not_main()
 returns trigger as $$
 begin
-  update bank_card set main = false where customer_id = new.customer_id and id != new.id;
+  if TG_TABLE_NAME = 'bank_card' then
+    update bank_card set main = false where customer_id = new.customer_id and id != new.id;
+  elsif TG_TABLE_NAME = 'transport_card' then
+    update transport_card set main = false where customer_id = new.customer_id and id != new.id;
+  end if;
   return new;
 end;
 $$ language plpgsql;
@@ -154,7 +158,13 @@ create or replace trigger bank_card_added_trigger
 after insert or update on bank_card
 for each row
 when (new.main = true)
-execute procedure set_bank_cards_not_main();
+execute procedure set_cards_not_main();
+
+create or replace trigger transport_card_added_trigger
+after insert or update on transport_card
+for each row
+when (new.main = true)
+execute procedure set_cards_not_main();
 
 -- ############################
 -- UTILITY PROCEDURES --
@@ -284,19 +294,31 @@ $$ language plpgsql;
 create or replace procedure delete_card(
   _card_id uuid,
   _customer_id uuid,
+  _type varchar(16),
   out error_code varchar(64),
   out error_message text,
   out success_message jsonb
 ) as $$
 begin
   begin
-    delete from payment where owner_id = _customer_id and sender_id = _card_id;
-    delete from transfer where owner_id = _customer_id and sender_id = _card_id;
-    delete from transfer where owner_id = _customer_id and receiver_id = _card_id;
-    
-    delete from bank_card where id = _card_id and customer_id = _customer_id;
-    if not found then 
-      error_code := 'CARD_NOT_FOUND';
+    if _type = 'uzcard' then
+      delete from payment where owner_id = _customer_id and sender_id = _card_id;
+      delete from transfer where owner_id = _customer_id and sender_id = _card_id;
+      delete from transfer where owner_id = _customer_id and receiver_id = _card_id;
+      
+      delete from bank_card where id = _card_id and customer_id = _customer_id;
+      if not found then 
+        error_code := 'CARD_NOT_FOUND';
+        return;
+      end if;
+    elsif _type = 'atto' then
+      delete from transport_card where id = _card_id and customer_id = _customer_id;
+      if not found then 
+        error_code := 'CARD_NOT_FOUND';
+        return;
+      end if;
+    else 
+      error_code := 'INVALID_REQUEST';
       return;
     end if;
 

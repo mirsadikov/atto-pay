@@ -57,7 +57,7 @@ returning (select message from message where name = 'CARD_ADDED') as message`,
 update bank_card set name = $1, main = $4
 where id = $2 and customer_id = $3
 returning (select message from message where name = 'CARD_UPDATED') as message`,
-  delete: `call delete_card($1, $2, null, null, null)`,
+  delete: `call delete_card($1, $2, $3, null, null, null)`,
 };
 
 const attoCardQuery = {
@@ -74,7 +74,7 @@ returning (select message from message where name = 'CARD_ADDED') as message`,
 update transport_card set name = $1, main = $4
 where id = $2 and customer_id = $3
 returning (select message from message where name = 'CARD_UPDATED') as message`,
-  delete: `call delete_card($1, $2, null, null, null)`,
+  delete: `call delete_card($1, $2, $3, null, null, null)`,
 };
 
 const devicesQuery = {

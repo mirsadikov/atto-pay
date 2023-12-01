@@ -270,32 +270,42 @@ function updateCard(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { id, name, main } = req.body;
+        const { id, name, main, type } = req.body;
 
         const validator = new LIVR.Validator({
           id: ['trim', 'string', 'required'],
           name: ['trim', 'string', 'required', { min_length: 2 }, { max_length: 64 }],
           main: ['boolean', 'required'],
+          type: ['trim', 'string', 'required'],
         });
 
-        const validData = validator.validate({ id, name, main });
+        const validData = validator.validate({ id, name, main, type });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, validData);
       },
       // update card
       (inputs, cb) => {
-        fetchDB(
-          cardsQuery.update,
-          [inputs.name, inputs.id, customerId, inputs.main],
-          (err, result) => {
-            if (err) return cb(err);
-            if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
+        let queryType;
 
-            const message = result.rows[0].message[acceptsLanguages(req)];
-            cb(null, message);
-          }
-        );
+        switch (inputs.type) {
+          case 'uzcard':
+            queryType = cardsQuery.update;
+            break;
+          case 'atto':
+            queryType = attoCardQuery.update;
+            break;
+          default:
+            return cb(new CustomError('UNSUPPORTED_CARD'));
+        }
+
+        fetchDB(queryType, [inputs.name, inputs.id, customerId, inputs.main], (err, result) => {
+          if (err) return cb(err);
+          if (result.rowCount === 0) return cb(new CustomError('CARD_NOT_FOUND'));
+
+          const message = result.rows[0].message[acceptsLanguages(req)];
+          cb(null, message);
+        });
       },
     ],
     (err, message) => {
@@ -327,20 +337,34 @@ function deleteCard(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { id } = req.body;
+        const { id, type } = req.body;
 
         const validator = new LIVR.Validator({
           id: ['trim', 'string', 'required'],
+          type: ['trim', 'string', 'required'],
         });
 
-        const validData = validator.validate({ id });
+        const validData = validator.validate({ id, type });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         cb(null, validData);
       },
       // delete card
       (inputs, cb) => {
-        fetchDB(cardsQuery.delete, [inputs.id, customerId], (err, result) => {
+        let deleteQuery;
+
+        switch (inputs.type) {
+          case 'uzcard':
+            deleteQuery = cardsQuery.delete;
+            break;
+          case 'atto':
+            deleteQuery = attoCardQuery.delete;
+            break;
+          default:
+            return cb(new CustomError('UNSUPPORTED_CARD'));
+        }
+
+        fetchDB(deleteQuery, [inputs.id, customerId, inputs.type], (err, result) => {
           if (err) return cb(err);
 
           const { error_code, error_message, success_message } = result.rows[0];
@@ -533,6 +557,7 @@ const saveUzcardCard = (_, customerId, inputs, parentCb) => {
 
       parentCb(null, {
         success: true,
+        need_otp: true,
         info,
       });
     }
