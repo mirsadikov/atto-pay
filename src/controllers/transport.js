@@ -132,7 +132,7 @@ function topUpCard(req, res, next) {
         const id = `ATTOPAY_${base64url(crypto.randomBytes(32))}`;
         crmClient
           .post('/top-up/aggregator', {
-            cardNumber: toCard.card_number,
+            cardNumber: toCard.pan,
             extOrderNumber: id,
             amount: inputs.amount,
             amount: 76000,
