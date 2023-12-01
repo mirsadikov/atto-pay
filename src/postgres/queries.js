@@ -165,6 +165,7 @@ const transactionsQuery = {
   payForService: `call pay_for_service($1, $2, $3, $4, $5, $6, null, null, null, null)`,
   transferMoney: `call transfer_money($1, $2, $3, $4, null, null, null, null)`,
   transferMoneyToSelf: `call transfer_money_to_self($1, $2, $3, $4, null, null, null, null)`,
+  createAttoTopupTransaction: `call create_atto_card_topup_transaction($1, $2, $3, $4, $5, $6, $7, null, null, null, null)`,
   getTransactions: `
 select * 
 from get_transactions($1, $2, $3, $4, $5, $6, $7)`,

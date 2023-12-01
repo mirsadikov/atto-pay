@@ -117,7 +117,8 @@ create table if not exists transfer (
   sender_pan varchar(16),
   sender_id uuid,
   receiver_pan varchar(16),
-  receiver_id uuid
+  receiver_id uuid,
+  ref_id varchar(64)
 );
 
 -- ############################
@@ -466,6 +467,57 @@ begin
 
     update bank_card set balance = balance - _amount where id = sender_card.id;
     update bank_card set balance = balance + _amount where id = receiver_card.id;
+
+    select message from message where name = 'TRANSFER_SUCCESS' into success_message;
+  exception
+    when others then
+      rollback;
+      error_code := 'TRANSACTION_ERROR';
+      error_message := sqlerrm;
+      return;
+  end;
+
+  commit;
+end;
+$$ language plpgsql;
+
+-- top up attocard
+create or replace procedure create_atto_card_topup_transaction(
+  _customer_id uuid,
+  _from_card_id uuid,
+  _from_pan varchar(16),
+  _payment_ref_id varchar(64),
+  _to_card_id uuid,
+  _topup_ref_id varchar(64),
+  _amount int,
+  out transfer_id uuid,
+  out error_code varchar(64),
+  out error_message text,
+  out success_message jsonb
+) as $$ 
+declare
+  sender_card bank_card;
+  receiver_card bank_card;
+begin
+  begin
+    select * into sender_card from bank_card where id = _from_card_id and customer_id = _customer_id;
+    if not found then 
+      error_code := 'CARD_NOT_FOUND';
+      return;
+    end if;
+
+    select * into receiver_card from transport_card where id = _to_card_id and customer_id = _customer_id;
+    if not found then 
+      error_code := 'CARD_NOT_FOUND';
+      return;
+    end if;
+
+    insert into transfer (owner_id, type, amount, sender_id, receiver_pan, receiver_id, ref_id)
+    values (_customer_id, 'expense', _amount, _from_card_id, receiver_card.pan, receiver_card.customer_id, _payment_ref_id)
+    returning id into transfer_id;
+
+    insert into transfer (owner_id, type, amount, sender_pan, sender_id, receiver_id, ref_id)
+    values (_customer_id, 'income', _amount, sender_card.pan, sender_card.customer_id, _to_card_id, _topup_ref_id);
 
     select message from message where name = 'TRANSFER_SUCCESS' into success_message;
   exception
