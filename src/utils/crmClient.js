@@ -16,7 +16,7 @@ const getCredentials = async () => {
   }
 
   try {
-    const res = await axios.post(`${CRM_API_URL}/login`, {
+    const res = await axios.post(`${CRM_API_URL}/terminal/login`, {
       login: CRM_USER_LOGIN,
       password: CRM_USER_PASSWORD,
     });
