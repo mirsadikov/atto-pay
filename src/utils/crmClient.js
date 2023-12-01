@@ -63,7 +63,8 @@ crmClient.interceptors.response.use(
       new CRMError(
         error.response && error.response.status < 500
           ? error.response.data.error.message
-          : error.message
+          : error.message,
+        error.response ? error.response.data.error : null
       )
     );
   }

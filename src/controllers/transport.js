@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const async = require('async');
+const moment = require('moment');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
 const fetchDB = require('../postgres');
@@ -185,21 +186,95 @@ function topUpCard(req, res, next) {
 }
 
 function generateQrCode(req, res, next) {
-  const { cardNumber } = req.body;
+  let customerId, inputs;
 
-  crmClient
-    .post('/card/generate_qr_code', {
-      cardNumber,
-    })
-    .then((response) => {
-      res.status(200).json({
-        success: true,
-        data: response.data,
-      });
-    })
-    .catch((err) => {
-      next(err);
-    });
+  async.waterfall(
+    [
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // validate data
+      (cb) => {
+        const { cardId, stationId, type } = req.body;
+
+        const validator = new LIVR.Validator({
+          cardId: ['trim', 'required', 'string'],
+          stationId: ['positive_integer', 'required'],
+          type: ['string', 'required'],
+        });
+
+        const validData = validator.validate({ cardId, stationId, type });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        inputs = validData;
+        cb(null);
+      },
+      // get card pan by id
+      (cb) => {
+        let getQuery;
+
+        switch (inputs.type) {
+          case 'atto':
+            getQuery = attoCardQuery.getOneById;
+            break;
+          case 'uzcard':
+            getQuery = cardsQuery.getOneById;
+            break;
+          default:
+            return cb(new CustomError('INVALID_REQUEST'));
+        }
+
+        fetchDB(getQuery, [inputs.cardId, customerId], (err, result) => {
+          if (err) return cb(err);
+
+          if (!result.rows[0]) return cb(new CustomError('CARD_NOT_FOUND'));
+
+          cb(null, result.rows[0]);
+        });
+      },
+      // get card pan if bank card
+      (card, cb) => {
+        if (inputs.type === 'atto') return cb(null, card.pan);
+
+        svgateRequest('cards.get', { ids: [card.token] }, (err, result) => {
+          if (err) return cb(err);
+
+          if (!result[0]) return cb(new CustomError('CARD_NOT_FOUND'));
+
+          cb(null, result[0].pan);
+        });
+      },
+      (pan, cb) => {
+        const id = `ATTOPAY_${base64url(crypto.randomBytes(32))}`;
+        crmClient
+          .post('/qr/aggregator/generate', {
+            transactionNumber: id,
+            cardNumber: pan,
+            stationId: inputs.stationId,
+          })
+          .then((response) => {
+            cb(null, {
+              success: true,
+              qr: response.data.data.qr,
+              expiresIn: moment,
+            });
+          })
+          .catch((err) => {
+            cb(err);
+          });
+      },
+    ],
+    (err, response) => {
+      if (err) return next(err);
+
+      res.status(200).json(response);
+    }
+  );
 }
 
 module.exports = {
