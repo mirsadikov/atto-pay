@@ -485,7 +485,6 @@ $$ language plpgsql;
 create or replace procedure create_atto_card_topup_transaction(
   _customer_id uuid,
   _from_card_id uuid,
-  _from_pan varchar(16),
   _payment_ref_id varchar(64),
   _to_card_id uuid,
   _topup_ref_id varchar(64),
@@ -497,7 +496,7 @@ create or replace procedure create_atto_card_topup_transaction(
 ) as $$ 
 declare
   sender_card bank_card;
-  receiver_card bank_card;
+  receiver_card transport_card;
 begin
   begin
     select * into sender_card from bank_card where id = _from_card_id and customer_id = _customer_id;
@@ -644,6 +643,15 @@ begin
     from transfer t
     join customer sender_customer on sender_customer.id = t.sender_id
     join bank_card own_card on own_card.id = t.receiver_id
+    where t.owner_id = _customer_id and t.created_at between _from and _to
+    union all
+    -- atto income transfer
+    select t.id, t.owner_id, t.type, 'transfer' as action, t.amount, t.created_at,
+    jsonb_build_object('name', sender_customer.name, 'image_url', sender_customer.image_url, 'pan', mask_credit_card(t.sender_pan)) as sender,
+    jsonb_build_object('id', own_tc.id, 'name', own_tc.name, 'pan', mask_credit_card(own_tc.pan)) as receiver
+    from transfer t
+    join customer sender_customer on sender_customer.id = t.sender_id
+    join transport_card own_tc on own_tc.id = t.receiver_id
     where t.owner_id = _customer_id and t.created_at between _from and _to
   );
 

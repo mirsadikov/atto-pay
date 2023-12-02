@@ -12,6 +12,7 @@ const { default: base64url } = require('base64url');
 const redisClient = require('../redis');
 const crmClient = require('../utils/crmClient');
 const acceptsLanguages = require('../utils/acceptsLanguages');
+const { ATTO_FARE_SERVICE_ID } = require('../config/secrets');
 
 function getStations(req, res, next) {
   async.waterfall(
@@ -117,7 +118,7 @@ function topUpCard(req, res, next) {
               purpose: 'payment',
               cardId: fromCard.token,
               amount: inputs.amount * 100, // convert to tiyn
-              ext: `ATTOPAY_${base64url(crypto.randomBytes(32))}`,
+              ext: `SVGATE_${base64url(crypto.randomBytes(32))}`,
               merchantId: '90126913',
               terminalId: '91500009',
             },
@@ -151,11 +152,9 @@ function topUpCard(req, res, next) {
       },
       // save transaction
       (svgateResponse, attoRefId, cb) => {
-        const { ext, pan } = svgateResponse;
-
         fetchDB(
           transactionsQuery.createAttoTopupTransaction,
-          [customerId, fromCard.id, pan, ext, toCard.id, attoRefId, inputs.amount],
+          [customerId, fromCard.id, svgateResponse.ext, toCard.id, attoRefId, inputs.amount],
           (err, result) => {
             if (err) return cb(err, false);
 
@@ -186,7 +185,7 @@ function topUpCard(req, res, next) {
 }
 
 function metroQrPay(req, res, next) {
-  let customerId, inputs;
+  let customerId, inputs, fromCard;
 
   async.waterfall(
     [
@@ -220,11 +219,12 @@ function metroQrPay(req, res, next) {
 
           if (!result.rows[0]) return cb(new CustomError('CARD_NOT_FOUND'));
 
-          cb(null, result.rows[0]);
+          fromCard = result.rows[0];
+          cb(null);
         });
       },
       // pay with card
-      (fromCard, cb) => {
+      (cb) => {
         svgateRequest(
           'trans.pay.purpose',
           {
@@ -240,11 +240,11 @@ function metroQrPay(req, res, next) {
           (err, result) => {
             if (err) return cb(err);
 
-            cb(null, fromCard, result);
+            cb(null, result);
           }
         );
       },
-      (fromCard, svgateResponse, cb) => {
+      (svgateResponse, cb) => {
         crmClient
           .post('/terminal/qr/aggregator/generate', {
             transactionNumber: svgateResponse.ext,
@@ -254,8 +254,7 @@ function metroQrPay(req, res, next) {
           .then((response) => {
             const { qr, expireDate } = response.data;
             const expireDateMoment = moment(expireDate, 'YYDDDHHmm').subtract(5, 'hours'); // qr is always 5 hours ahead
-            cb(null, {
-              success: true,
+            cb(null, svgateResponse, {
               qr,
               expiresIn: expireDateMoment.diff(moment(), 'seconds'),
             });
@@ -263,6 +262,31 @@ function metroQrPay(req, res, next) {
           .catch((err) => {
             cb(err);
           });
+      },
+      // save as transaction
+      (svgateResponse, response, cb) => {
+        fetchDB(
+          transactionsQuery.payForService,
+          [
+            customerId,
+            fromCard.id,
+            ATTO_FARE_SERVICE_ID,
+            svgateResponse.amount,
+            svgateResponse.ext,
+            JSON.stringify({ type: 'metro' }),
+          ],
+          (_, result) => {
+            const { payment_id, success_message } = result.rows[0];
+
+            const message = success_message ? success_message[acceptsLanguages(req)] : 'Success';
+            cb(null, {
+              success: true,
+              message,
+              payment_id,
+              ...response,
+            });
+          }
+        );
       },
     ],
     (err, response) => {
@@ -406,22 +430,44 @@ function busQrPay(req, res, next) {
             cb(err);
           });
       },
+      // save as transaction
+      (svgateResponse, ticket, cb) => {
+        fetchDB(
+          transactionsQuery.payForService,
+          [
+            customerId,
+            fromCard.id,
+            ATTO_FARE_SERVICE_ID,
+            svgateResponse.amount,
+            svgateResponse.ext,
+            JSON.stringify({ type: 'bus' }),
+          ],
+          (_, result) => {
+            const { payment_id, success_message } = result.rows[0];
+
+            const message = success_message ? success_message[acceptsLanguages(req)] : 'Success';
+            cb(null, {
+              success: true,
+              message,
+              payment_id,
+              details: {
+                qr: ticket.qr,
+                orderNumber: ticket.orderNumber,
+                fee: svgateResponse.amount,
+                bus: {
+                  regNumber: busDetails.regNumber,
+                  routeName: busDetails.routeName,
+                },
+              },
+            });
+          }
+        );
+      },
     ],
-    (err, svgateResponse, ticket) => {
+    (err, response) => {
       if (err) return next(err);
 
-      res.status(200).json({
-        success: true,
-        details: {
-          qr: ticket.qr,
-          orderNumber: ticket.orderNumber,
-          fee: svgateResponse.amount,
-          bus: {
-            regNumber: busDetails.regNumber,
-            routeName: busDetails.routeName,
-          },
-        },
-      });
+      res.status(200).json(response);
     }
   );
 }

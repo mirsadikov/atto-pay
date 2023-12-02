@@ -28,6 +28,7 @@ const CRM_USER_PASSWORD = process.env.CRM_USER_PASSWORD;
 const SV_GATE_URL = process.env.SV_GATE_URL;
 const SV_GATE_USER = process.env.SV_GATE_USER;
 const SV_GATE_PASSWORD = process.env.SV_GATE_PASSWORD;
+const ATTO_FARE_SERVICE_ID = process.env.ATTO_FARE_SERVICE_ID;
 
 module.exports = {
   PORT,
@@ -55,4 +56,5 @@ module.exports = {
   SV_GATE_URL,
   SV_GATE_USER,
   SV_GATE_PASSWORD,
+  ATTO_FARE_SERVICE_ID,
 };
