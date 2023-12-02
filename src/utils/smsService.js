@@ -12,7 +12,7 @@ const sendSms = async (phone, msg) => {
     }
   );
 
-  return response.data;
+  return response;
 };
 
 const sendVerification = async (phone, code) => {

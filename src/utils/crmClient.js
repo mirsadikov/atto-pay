@@ -50,7 +50,7 @@ crmClient.interceptors.request.use(
 
 crmClient.interceptors.response.use(
   (response) => {
-    return response;
+    return response.data;
   },
   async (error) => {
     if (error.response.status === 401) {

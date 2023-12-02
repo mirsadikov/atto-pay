@@ -37,7 +37,7 @@ function getStations(req, res, next) {
         crmClient
           .get('/terminal/station/list')
           .then((response) => {
-            const stations = response.data.data;
+            const stations = response.data;
             redisClient.set('metro_stations', JSON.stringify(stations), 60 * 60);
             cb(null, stations);
           })
@@ -142,7 +142,7 @@ function topUpCard(req, res, next) {
             utrnno: svgateResponse.refNum,
           })
           .then((response) => {
-            if (response.data.success) cb(null, svgateResponse, id);
+            if (response.success) cb(null, svgateResponse, id);
             else cb(new CustomError('CRM_ERROR'), true);
           })
           .catch((err) => {
@@ -185,7 +185,7 @@ function topUpCard(req, res, next) {
   );
 }
 
-function generateQrCode(req, res, next) {
+function metroQrPay(req, res, next) {
   let customerId, inputs;
 
   async.waterfall(
@@ -200,15 +200,14 @@ function generateQrCode(req, res, next) {
       },
       // validate data
       (cb) => {
-        const { cardId, stationId, type } = req.body;
+        const { cardId, stationId } = req.body;
 
         const validator = new LIVR.Validator({
           cardId: ['trim', 'required', 'string'],
           stationId: ['positive_integer', 'required'],
-          type: ['string', 'required'],
         });
 
-        const validData = validator.validate({ cardId, stationId, type });
+        const validData = validator.validate({ cardId, stationId });
         if (!validData) return cb(new ValidationError(validator.getErrors()));
 
         inputs = validData;
@@ -216,20 +215,7 @@ function generateQrCode(req, res, next) {
       },
       // get card pan by id
       (cb) => {
-        let getQuery;
-
-        switch (inputs.type) {
-          case 'atto':
-            getQuery = attoCardQuery.getOneById;
-            break;
-          case 'uzcard':
-            getQuery = cardsQuery.getOneById;
-            break;
-          default:
-            return cb(new CustomError('INVALID_REQUEST'));
-        }
-
-        fetchDB(getQuery, [inputs.cardId, customerId], (err, result) => {
+        fetchDB(cardsQuery.getOneByIdWithPan, [inputs.cardId, customerId], (err, result) => {
           if (err) return cb(err);
 
           if (!result.rows[0]) return cb(new CustomError('CARD_NOT_FOUND'));
@@ -237,29 +223,37 @@ function generateQrCode(req, res, next) {
           cb(null, result.rows[0]);
         });
       },
-      // get card pan if bank card
-      (card, cb) => {
-        if (inputs.type === 'atto') return cb(null, card.pan);
+      // pay with card
+      (fromCard, cb) => {
+        svgateRequest(
+          'trans.pay.purpose',
+          {
+            tran: {
+              purpose: 'payment',
+              cardId: fromCard.token,
+              amount: 1700 * 100,
+              ext: `ATTOPAY_${base64url(crypto.randomBytes(32))}`,
+              merchantId: '90126913',
+              terminalId: '91500009',
+            },
+          },
+          (err, result) => {
+            if (err) return cb(err);
 
-        svgateRequest('cards.get', { ids: [card.token] }, (err, result) => {
-          if (err) return cb(err);
-
-          if (!result[0]) return cb(new CustomError('CARD_NOT_FOUND'));
-
-          cb(null, result[0].pan);
-        });
+            cb(null, fromCard, result);
+          }
+        );
       },
-      (pan, cb) => {
-        const id = `ATTOPAY_${base64url(crypto.randomBytes(32))}`;
+      (fromCard, svgateResponse, cb) => {
         crmClient
           .post('/terminal/qr/aggregator/generate', {
-            transactionNumber: id,
-            cardNumber: pan,
+            transactionNumber: svgateResponse.ext,
+            cardNumber: fromCard.pan,
             stationId: inputs.stationId,
           })
           .then((response) => {
-            const { qr, expireDate } = response.data.data;
-            const expireDateMoment = moment(expireDate, 'YYDDDHHmm').subtract(5, 'hours');
+            const { qr, expireDate } = response.data;
+            const expireDateMoment = moment(expireDate, 'YYDDDHHmm').subtract(5, 'hours'); // qr is always 5 hours ahead
             cb(null, {
               success: true,
               qr,
@@ -279,8 +273,163 @@ function generateQrCode(req, res, next) {
   );
 }
 
+function getBusInfo(req, res, next) {
+  async.waterfall(
+    [
+      // validate data
+      (cb) => {
+        const { terminalId } = req.query;
+
+        const validator = new LIVR.Validator({
+          terminalId: ['trim', 'required', 'string'],
+        });
+
+        const validData = validator.validate({ terminalId });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        cb(null, validData);
+      },
+      // get terminal details
+      (inputs, cb) => {
+        crmClient
+          .get('/terminal/qr/payment/info', {
+            params: {
+              terminalId: inputs.terminalId,
+            },
+          })
+          .then((response) => {
+            cb(null, response.data);
+          })
+          .catch((err) => {
+            cb(err);
+          });
+      },
+    ],
+    (err, response) => {
+      if (err) return next(err);
+
+      res.status(200).json(response);
+    }
+  );
+}
+
+function busQrPay(req, res, next) {
+  let customerId, inputs, busDetails, fromCard;
+
+  async.waterfall(
+    [
+      (cb) => {
+        verifyToken(req, 'customer', (err, id) => {
+          if (err) return cb(err);
+
+          customerId = id;
+          cb(null);
+        });
+      },
+      // validate data
+      (cb) => {
+        const { terminalId, cardId } = req.body;
+
+        const validator = new LIVR.Validator({
+          terminalId: ['trim', 'required', 'string'],
+          cardId: ['trim', 'required', 'string'],
+        });
+
+        const validData = validator.validate({ terminalId, cardId });
+        if (!validData) return cb(new ValidationError(validator.getErrors()));
+
+        inputs = validData;
+        cb(null);
+      },
+      // get card pan by id
+      (cb) => {
+        fetchDB(cardsQuery.getOneByIdWithPan, [inputs.cardId, customerId], (err, result) => {
+          if (err) return cb(err);
+
+          if (!result.rows[0]) return cb(new CustomError('CARD_NOT_FOUND'));
+
+          fromCard = result.rows[0];
+          cb(null);
+        });
+      },
+      // get bus details
+      (cb) => {
+        crmClient
+          .get('/terminal/qr/payment/info', {
+            params: {
+              terminalId: inputs.terminalId,
+            },
+          })
+          .then((response) => {
+            busDetails = response.data;
+            cb(null);
+          })
+          .catch((err) => {
+            cb(err);
+          });
+      },
+      // pay with card
+      (cb) => {
+        svgateRequest(
+          'trans.pay.purpose',
+          {
+            tran: {
+              purpose: 'payment',
+              cardId: fromCard.token,
+              amount: busDetails.fee * 100,
+              ext: `ATTOPAY_${base64url(crypto.randomBytes(32))}`,
+              merchantId: '90126913',
+              terminalId: '91500009',
+            },
+          },
+          (err, result) => {
+            if (err) return cb(err);
+
+            cb(null, result);
+          }
+        );
+      },
+      // generate qr ticket
+      (svgateResponse, cb) => {
+        crmClient
+          .post('/terminal/qr/payment', {
+            cardNumber: svgateResponse.pan,
+            expiryYear: fromCard.expiry_year,
+            expiryMonth: fromCard.expiry_month,
+            transNumber: svgateResponse.ext,
+            terminalId: inputs.terminalId,
+          })
+          .then((response) => {
+            cb(null, svgateResponse, response.data);
+          })
+          .catch((err) => {
+            cb(err);
+          });
+      },
+    ],
+    (err, svgateResponse, ticket) => {
+      if (err) return next(err);
+
+      res.status(200).json({
+        success: true,
+        details: {
+          qr: ticket.qr,
+          orderNumber: ticket.orderNumber,
+          fee: svgateResponse.amount,
+          bus: {
+            regNumber: busDetails.regNumber,
+            routeName: busDetails.routeName,
+          },
+        },
+      });
+    }
+  );
+}
+
 module.exports = {
   getStations,
   topUpCard,
-  generateQrCode,
+  metroQrPay,
+  getBusInfo,
+  busQrPay,
 };

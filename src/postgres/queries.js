@@ -44,10 +44,11 @@ where id = $2`,
 };
 
 const cardsQuery = {
-  getOneById: `select *, 'uzcard' as type from bank_card where id = $1 and customer_id = $2`,
+  getOneByIdWithPan: `select * from bank_card where id = $1 and customer_id = $2`,
+  getOneById: `select *, mask_credit_card(pan) as pan, 'uzcard' as type from bank_card where id = $1 and customer_id = $2`,
   checkIsUnique: 'select customer_id from bank_card where pan = $1 and token = $2',
   getAllByCustomer: `
-select *, 'uzcard' as type
+select *, 'uzcard' as type, mask_credit_card(pan) as pan
 from bank_card where customer_id = $1`,
   save: `
 insert into bank_card(customer_id, name, pan, expiry_month, expiry_year, token, main)
@@ -62,9 +63,9 @@ returning (select message from message where name = 'CARD_UPDATED') as message`,
 
 const attoCardQuery = {
   checkIsUnique: 'select customer_id from transport_card where pan = $1',
-  getOneById: `select *, 'atto' as type from transport_card where id = $1 and customer_id = $2`,
+  getOneById: `select *, mask_credit_card(pan) as pan, 'atto' as type from transport_card where id = $1 and customer_id = $2`,
   getAllByCustomer: `
-select *, 'atto' as type, null as token
+select *, mask_credit_card(pan) as pan, 'atto' as type, null as token
 from transport_card where customer_id = $1`,
   save: `
 insert into transport_card(customer_id, name, pan, expiry_month, expiry_year, main)

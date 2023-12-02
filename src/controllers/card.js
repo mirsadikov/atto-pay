@@ -175,10 +175,10 @@ function verifyCard(req, res, next) {
       },
       // add card
       (otpRequest, card, cb) => {
-        const { name, month, year, main } = otpRequest;
+        const { name, month, year, main, pan } = otpRequest;
         fetchDB(
           cardsQuery.save,
-          [customerId, name, card.pan, month, year, card.id, main],
+          [customerId, name, pan, month, year, card.id, main],
           (err, result) => {
             if (err) return cb(err);
 
@@ -543,6 +543,7 @@ const saveUzcardCard = (_, customerId, inputs, parentCb) => {
             year: inputs.expiry_year,
             name: inputs.name,
             main: inputs.main,
+            pan: inputs.pan,
           }),
           (err) => {
             if (err) return cb(err);
@@ -641,7 +642,7 @@ const getSingleTransportCardBalance = async (card) => {
       .then((res) =>
         resolve({
           ...card,
-          balance: (res.data.data.balance / 100).toFixed(2),
+          balance: (res.data.balance / 100).toFixed(2),
           token: undefined,
         })
       )
