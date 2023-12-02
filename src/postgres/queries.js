@@ -83,7 +83,7 @@ const devicesQuery = {
 insert into customer_device(customer_id, device_id, name)
 values($1, $2, $3) on conflict do nothing`,
   getAllByCustomer: `
-select id, name, last_login, CASE WHEN device_id = $2 THEN true ELSE false END AS current
+select id, name, last_login, case when device_id = $2 then true else false end AS current
 from customer_device
 where customer_id = $1`,
   getOneByUid: `
@@ -171,6 +171,30 @@ const transactionsQuery = {
 select * 
 from get_transactions($1, $2, $3, $4, $5, $6, $7)`,
   getOneById: `select * from get_transaction_by_id($1, $2, $3)`,
+  getThisMonthSummary: `
+with my_bank_cards as (
+  select id, pan from bank_card where customer_id = $1
+) 
+select
+sum(case when type = 'expense' then amount else 0 END) as expense,
+count(case when type = 'expense' then 1 else null END) as expense_count,
+sum(case when type = 'income' then amount else 0 END) as income,
+count(case when type = 'income' then 1 else null END) as income_count
+from (
+  select amount, type
+  from transfer
+  where extract(month from created_at) = extract(month from current_date)
+    and owner_id = $1 
+    and (sender_id in (select id from my_bank_cards) and type = 'expense') 
+      or (receiver_id in (select id from my_bank_cards) and type = 'income')
+  union all
+  select amount, type
+  from payment
+  where extract(month from created_at) = extract(month from current_date)
+    and owner_id = $1 
+    and sender_id in (select id from my_bank_cards) and type = 'expense'
+) as combined_data;
+`,
 };
 
 module.exports = {

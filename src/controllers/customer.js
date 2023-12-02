@@ -5,7 +5,12 @@ const bcrypt = require('bcrypt');
 const fetchDB = require('../postgres');
 const redis = require('../redis');
 const io = require('../socket/socket');
-const { customersQuery, devicesQuery, messagesQuery } = require('../postgres/queries');
+const {
+  customersQuery,
+  devicesQuery,
+  messagesQuery,
+  transactionsQuery,
+} = require('../postgres/queries');
 const verifyToken = require('../middleware/verifyToken');
 const LIVR = require('../utils/livr');
 const ValidationError = require('../errors/ValidationError');
@@ -28,16 +33,23 @@ function getCustomerProfile(req, res, next) {
         });
       },
       (customerId, cb) => {
-        fetchDB(customersQuery.getOneById, [customerId], (err, result) => {
-          if (err) return cb(err);
-          if (result.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
+        const getDetailsPromise = [
+          fetchDB(customersQuery.getOneById, [customerId]),
+          fetchDB(transactionsQuery.getThisMonthSummary, [customerId]),
+        ];
 
-          const customer = result.rows[0];
-          delete customer.hashed_password;
-          customer.image_url = fileStorageS3.getFileUrl(customer.image_url);
+        Promise.all(getDetailsPromise)
+          .then(([customerDetails, summary]) => {
+            if (customerDetails.rows.length === 0) return cb(new CustomError('USER_NOT_FOUND'));
 
-          cb(null, customer);
-        });
+            const customer = customerDetails.rows[0];
+            delete customer.hashed_password;
+            customer.image_url = fileStorageS3.getFileUrl(customer.image_url);
+            customer.summary = summary.rows[0];
+
+            cb(null, customer);
+          })
+          .catch(cb);
       },
     ],
     (err, customer) => {
