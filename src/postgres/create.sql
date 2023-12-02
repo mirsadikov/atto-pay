@@ -75,7 +75,8 @@ create table if not exists service (
   image_url varchar(256),
   is_active boolean not null default false,
   public_key varchar(64) not null unique,
-  deleted boolean not null default false
+  deleted boolean not null default false,
+  public boolean not null default false
 );
 
 create unique index if not exists unique_merchant_category on service(merchant_id, category_id) where deleted = false;

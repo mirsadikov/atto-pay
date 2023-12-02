@@ -273,7 +273,7 @@ function metroQrPay(req, res, next) {
             ATTO_FARE_SERVICE_ID,
             svgateResponse.amount / 100,
             svgateResponse.ext,
-            JSON.stringify({ type: 'metro' }),
+            JSON.stringify({}),
           ],
           (_, result) => {
             const { payment_id, success_message } = result.rows[0];
@@ -440,7 +440,7 @@ function busQrPay(req, res, next) {
             ATTO_FARE_SERVICE_ID,
             busDetails.fee,
             svgateResponse.ext,
-            JSON.stringify({ type: 'bus' }),
+            JSON.stringify({}),
           ],
           (_, result) => {
             const { payment_id, success_message } = result.rows[0];

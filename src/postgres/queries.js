@@ -114,7 +114,7 @@ const servicesQuery = {
   getOneById: `
 select *
 from service s 
-where id = $1 and merchant_id = $2 and deleted = false`,
+where id = $1 and merchant_id = $2 and deleted = false and public = false`,
   getOneByIdWithCategory: `
 select s.id, s.merchant_id, s.category_id, s.name, s.image_url, s.is_active, s.public_key,
   c.code as category_code, c.name -> $3 as category_name,
@@ -123,7 +123,7 @@ select s.id, s.merchant_id, s.category_id, s.name, s.image_url, s.is_active, s.p
   ) from service_field f where f.service_id = s.id and f.deleted = false) as fields
 from service s
 JOIN service_category c on s.category_id = c.id
-where s.id = $1 and s.merchant_id = $2 and s.deleted = false`,
+where s.id = $1 and s.merchant_id = $2 and s.deleted = false and s.public = false`,
   getUnique: `
 select * from service 
 where merchant_id = $1 and category_id = $2 and deleted = false`,
@@ -132,7 +132,7 @@ select s.id, s.merchant_id, s.category_id, s.name, s.image_url,
   c.code as category_code, c.name -> $1 as category_name
 from service s 
 JOIN service_category c on s.category_id = c.id 
-where is_active = true and deleted = false`,
+where is_active = true and deleted = false and public = false`,
   create: `call create_service($1, $2, $3, $4, $5, $6, $7, null, null, null)`,
   update: `call update_service($1, $2, $3, $4, $5, $6, $7, $8, null, null, null)`,
   delete: `
@@ -159,7 +159,7 @@ select s.id, s.merchant_id, s.category_id, s.name, s.image_url,
 from service s
 JOIN service_category c on s.category_id = c.id
 where s.id = $1 and s.deleted = false and s.is_active = true`,
-  getIdWithQr: `select id, is_active from service where public_key = $1 and deleted = false`,
+  getIdWithQr: `select id, is_active from service where public_key = $1 and deleted = false and public = false`,
 };
 
 const transactionsQuery = {
