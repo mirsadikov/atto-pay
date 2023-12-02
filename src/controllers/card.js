@@ -639,14 +639,17 @@ const getSingleTransportCardBalance = async (card) => {
           cardNumber: card.pan,
         },
       })
-      .then((res) =>
+      .then((res) => {
         resolve({
           ...card,
+          pan: `${card.pan.slice(0, 6)}******${card.pan.slice(-4)}`,
           balance: (res.data.balance / 100).toFixed(2),
           token: undefined,
-        })
-      )
-      .catch(() => resolve({ ...card, balance: null, token: undefined }));
+        });
+      })
+      .catch((err) => {
+        resolve({ ...card, balance: null, token: undefined });
+      });
   });
 };
 
