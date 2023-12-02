@@ -258,10 +258,12 @@ function generateQrCode(req, res, next) {
             stationId: inputs.stationId,
           })
           .then((response) => {
+            const { qr, expireDate } = response.data.data;
+            const expireDateMoment = moment(expireDate, 'YYDDDHHmm').subtract(5, 'hours');
             cb(null, {
               success: true,
-              qr: response.data.data.qr,
-              expiresIn: moment,
+              qr,
+              expiresIn: expireDateMoment.diff(moment(), 'seconds'),
             });
           })
           .catch((err) => {
