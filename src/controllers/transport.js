@@ -438,7 +438,7 @@ function busQrPay(req, res, next) {
             customerId,
             fromCard.id,
             ATTO_FARE_SERVICE_ID,
-            svgateResponse.amount,
+            busDetails.fee,
             svgateResponse.ext,
             JSON.stringify({ type: 'bus' }),
           ],
