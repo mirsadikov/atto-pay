@@ -271,7 +271,7 @@ function metroQrPay(req, res, next) {
             customerId,
             fromCard.id,
             ATTO_FARE_SERVICE_ID,
-            svgateResponse.amount,
+            svgateResponse.amount / 100,
             svgateResponse.ext,
             JSON.stringify({ type: 'metro' }),
           ],
@@ -453,7 +453,7 @@ function busQrPay(req, res, next) {
               details: {
                 qr: ticket.qr,
                 orderNumber: ticket.orderNumber,
-                fee: svgateResponse.amount,
+                fee: busDetails.fee,
                 bus: {
                   regNumber: busDetails.regNumber,
                   routeName: busDetails.routeName,
