@@ -729,6 +729,15 @@ begin
       from transfer t
       join bank_card own_card on own_card.id = t.sender_id
       join customer receiver_customer on receiver_customer.id = t.receiver_id
+      where t.owner_id = _customer_id and t.id = _transaction_id
+      union all
+      select t.id, t.owner_id, t.type, 'transfer' as action, t.amount, t.created_at,
+      jsonb_build_object('name', sender_customer.name, 'image_url', sender_customer.image_url, 'pan', mask_credit_card(t.sender_pan)) as sender,
+      jsonb_build_object('id', own_tc.id, 'name', own_tc.name, 'pan', mask_credit_card(own_tc.pan)) as receiver,
+      'null'::jsonb as fields
+      from transfer t
+      join customer sender_customer on sender_customer.id = t.sender_id
+      join transport_card own_tc on own_tc.id = t.receiver_id
       where t.owner_id = _customer_id and t.id = _transaction_id;
   end if;
 end;
